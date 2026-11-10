@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Einsatzerfassung FF Auersthal</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#c8102e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root{--rot:#c8102e;--grau:#f3f4f6;--rand:#d1d5db;--text:#111827;--gruen:#15803d;--gelb:#b45309;}
+  body[data-art="Brand"]{--rot:#c8102e}
+  body[data-art="Technisch"]{--rot:#1d4ed8}
+  body[data-art="Schadstoff"]{--rot:#15803d}
+  body[data-art="Brandsicherheitswache"]{--rot:#ca8a04}
+  body[data-art="Fehlalarm"]{--rot:#4b5563}
+  body[data-art="Sonstiges"]{--rot:#6d28d9}
+  header,.chip,.btn,.person,.el,h2,label.feld input,label.feld textarea{transition:background-color .25s,border-color .25s,color .25s}
+  .chip[data-art]{--rot:var(--farbe)}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{max-width:100%;overflow-x:hidden}
+  body{margin:0;font-family:system-ui,-apple-system,Roboto,Arial,sans-serif;font-size:18px;color:var(--text);background:#fff}
+  main,.leiste,header{width:100%}
+  .grid>*{min-width:0}
+  header{background:var(--rot);color:#fff;padding:10px 16px 12px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:12px;row-gap:4px;position:sticky;top:0;z-index:5}
+  header h1{margin:0;font-size:21px;line-height:1.2;grid-column:2}
+  header.mit-zurueck h1{grid-column:1/-1}
+  header small{display:block;font-size:13px;opacity:.9;font-weight:400;margin-top:2px}
+  header button{background:rgba(255,255,255,.16);color:#fff;border:1.5px solid rgba(255,255,255,.55);border-radius:9px;padding:6px 12px 6px 8px;font-size:15px;font-weight:700;grid-column:1;grid-row:1;justify-self:start}
+  header .sync{grid-column:3;grid-row:1;font-size:13px;white-space:nowrap}
+  header:not(.mit-zurueck) h1{grid-column:1/3;grid-row:1}
+  header:not(.mit-zurueck) .sync{grid-row:1}
+  main{max-width:1100px;margin:0 auto;padding:14px;padding-bottom:110px}
+  h2{font-size:17px;margin:22px 0 8px;text-transform:uppercase;letter-spacing:.5px;color:#374151;border-bottom:2px solid var(--rot);padding-bottom:4px}
+  .status{padding:10px 14px;border-radius:10px;font-size:15px;margin-bottom:12px;display:none}
+  .status.warn{display:block;background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+  .status.err{display:block;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+  .status.ok{display:block;background:#dcfce7;color:#166534;border:1px solid #86efac}
+  /* Übersicht */
+  .karte{--kf:#9ca3af;display:block;padding:12px 14px 12px 16px;border:2px solid var(--rand);border-left:10px solid var(--kf);border-radius:12px;margin-bottom:12px;cursor:pointer;background:#fff}
+  .karte.aktiv{box-shadow:0 2px 10px rgba(0,0,0,.08)}
+  .karte.alt{opacity:.8}
+  .karte .kopfz{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+  .karte .art{font-size:13px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#fff;background:var(--kf);padding:4px 10px;border-radius:6px}
+  .karte .titel{font-weight:700;font-size:20px;line-height:1.25;word-break:break-word;color:var(--text)}
+  .karte .ort{font-size:17px;color:#374151;margin-top:2px}
+  .karte .zeile2{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:15px;color:#4b5563;margin-top:8px}
+  .karte .zeile2 b{color:#374151;font-weight:600}
+  .karte .fuss{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .badge{font-size:13px;font-weight:700;padding:5px 10px;border-radius:999px;background:var(--grau);color:#374151;white-space:nowrap}
+  .badge.aktiv{background:#dcfce7;color:var(--gruen);margin-left:auto}
+  .badge.abg{background:var(--grau);color:#6b7280;margin-left:auto}
+  .badge.zahl{background:var(--kf);color:#fff;font-size:15px}
+  .leer{color:#6b7280;padding:20px;text-align:center}
+  /* Formular */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+  .feld{display:flex;flex-direction:column;font-size:14px;color:#4b5563;font-weight:600}
+  label.feld input,label.feld textarea{margin-top:4px;font-size:19px;padding:11px 12px;border:2px solid var(--rand);border-radius:10px;width:100%;font-family:inherit}
+  label.feld input[type=date],label.feld input[type=time]{display:block;min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;background:#fff;min-height:50px;text-align:left}
+  .zeit button{height:50px}
+  label.feld input:focus,label.feld textarea:focus{outline:none;border-color:var(--rot)}
+  .block{display:flex;flex-direction:column;gap:14px}
+  .ortzeile{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:4px}
+  .ortzeile>input{flex:1;min-width:180px;font-size:20px;padding:12px;border:2px solid var(--rand);border-radius:10px;font-family:inherit}
+  .ortzeile>input:focus{outline:none;border-color:var(--rot)}
+  .zeiten{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px}
+  .zeiten>*{min-width:0}
+  .linkbtn{align-self:flex-start;background:none;border:none;color:var(--rot);font-size:15px;font-weight:600;padding:4px 0;cursor:pointer}
+  input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and-time-value{text-align:left}
+  input[type=date],input[type=time],input[type=number],input[type=text],textarea{color:var(--text);-webkit-text-fill-color:var(--text)}
+  input::placeholder,textarea::placeholder{color:#9ca3af;-webkit-text-fill-color:#9ca3af}
+  .zeit{display:flex;gap:8px;align-items:flex-end;width:100%}
+  .zeit input{flex:1;min-width:0}
+  .zeit button{flex:none;white-space:nowrap}
+  .zeit button{height:52px;padding:0 14px;font-size:15px;border:2px solid var(--rand);background:var(--grau);border-radius:10px}
+  .chips{display:flex;flex-wrap:wrap;gap:10px}
+  .chip{display:flex;align-items:center;gap:8px;padding:12px 18px;border:2px solid var(--rand);border-radius:999px;font-size:18px;font-weight:600;background:#fff;user-select:none;cursor:pointer}
+  .chip input{width:24px;height:24px;accent-color:var(--rot);margin:0}
+  .chip input[type=radio],.chip input[type=checkbox]{display:none}
+  .chip:has(input[type=checkbox]:checked)::before{content:"✓";font-weight:800}
+  .chip{justify-content:center;text-align:center;padding:11px 14px;font-size:17px}
+  .chips.raster{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .chips.raster>*{min-width:0}
+  .chips.raster2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .chips.raster2>*{min-width:0}
+  .chips.raster2 .chip{border-radius:12px;padding:12px 8px;overflow:hidden;font-size:16px}
+  .chips.raster .chip{border-radius:12px;padding:12px 6px;overflow:hidden}
+  .tempzeile{display:grid;grid-template-columns:1fr 2fr;gap:10px;align-items:center;margin-top:10px}
+  .tempzeile .tlabel{font-size:17px;font-weight:600;color:var(--text)}
+  .tstep{display:flex;align-items:center;border:2px solid var(--rand);border-radius:12px;overflow:hidden;height:52px}
+  .tstep button{width:52px;height:100%;border:none;background:var(--grau);font-size:26px;font-weight:700;color:var(--text);flex:none}
+  .tstep input{flex:1;min-width:0;border:none;font-size:20px;font-weight:700;text-align:right;padding:0 4px;font-family:inherit;height:100%;-moz-appearance:textfield}
+  .tstep input::-webkit-inner-spin-button,.tstep input::-webkit-outer-spin-button{-webkit-appearance:none}
+  .tstep input:focus{outline:none}
+  .tstep:focus-within{border-color:var(--rot)}
+  .tstep .einheit{font-size:17px;font-weight:600;color:#4b5563;padding:0 10px 0 4px}
+  .ufkarte{border:2px solid var(--rand);border-radius:12px;padding:12px;margin-bottom:12px}
+  .ufkopf{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .ufkopf b{font-size:17px}
+  .ufkopf button{background:none;border:none;color:var(--rot);font-size:15px;font-weight:600}
+  .ufgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .ufgrid>*{min-width:0}
+  .ufgrid .voll{grid-column:1/-1}
+  .fotos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+  .foto{position:relative;border:2px dashed var(--rand);border-radius:10px;aspect-ratio:4/3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:13px;font-weight:600;color:#4b5563;text-align:center;overflow:hidden;background:var(--grau);cursor:pointer}
+  .foto.hat{border-style:solid;background:#000}
+  .foto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .foto .ico{font-size:22px}
+  .foto input{display:none}
+  .foto .lbl{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.55);color:#fff;font-size:12px;padding:3px}
+  .foto .x{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:26px;height:26px;font-size:15px;line-height:26px;text-align:center}
+  .fotos.doku .foto{aspect-ratio:1}
+  .foto .neu{font-size:28px;line-height:1}
+  .dokutext{margin-top:6px}
+  .dokutext input{width:100%;font-size:14px;padding:6px 8px;border:2px solid var(--rand);border-radius:8px;font-family:inherit}
+  .dokuitem{display:flex;flex-direction:column}
+  .foto .lade{position:absolute;inset:0;background:rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center;font-size:14px}
+  #fotoGross img{max-width:100%;max-height:80vh;display:block;margin:0 auto;border-radius:8px}
+  .zusfassung{display:none;font-size:15px;color:#4b5563;margin:-4px 0 10px}
+  .zusfassung:not(:empty){display:block}
+  .chip:has(input[type=radio]){justify-content:center;text-align:center}
+  .chips.arten{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .chips.arten>*{min-width:0}
+  .chips.arten .chip{border-radius:12px;padding:12px 6px;font-size:16px;line-height:1.15;overflow:hidden;border-color:var(--farbe);color:var(--farbe);background:#fff;flex-direction:column;gap:4px}
+  .chips.arten .chip:has(input:checked){background:var(--farbe);border-color:var(--farbe);color:#fff}
+  @media(max-width:360px){.chips.arten{grid-template-columns:repeat(2,1fr)}}
+  .chip:has(input:checked){background:var(--rot);border-color:var(--rot);color:#fff}
+  .personen{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px}
+  .person{display:flex;align-items:center;gap:12px;padding:10px 12px;border:2px solid var(--rand);border-radius:10px;cursor:pointer;user-select:none;min-height:56px}
+  .person input{width:28px;height:28px;accent-color:var(--gruen);margin:0;flex:none}
+  .person .nr{font-family:ui-monospace,monospace;color:#6b7280;width:38px;flex:none}
+  .person .name{font-weight:600}
+  .person:has(input:checked){background:#dcfce7;border-color:var(--gruen)}
+  .person{-webkit-touch-callout:none;-webkit-user-select:none;position:relative}
+  .person .el{display:none;margin-left:auto;background:var(--rot);color:#fff;font-size:13px;font-weight:800;padding:3px 8px;border-radius:6px;flex:none}
+  .person.ist-el{border-color:var(--rot);background:#fee2e2}
+  .person.ist-el .el{display:inline-block}
+  .person.ist-el:has(input:checked){background:#fee2e2}
+  h2.klapp{cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px}
+  h3.klapp{cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;font-size:15px;margin:18px 0 6px;text-transform:uppercase;letter-spacing:.5px;color:#4b5563;border-bottom:1px solid var(--rand);padding-bottom:4px}
+  h3.klapp::after{content:"▸";margin-left:auto;transition:transform .15s}
+  h3.klapp.offen::after{transform:rotate(90deg)}
+  h2.klapp::after{content:"▸";margin-left:auto;transition:transform .15s}
+  h2.klapp.offen::after{transform:rotate(90deg)}
+  .elinfo{font-size:15px;color:#374151;margin:4px 0 0}
+  .stepper{display:flex;align-items:center;gap:0;border:2px solid var(--rand);border-radius:10px;overflow:hidden;flex:none}
+  .stepper button{width:48px;height:48px;border:none;background:var(--grau);font-size:24px;font-weight:700;color:var(--text)}
+  .stepper span{min-width:44px;text-align:center;font-size:20px;font-weight:700}
+  .stepper.aktivz{border-color:var(--rot)}
+  .zeile{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #e5e7eb;flex-wrap:wrap}
+  .zeile .zname{flex:1;font-weight:600;min-width:140px}
+  .zeile .zsub{font-size:13px;color:#6b7280;font-weight:400;display:block}
+  .fftab{width:100%;border-collapse:collapse;margin-top:10px}
+  .fftab th{font-size:13px;color:#6b7280;font-weight:600;text-align:left;padding:4px 6px;border-bottom:2px solid var(--rand)}
+  .fftab th.z,.fftab td.z{text-align:center;width:110px}
+  .fftab td{padding:6px;border-bottom:1px solid #e5e7eb;font-weight:600;font-size:17px}
+  .fftab input{width:96px;font-size:20px;font-weight:700;text-align:center;padding:10px 6px;border:2px solid var(--rand);border-radius:10px;font-family:inherit}
+  .fftab input:focus{outline:none;border-color:var(--rot)}
+  .fftab input:placeholder-shown{font-weight:400;color:#9ca3af}
+  .fftab tfoot td{font-weight:700;border-bottom:none;color:#374151}
+  .neuff{display:flex;gap:8px;margin-top:10px}
+  .neuff input{flex:1;font-size:18px;padding:12px;border:2px solid var(--rand);border-radius:10px;min-width:0}
+  .zusammen{font-size:15px;color:#4b5563;margin-top:8px}
+  .suche{width:100%;font-size:18px;padding:12px;border:2px solid var(--rand);border-radius:10px;margin-bottom:10px}
+  .leiste{position:fixed;left:0;right:0;bottom:0;padding-bottom:calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:2px solid var(--rand);padding:10px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 -4px 16px rgba(0,0,0,.08);flex-wrap:wrap}
+  .leiste .anz{font-weight:700;font-size:17px;flex:1}
+  .btn{border:none;border-radius:12px;padding:14px 20px;font-size:18px;font-weight:700;cursor:pointer}
+  .btn-rot{background:var(--rot);color:#fff}
+  .btn-gruen{background:var(--gruen);color:#fff}
+  .btn-grau{background:var(--grau);color:var(--text)}
+  .btn-klein{padding:10px 14px;font-size:15px}
+  .dialog{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;padding:14px;overflow:auto}
+  .dialog .box{background:#fff;border-radius:14px;max-width:700px;margin:20px auto;padding:18px}
+  .dialog pre{white-space:pre-wrap;font-size:15px;background:var(--grau);padding:12px;border-radius:10px;max-height:50vh;overflow:auto}
+  .dialog .aktionen{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+  .hinweis{font-size:14px;color:#6b7280;margin-top:6px}
+  .sync{font-size:13px;color:#6b7280}
+  .gesperrt .person,.gesperrt .chip,.gesperrt input,.gesperrt textarea{opacity:.7;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="loginView" class="dialog" style="display:flex;align-items:center;justify-content:center;background:var(--rot);z-index:50">
+  <form class="box" style="max-width:380px;width:100%;text-align:center" onsubmit="login(event)">
+    <h2 style="border:none;margin:0 0 4px;font-size:22px;text-transform:none;letter-spacing:0;color:var(--text)">Einsatzerfassung</h2>
+    <div style="color:#6b7280;margin-bottom:18px">Freiwillige Feuerwehr Auersthal</div>
+    <div class="chips" style="justify-content:center;margin-bottom:12px">
+      <label class="chip"><input type="radio" name="konto" value="tablet" checked>Tablet</label>
+      <label class="chip"><input type="radio" name="konto" value="admin">Admin</label>
+    </div>
+    <input id="pw" type="password" placeholder="Passwort" autocomplete="current-password" style="width:100%;font-size:20px;padding:14px;border:2px solid var(--rand);border-radius:12px;text-align:center;margin-bottom:12px">
+    <div id="loginFehler" style="color:var(--rot);font-weight:600;min-height:22px;margin-bottom:6px"></div>
+    <button class="btn btn-rot" type="submit" style="width:100%">Anmelden</button>
+  </form>
+</div>
+<header>
+  <button id="zurueck" style="display:none" onclick="zeigeUebersicht()">‹ Einsätze</button>
+  <h1 id="kopf">Einsatzerfassung<small>Freiwillige Feuerwehr Auersthal</small></h1>
+  <span class="sync" id="sync" style="color:#fff;opacity:.85"></span>
+
+</header>
+
+<main>
+  <div id="status" class="status"></div>
+
+  <!-- ÜBERSICHT -->
+  <section id="uebersicht">
+    <h2>Aktive Einsätze</h2>
+    <div id="listeAktiv"><div class="leer">Lade …</div></div>
+    <h2>Abgeschlossene Einsätze</h2>
+    <div id="listeAlt"></div>
+  </section>
+
+  <!-- EINSATZ -->
+  <section id="einsatzView" style="display:none">
+    <h2>Einsatzart</h2>
+    <div class="chips arten" id="arten"></div>
+    <h2 class="klapp offen" data-ziel="secEinsatz">Einsatz</h2>
+    <div class="zusfassung" id="zf_secEinsatz"></div>
+    <div class="block" id="secEinsatz">
+      <label class="feld">Bezeichnung
+        <input id="einsatz" type="text" placeholder="z. B. Wohnhausbrand, Verkehrsunfall …" autocomplete="off">
+      </label>
+      <div class="feld" style="display:flex">Einsatzort
+        <div class="ortzeile">
+          <div class="chips">
+            <label class="chip"><input type="radio" name="gem" data-gem="Auersthal">Auersthal</label>
+            <label class="chip"><input type="radio" name="gem" data-gem="ueber">Überörtlich</label>
+          </div>
+          <input id="gemeinde" type="text" placeholder="Gemeinde / Ort" autocomplete="off" style="display:none">
+        </div>
+      </div>
+      <label class="feld">Adresse / Objekt
+        <input id="ort" type="text" placeholder="z. B. Hauptstraße 12, Bahnhof, L12 km 3" autocomplete="off">
+      </label>
+      <div class="zeiten">
+        <label class="feld">Datum
+          <input id="datum" type="date">
+        </label>
+        <label class="feld" id="rdWrap" style="display:none">Rückkehr am
+          <div class="zeit"><input id="rueckkehrDatum" type="date"><button type="button" onclick="$('rueckkehrDatum').value='';schreibe({rueckkehrDatum:''});rdZeigen(false)">×</button></div>
+        </label>
+        <div id="rdPlatz"></div>
+        <label class="feld">Ausfahrt
+          <div class="zeit"><input id="ausfahrt" type="time"><button type="button" onclick="jetzt('ausfahrt')">Jetzt</button></div>
+        </label>
+        <label class="feld">Rückkehr
+          <div class="zeit"><input id="rueckkehr" type="time"><button type="button" onclick="jetzt('rueckkehr')">Jetzt</button></div>
+        </label>
+      </div>
+      <button type="button" class="linkbtn" id="rdLink" onclick="rdZeigen(true)">+ Rückkehr an einem anderen Tag</button>
+    </div>
+
+    <h2 class="klapp offen" data-ziel="secFz">Fahrzeuge</h2>
+    <div class="zusfassung" id="zf_secFz"></div>
+    <div id="secFz"><div class="chips raster" id="fahrzeuge"></div></div>
+
+    <h2 class="klapp offen" data-ziel="secMann">Mannschaft <span id="anzMann" style="font-weight:400;color:#6b7280"></span></h2>
+    <div class="zusfassung" id="zf_secMann"></div>
+    <div id="secMann">
+      <div class="elinfo" id="elInfo">Einsatzleiter: – <span style="color:#6b7280">(Name lang gedrückt halten, um ihn als Einsatzleiter zu setzen)</span></div>
+      <input class="suche" id="suche" type="search" placeholder="Name suchen …" autocomplete="off">
+      <div class="personen" id="mannschaft"></div>
+      <h3 class="klapp sub" data-ziel="reserve">Reserve <span id="anzRes" style="font-weight:400;color:#6b7280"></span></h3>
+      <div class="zusfassung" id="zf_reserve" style="margin-left:0"></div>
+      <div class="personen" id="reserve" style="display:none"></div>
+    </div>
+
+    <h2 class="klapp" data-ziel="secFF">Weitere Feuerwehren <span id="anzFF" style="font-weight:400;color:#6b7280"></span></h2>
+    <div class="zusfassung" id="zf_secFF"></div>
+    <div id="secFF" style="display:none">
+      <div class="chips raster2" id="ffChips"></div>
+      <div class="neuff"><input id="ffNeu" type="text" placeholder="Weitere Feuerwehr eingeben …" autocomplete="off"><button class="btn btn-grau btn-klein" onclick="ffHinzu()">Hinzufügen</button></div>
+      <div id="ffZeilen"></div>
+      <div class="zusammen" id="ffSumme"></div>
+    </div>
+
+    <h2 class="klapp" data-ziel="secKr">Weitere Kräfte <span id="anzKr" style="font-weight:400;color:#6b7280"></span></h2>
+    <div class="zusfassung" id="zf_secKr"></div>
+    <div id="secKr" style="display:none">
+      <div style="font-weight:700;margin:6px 0">Rettungskräfte</div>
+      <div id="rettung"></div>
+      <div style="font-weight:700;margin:16px 0 6px">Polizei</div>
+      <div id="polizei"></div>
+      <div style="font-weight:700;margin:16px 0 6px">Sonstige Stellen</div>
+      <div class="chips raster2" id="stellen"></div>
+      <label class="feld" style="margin-top:12px">Weitere Kräfte / Anmerkung
+        <input id="krSonst" type="text" placeholder="z. B. Tierarzt, Bestatter …" autocomplete="off">
+      </label>
+    </div>
+
+    <h2 class="klapp" data-ziel="secAS">Atemschutz</h2>
+    <div class="zusfassung" id="zf_secAS"></div>
+    <div id="secAS" style="display:none">
+      <div class="zeile"><div class="zname">Trupps<span class="zsub">eingesetzte Atemschutztrupps</span></div><div data-stepper="atemschutz.trupps"></div></div>
+      <div class="zeile"><div class="zname">Träger<span class="zsub">Atemschutzträger gesamt</span></div><div data-stepper="atemschutz.traeger"></div></div>
+      <div class="zeile"><div class="zname">Geräte<span class="zsub">verwendete Atemschutzgeräte / Flaschen</span></div><div data-stepper="atemschutz.geraete"></div></div>
+    </div>
+
+    <h2 class="klapp" data-ziel="secSchaden">Personenschäden</h2>
+    <div class="zusfassung" id="zf_secSchaden"></div>
+    <div id="secSchaden" style="display:none">
+      <div class="zeile"><div class="zname">Gerettet<span class="zsub">Personen aus Gefahr gerettet</span></div><div data-stepper="schaden.gerettet"></div></div>
+      <div class="zeile"><div class="zname">Geborgen<span class="zsub">Personen geborgen (z. B. aus Kfz)</span></div><div data-stepper="schaden.geborgen"></div></div>
+      <div class="zeile"><div class="zname">Verletzt</div><div data-stepper="schaden.verletzt"></div></div>
+      <div class="zeile"><div class="zname">Tot</div><div data-stepper="schaden.tot"></div></div>
+      <div class="zeile"><div class="zname">Tiere<span class="zsub">gerettet / geborgen</span></div><div data-stepper="schaden.tiere"></div></div>
+    </div>
+
+    <h2 class="klapp" data-ziel="secMat">Verbrauchsmaterial</h2>
+    <div class="zusfassung" id="zf_secMat"></div>
+    <div id="secMat" style="display:none">
+      <div class="tempzeile"><span class="tlabel">Ölbindemittel</span><div class="tstep"><button type="button" onclick="numPlus('material.oel',-5)">−</button><input type="number" inputmode="numeric" placeholder="–" data-num="material.oel"><span class="einheit">kg</span><button type="button" onclick="numPlus('material.oel',5)">+</button></div></div>
+      <div class="tempzeile"><span class="tlabel">Schaummittel</span><div class="tstep"><button type="button" onclick="numPlus('material.schaum',-10)">−</button><input type="number" inputmode="numeric" placeholder="–" data-num="material.schaum"><span class="einheit">l</span><button type="button" onclick="numPlus('material.schaum',10)">+</button></div></div>
+      <div class="tempzeile"><span class="tlabel">Löschwasser</span><div class="tstep"><button type="button" onclick="numPlus('material.wasser',-1000)">−</button><input type="number" inputmode="numeric" placeholder="–" data-num="material.wasser"><span class="einheit">l</span><button type="button" onclick="numPlus('material.wasser',1000)">+</button></div></div>
+      <label class="feld" style="margin-top:12px">Sonstiges Material
+        <input type="text" data-text="material.sonst" placeholder="z. B. 2 Ölsperren, 20 m Absperrband …" autocomplete="off">
+      </label>
+    </div>
+
+    <h2 class="klapp" data-ziel="secWetter">Witterung</h2>
+    <div class="zusfassung" id="zf_secWetter"></div>
+    <div id="secWetter" style="display:none">
+    <div class="hinweis" style="margin:0 0 8px">Lage bei Einsatzbeginn</div>
+    <div class="chips raster" id="wetter"></div>
+    <div class="tempzeile">
+      <span class="tlabel">Temperatur</span>
+      <div class="tstep"><button type="button" onclick="tempPlus(-1)">−</button><input id="temp" type="number" inputmode="numeric" placeholder="–" autocomplete="off"><span class="einheit">°C</span><button type="button" onclick="tempPlus(1)">+</button></div>
+    </div>
+    <div class="hinweis" style="margin-top:8px">Aktuelle Werte: <a href="https://wetter.orf.at/noe/" target="_blank" rel="noopener">wetter.orf.at/noe</a> · <a href="https://warnungen.zamg.at/" target="_blank" rel="noopener">Unwetterwarnungen</a></div>
+    </div>
+
+    <div id="ufBlock" style="display:none">
+    <h2 class="klapp" data-ziel="secUf">Unfallfahrzeuge <span id="anzUf" style="font-weight:400;color:#6b7280"></span></h2>
+    <div class="zusfassung" id="zf_secUf"></div>
+    <div id="secUf" style="display:none">
+      <div id="ufListe"></div>
+      <button type="button" class="btn btn-grau btn-klein" onclick="ufNeu()">+ Fahrzeug hinzufügen</button>
+      <div class="hinweis">Fotos werden verkleinert gespeichert und sind nur über diese Einsatzerfassung abrufbar.</div>
+    </div>
+    </div>
+
+    <h2 class="klapp" data-ziel="secPers">Beteiligte / Geschädigte <span id="anzPers" style="font-weight:400;color:#6b7280"></span></h2>
+    <div class="zusfassung" id="zf_secPers"></div>
+    <div id="secPers" style="display:none">
+      <div id="persListe"></div>
+      <button type="button" class="btn btn-grau btn-klein" onclick="persNeu()">+ Person hinzufügen</button>
+    </div>
+
+    <h2 class="klapp" data-ziel="secDoku">Fotos / Dokumentation <span id="anzDoku" style="font-weight:400;color:#6b7280"></span></h2>
+    <div class="zusfassung" id="zf_secDoku"></div>
+    <div id="secDoku" style="display:none">
+      <div class="fotos" id="dokuListe"></div>
+      <div class="hinweis">Antippen zum Vergrößern · Bildtext optional</div>
+    </div>
+
+    <h2 class="klapp" data-ziel="secMass">Lage &amp; Maßnahmen</h2>
+    <div class="zusfassung" id="zf_secMass"></div>
+    <div id="secMass" style="display:none" class="block">
+      <label class="feld">Lage beim Eintreffen
+        <textarea id="lage" rows="3" placeholder="z. B. Pkw auf Dach liegend, Lenker eingeklemmt, Betriebsmittel ausgetreten"></textarea>
+      </label>
+      <label class="feld">Gesetzte Maßnahmen
+        <textarea id="massnahmen" rows="4" placeholder="z. B. Brandschutz aufgebaut, Person mit Spreizer befreit, Fahrbahn gereinigt"></textarea>
+      </label>
+      <label class="feld">Einsatzstelle übergeben an
+        <input id="uebergabe" type="text" placeholder="z. B. Polizei, Besitzer, Straßendienst, ÖBB" autocomplete="off">
+      </label>
+      <div class="chips">
+        <label class="chip"><input type="checkbox" data-flag="brandwache">Brandwache eingerichtet</label>
+        <label class="chip"><input type="checkbox" data-flag="kostenpflichtig">Kostenpflichtig / Verrechnung</label>
+      </div>
+    </div>
+
+    <h2>Bemerkungen</h2>
+    <label class="feld">
+      <textarea id="bemerkung" rows="3" placeholder=""></textarea>
+    </label>
+    <div class="hinweis">Änderungen werden sofort gespeichert und auf allen Tablets angezeigt.</div>
+    <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-grau btn-klein" id="btnStatus" onclick="statusWechseln()">Einsatz abschließen</button>
+      <button class="btn btn-grau btn-klein" id="btnLoeschen" onclick="loeschenFragen()" style="color:var(--rot);display:none">Einsatz löschen (Admin)</button>
+    </div>
+  </section>
+</main>
+
+<div class="leiste" id="leisteUebersicht">
+  <button class="btn btn-grau btn-klein" id="adminBtn" style="display:none" onclick="adminOeffnen()">⚙︎ Admin</button>
+  <button class="btn btn-grau btn-klein" onclick="logout()">Abmelden</button>
+  <div class="anz"></div>
+  <button class="btn btn-rot" onclick="neuerEinsatz()">+ Neuer Einsatz</button>
+</div>
+<div class="leiste" id="leisteEinsatz" style="display:none">
+  <div class="anz" id="anzGesamt">0 Mitglieder</div>
+  <button class="btn btn-rot" id="pdfBtn" onclick="pdfErzeugen(this)">PDF teilen</button>
+</div>
+
+<div id="adminView" class="dialog" onclick="if(event.target===this)this.style.display='none'">
+  <div class="box">
+    <h3 style="margin-top:0">Mitgliederliste</h3>
+    <div class="hinweis" style="margin-bottom:8px">Nr., Name, Gruppe. Änderungen gelten sofort auf allen Tablets; angehakte Namen in alten Einsätzen bleiben über die Nr. erhalten.</div>
+    <div id="adminListe" style="max-height:50vh;overflow:auto;border:2px solid var(--rand);border-radius:10px;padding:6px"></div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn btn-grau btn-klein" onclick="adminZeile()">+ Mitglied</button>
+      <button class="btn btn-grau btn-klein" onclick="$('importBox').style.display=$('importBox').style.display==='none'?'':'none'">Import (FDISK-Export einfügen)</button>
+      <button class="btn btn-rot btn-klein" onclick="adminSpeichern(this)">Speichern</button>
+    </div>
+    <div id="importBox" style="display:none;margin-top:10px">
+      <div class="hinweis">Zeilen im Format <code>Nr;Nachname Vorname</code> oder <code>Nr,Name</code> oder mit Tabulator (aus Excel kopieren). Vorhandene Nr. werden aktualisiert, neue angelegt, fehlende bleiben erhalten.</div>
+      <textarea id="importText" rows="6" style="width:100%;font-size:14px;padding:8px;border:2px solid var(--rand);border-radius:10px;font-family:ui-monospace,monospace"></textarea>
+      <button class="btn btn-grau btn-klein" style="margin-top:6px" onclick="adminImport()">Einlesen</button>
+    </div>
+    <h3>Passwörter</h3>
+    <div class="hinweis">Passwörter werden in <code>config.php</code> am Webserver geändert.</div>
+  </div>
+</div>
+
+<div id="fotoGross" class="dialog" onclick="this.style.display='none'"><div class="box" style="background:transparent;padding:0"><img src="" alt=""></div></div>
+
+<div id="frage" class="dialog" onclick="if(event.target===this)this.style.display='none'">
+  <div class="box" style="max-width:420px;text-align:center">
+    <p id="frageText" style="font-size:18px;margin:0 0 16px"></p>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-grau" onclick="document.getElementById('frage').style.display='none'">Abbrechen</button>
+      <button class="btn btn-rot" id="frageJa">Ja</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====== HIER ANPASSEN: Empfänger, Fahrzeuge, Mannschaft ======
+const EMPFAENGER = "auersthal@feuerwehr.gv.at";
+const EINSATZARTEN = ["Brand","Technisch","Schadstoff","Brandsicherheitswache","Fehlalarm","Sonstiges"];
+const FEUERWEHREN = ["Schönkirchen-Reyersdorf","Groß Schweinbarth","Raggendorf","Bockfließ","Prottes","Strasshof","Gänserndorf","Deutsch Wagram"];
+const RETTUNG = [["NAH","Notarzthubschrauber"],["NEF","Notarztfahrzeug"],["RTW","Rettungsfahrzeug"],["Arzt","zusätzlicher Arzt / Notarzt (nicht der von NEF/NAH)"],["FR","First Responder"]];
+const STELLEN_KURZ={"BH (Bezirkshauptmannschaft)":"BH","ÖBB Einsatzleiter":"ÖBB EL","Gemeinde / Bürgermeister":"Gemeinde","Gasversorger":"Gas","Wasserversorger":"Wasser","Krisenintervention (KIT)":"KIT","Abschleppdienst":"Abschleppen"};
+const STELLEN = ["Straßendienst","BH (Bezirkshauptmannschaft)","ÖBB Einsatzleiter","Gemeinde / Bürgermeister","EVU (Strom)","Gasversorger","Wasserversorger","Abschleppdienst","Krisenintervention (KIT)","Bundesheer"];
+const WETTER = ["Sonnig","Bewölkt","Regen","Starkregen","Gewitter","Schnee","Glatteis","Nebel","Sturm"];
+const FAHRZEUGE = ["HLF3","LFW","KDO","MTF","LAST","WLF","WLA-SST"];
+let MANNSCHAFT=[], RESERVE=[];
+const $=id=>document.getElementById(id);
+const NAMEN={};
+function mitgliederSetzen(liste){
+  MANNSCHAFT=liste.filter(m=>m.gruppe!=="r").map(m=>[m.nr,m.name]);
+  RESERVE=liste.filter(m=>m.gruppe==="r").map(m=>[m.nr,m.name]);
+  Object.keys(NAMEN).forEach(k=>delete NAMEN[k]); MANNSCHAFT.concat(RESERVE).forEach(([n,name])=>NAMEN[n]=name);
+  $("mannschaft").innerHTML=MANNSCHAFT.map(p=>personHtml(p,"m")).join("");
+  $("reserve").innerHTML=RESERVE.map(p=>personHtml(p,"r")).join("");
+}
+
+let ersteFuellung=true;
+let assetsNs=true, downloadsNs=true, db=true; // Backend vorhanden (PHP)
+let rolle=null, aktuellId=null, aktuell=null, pollTimer=null, listeStand="", docStand="", ladeTimer=null, schreibKette=Promise.resolve();
+
+// ---------- Supabase ----------
+const SB_URL="https://zukookhfrgmffottgrng.supabase.co";
+const SB_KEY="sb_publishable_BxYd15JCZpqIsENFxTZm1g_2OvYm3YO";
+const KONTEN={tablet:"tablet@einsatz.feuerwehr-auersthal.at",admin:"admin@einsatz.feuerwehr-auersthal.at"};
+const sb=window.supabase?window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}}):null;
+function sbFehler(e){ const msg=(e&&(e.message||e.error_description||e.code))||"Fehler"; throw {code:e&&e.code||"sb",message:msg}; }
+function rolleAus(session){ return session&&session.user ? ((session.user.app_metadata||{}).rolle==="admin"?"admin":"user") : null; }
+async function mitgliederLaden(){ const {data,error}=await sb.from("mitglieder").select("nr,name,gruppe").order("name"); if(error)sbFehler(error); return data; }
+async function api(a,body,opts={}){
+  const q=Object.fromEntries(new URLSearchParams((opts.q||"").replace(/^&/,"")));
+  switch(a){
+    case "me": { const {data:{session}}=await sb.auth.getSession(); const r=rolleAus(session); return {ok:true,rolle:r,mitglieder:r?await mitgliederLaden():[]}; }
+    case "login": { const {data,error}=await sb.auth.signInWithPassword({email:KONTEN[body.konto]||KONTEN.tablet,password:body.pw}); if(error)throw {code:"falsch",message:error.message}; return {ok:true,rolle:rolleAus(data.session),mitglieder:await mitgliederLaden()}; }
+    case "logout": await sb.auth.signOut(); return {ok:true};
+    case "liste": { const {data,error}=await sb.from("einsaetze").select("id,data,version,updated_at").order("datum",{ascending:false}).limit(500); if(error)sbFehler(error);
+      const stand=data.length+"|"+data.reduce((m,r)=>r.updated_at>m?r.updated_at:m,"")+"|"+data.reduce((a,r)=>a+r.version,0);
+      if(q.stand===stand)return {ok:true,geaendert:false,stand}; return {ok:true,stand,liste:data.map(r=>({...r.data,id:r.id}))}; }
+    case "einsatz": { const {data,error}=await sb.from("einsaetze").select("data,version,updated_at").eq("id",q.id).maybeSingle(); if(error)sbFehler(error); if(!data)return {ok:true,geloescht:true};
+      const stand=data.version+"|"+data.updated_at; if(q.stand===stand)return {ok:true,geaendert:false,stand}; return {ok:true,stand,data:data.data}; }
+    case "neu": { const {data,error}=await sb.from("einsaetze").insert({data:body.data}).select("id").single(); if(error)sbFehler(error); return {ok:true,id:data.id}; }
+    case "patch": { const {data,error}=await sb.rpc("einsatz_patch",{p_id:body.id,p_patch:body.patch}); if(error)sbFehler(error); return {ok:true,stand:data+"|?"}; }
+    case "loeschen": { const {data:objs}=await sb.storage.from("fotos").list(body.id,{limit:1000}); if(objs&&objs.length)await sb.storage.from("fotos").remove(objs.map(o=>body.id+"/"+o.name));
+      const {error}=await sb.from("einsaetze").delete().eq("id",body.id); if(error)sbFehler(error); return {ok:true}; }
+    case "upload": { const einsatz=body.get("einsatz"), blob=body.get("foto"); const pfad=einsatz+"/"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)+".jpg";
+      const {error}=await sb.storage.from("fotos").upload(pfad,blob,{contentType:"image/jpeg",upsert:false}); if(error)sbFehler(error); return {ok:true,id:pfad}; }
+    case "fotoweg": { await sb.storage.from("fotos").remove([body.id]); return {ok:true}; }
+    case "mitglieder": return {ok:true,mitglieder:await mitgliederLaden()};
+    case "mitglieder_speichern": { const {error}=await sb.rpc("mitglieder_setzen",{p_liste:body.mitglieder}); if(error)sbFehler(error); return {ok:true,mitglieder:await mitgliederLaden()}; }
+  }
+  throw {code:"unbekannt",message:"Unbekannte Aktion "+a};
+}
+// Signierte Foto-URLs (Bucket ist privat), 50 min gecacht
+const fotoUrls={};
+async function fotoUrl(pfad){
+  const c=fotoUrls[pfad]; if(c&&c.bis>Date.now())return c.url;
+  const {data,error}=await sb.storage.from("fotos").createSignedUrl(pfad,3600); if(error||!data)return "";
+  fotoUrls[pfad]={url:data.signedUrl,bis:Date.now()+50*60*1000}; return data.signedUrl;
+}
+function bilderLaden(){
+  document.querySelectorAll("img[data-pfad]").forEach(async img=>{ const p=img.dataset.pfad; delete img.dataset.pfad; const u=await fotoUrl(p); if(u)img.src=u; });
+}
+// Realtime: bei jeder Änderung sofort nachladen
+let rtKanal=null;
+function realtimeStarten(){
+  if(rtKanal)return;
+  rtKanal=sb.channel("einsaetze").on("postgres_changes",{event:"*",schema:"public",table:"einsaetze"},()=>{ pollen(); }).subscribe();
+}
+sb.auth.onAuthStateChange((ev)=>{ if(ev==="SIGNED_OUT"){rolle=null;zeigeLogin();} });
+
+// ---------- Aufbau ----------
+function personHtml([nr,name],gruppe){
+  return `<label class="person" data-name="${name.toLowerCase()}"><input type="checkbox" data-gruppe="${gruppe}" data-nr="${nr}"><span class="nr">${nr}</span><span class="name">${name}</span><span class="el">EL</span></label>`;
+}
+const ARTBEISPIELE={Brand:"z. B. Wohnhausbrand, Fahrzeugbrand, Flurbrand",Technisch:"z. B. Verkehrsunfall, Sturmschaden, Türöffnung",Schadstoff:"z. B. Ölspur, Gasgeruch, Gefahrgutaustritt",Brandsicherheitswache:"z. B. Veranstaltung, Festzelt, Konzert",Fehlalarm:"z. B. Brandmeldeanlage, Täuschungsalarm",Sonstiges:"z. B. Unterstützung Rettung, Personensuche"};
+const ARTKURZ={Brandsicherheitswache:"BSW"};
+const kurz=a=>ARTKURZ[a]||a||"";
+const ARTFARBEN={Brand:"#c8102e",Technisch:"#1d4ed8",Schadstoff:"#15803d",Brandsicherheitswache:"#ca8a04",Fehlalarm:"#4b5563",Sonstiges:"#6d28d9"};
+$("arten").innerHTML=EINSATZARTEN.map(a=>`<label class="chip" data-art="${a}" style="--farbe:${ARTFARBEN[a]||"#c8102e"}"><input type="radio" name="art" data-art="${a}">${kurz(a)}</label>`).join("");
+$("rettung").innerHTML=RETTUNG.map(([k,l])=>`<div class="zeile"><div class="zname">${k}<span class="zsub">${l}</span></div>${stepperHtml("kraefte.rettung."+k)}</div>`).join("");
+$("polizei").innerHTML=`<div class="zeile"><div class="zname">Streifen</div>${stepperHtml("kraefte.polizei")}</div>`;
+document.querySelectorAll("[data-stepper]").forEach(d=>{d.outerHTML=stepperHtml(d.dataset.stepper)});
+$("stellen").innerHTML=STELLEN.map(st=>`<label class="chip"><input type="checkbox" data-stelle="${st}">${STELLEN_KURZ[st]||st}</label>`).join("");
+$("wetter").innerHTML=WETTER.map(w=>`<label class="chip"><input type="checkbox" data-wetter="${w}">${w}</label>`).join("");
+$("fahrzeuge").innerHTML=FAHRZEUGE.map(f=>`<label class="chip"><input type="checkbox" data-fz="${f}">${f}</label>`).join("");
+
+function pad(n){return String(n).padStart(2,"0")}
+function heute(){const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+function uhrzeit(){const d=new Date();return pad(d.getHours())+":"+pad(d.getMinutes())}
+function datumDE(s){if(!s)return"";const [j,m,t]=s.split("-");return `${t}.${m}.${j}`}
+function setStatus(art,text){const s=$("status");s.className="status"+(art?" "+art:"");s.textContent=text||""}
+function esc(s){return String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+// ---------- Datenbank ----------
+async function start(){
+  if(!sb){zeigeLogin();$("loginFehler").textContent="Supabase-Bibliothek nicht geladen (Internetverbindung / CDN blockiert?)";return}
+  try{
+    const me=await api("me");
+    if(!me.rolle){zeigeLogin();return}
+    rolle=me.rolle; mitgliederSetzen(me.mitglieder||[]);
+    $("adminBtn").style.display=rolle==="admin"?"":"none";
+    $("loginView").style.display="none";
+    realtimeStarten(); pollen();
+  }catch(e){ if(e.code!=="auth")setStatus("err","Server nicht erreichbar ("+(e.message||e.code)+")."); }
+}
+function zeigeLogin(){
+  if(pollTimer)clearTimeout(pollTimer);
+  $("loginView").style.display="flex";
+  setTimeout(()=>$("pw").focus(),100);
+}
+window.addEventListener("error",ev=>{ const f=$("loginFehler"); if(f)f.textContent="Fehler: "+(ev.message||ev.error); });
+window.addEventListener("unhandledrejection",ev=>{ const f=$("loginFehler"); if(f)f.textContent="Fehler: "+((ev.reason&&(ev.reason.message||ev.reason.code))||ev.reason); });
+async function login(ev){
+  if(ev&&ev.preventDefault)ev.preventDefault();
+  $("loginFehler").textContent="";
+  if(!window.supabase){$("loginFehler").textContent="Supabase-Bibliothek nicht geladen (Internetverbindung / CDN blockiert?)";return false}
+  const btn=$("loginView").querySelector("button[type=submit]"); btn.disabled=true; btn.textContent="Anmelden …";
+  const zeit=setTimeout(()=>{$("loginFehler").textContent="Keine Antwort vom Server – Verbindung prüfen.";btn.disabled=false;btn.textContent="Anmelden"},15000);
+  try{
+    const konto=(document.querySelector('input[name="konto"]:checked')||{}).value||"tablet";
+    const r=await api("login",{pw:$("pw").value,konto});
+    $("pw").value=""; rolle=r.rolle; mitgliederSetzen(r.mitglieder||[]);
+    $("adminBtn").style.display=rolle==="admin"?"":"none";
+    $("loginView").style.display="none"; realtimeStarten(); pollen();
+  }catch(e){ $("loginFehler").textContent=e.code==="falsch"?"Passwort falsch ("+(e.message||"")+")":"Fehler: "+(e.message||e.code||e); }
+  finally{ clearTimeout(zeit); btn.disabled=false; btn.textContent="Anmelden"; }
+  return false;
+}
+async function logout(){ try{await api("logout",{})}catch(e){} rolle=null; zeigeUebersicht(); zeigeLogin(); }
+
+let pollFehler=0;
+async function pollen(){
+  if(pollTimer)clearTimeout(pollTimer);
+  try{
+    if(aktuellId){
+      const r=await api("einsatz",undefined,{q:"&id="+encodeURIComponent(aktuellId)+"&stand="+encodeURIComponent(docStand)});
+      if(r.geloescht){zeigeUebersicht();}
+      else if(r.geaendert!==false){docStand=r.stand; aktuell=r.data; fuelleFormular(aktuell);}
+    }else{
+      const r=await api("liste",undefined,{q:"&stand="+encodeURIComponent(listeStand)});
+      if(r.geaendert!==false){listeStand=r.stand; zeichneUebersicht(r.liste);}
+    }
+    pollFehler=0; $("sync").textContent="● verbunden"; if($("status").classList.contains("warn"))setStatus("","");
+  }catch(e){
+    if(e.code==="auth")return;
+    pollFehler++; $("sync").textContent="⟳ offline";
+    if(pollFehler>=3)setStatus("warn","Keine Verbindung zum Server – Anzeige könnte veraltet sein.");
+  }
+  pollTimer=setTimeout(pollen, 20000);
+}
+
+function zeichneUebersicht(alle){
+  const sortKey=e=>(e.datum||"")+" "+(e.ausfahrt||"")+" "+(e.erstellt||"");
+  const aktiv=alle.filter(e=>e.status!=="abgeschlossen").sort((a,b)=>sortKey(b).localeCompare(sortKey(a)));
+  const alt=alle.filter(e=>e.status==="abgeschlossen").sort((a,b)=>sortKey(b).localeCompare(sortKey(a)));
+  const karte=e=>{
+    const n=anzahl(e), aktivE=e.status!=="abgeschlossen";
+    const ffN=Object.values(e.ffs||{}).filter(f=>f&&f.aktiv).length;
+    const farbe=ARTFARBEN[e.art]||"#9ca3af";
+    const rk=e.rueckkehr?((e.rueckkehrDatum&&e.rueckkehrDatum!==e.datum)?datumDE(e.rueckkehrDatum)+" ":"")+esc(e.rueckkehr):"";
+    return `<div class="karte ${aktivE?"aktiv":"alt"}" style="--kf:${farbe}" onclick="oeffne('${e.id}')">
+      <div class="kopfz">${e.art?`<span class="art">${esc(kurz(e.art))}</span>`:""}<span style="color:#6b7280;font-size:14px">${datumDE(e.datum)}</span><span class="badge ${aktivE?"aktiv":"abg"}">${aktivE?"AKTIV":"abgeschlossen"}</span></div>
+      <div class="titel">${esc(e.einsatz)||"<i style='color:#6b7280'>Ohne Bezeichnung</i>"}</div>
+      <div class="ort">${esc(ortText(e))}</div>
+      <div class="zeile2">
+        ${e.ausfahrt?`<span><b>Ausfahrt</b> ${esc(e.ausfahrt)}</span>`:""}
+        ${rk?`<span><b>Rückkehr</b> ${rk}</span>`:""}
+        ${(e.fz||[]).length?`<span><b>Fzg.</b> ${esc(e.fz.join(", "))}</span>`:""}
+        ${e.el&&NAMEN[e.el]?`<span><b>EL</b> ${esc(NAMEN[e.el])}</span>`:""}
+        ${wetterText(e)?`<span><b>Witterung</b> ${esc(wetterText(e))}</span>`:""}
+      </div>
+      <div class="fuss"><span class="badge zahl">${n} Mitglieder</span>${ffN?`<span class="badge">+${ffN} FF</span>`:""}${kraefteBadges(e)}${ufListe(e).length?`<span class="badge" style="background:#fef3c7;color:#92400e">${ufListe(e).length} Unfall-Kfz</span>`:""}${persListe(e).length?`<span class="badge" style="background:#fef3c7;color:#92400e">${persListe(e).length} Pers.</span>`:""}${dokuListe(e).length?`<span class="badge">📷 ${dokuListe(e).length}</span>`:""}</div>
+    </div>`;
+  };
+  $("listeAktiv").innerHTML=aktiv.length?aktiv.map(karte).join(""):'<div class="leer">Kein aktiver Einsatz</div>';
+  $("listeAlt").innerHTML=alt.length?alt.map(karte).join(""):'<div class="leer">Noch keine abgeschlossenen Einsätze</div>';
+}
+function ortText(e){const g=e.ueberoertlich?(e.gemeinde||"überörtlich"):"Auersthal";return [e.ort,g].filter(Boolean).join(", ")}
+function wetterText(e){const w=(e.wetter||[]).join(", ");const t=(e.temp!==""&&e.temp!=null)?e.temp+" °C":"";return [w,t].filter(Boolean).join(", ")}
+function kraefteBadges(e){
+  const k=e.kraefte||{}; const b=[];
+  RETTUNG.forEach(([key])=>{const v=+tief(k,"rettung."+key)||0; if(v)b.push(`<span class="badge" style="background:#fee2e2;color:#991b1b">${v}× ${key}</span>`)});
+  if(+k.polizei)b.push(`<span class="badge" style="background:#dbeafe;color:#1e40af">${k.polizei}× Polizei</span>`);
+  return b.join("");
+}
+function anzahl(e){return Object.values(e.m||{}).filter(Boolean).length+Object.values(e.r||{}).filter(Boolean).length}
+
+async function neuerEinsatz(){
+  const now=new Date().toISOString();
+  try{
+    const r=await api("neu",{data:{einsatz:"",ort:"",gemeinde:"Auersthal",ueberoertlich:false,wetter:[],temp:"",datum:heute(),ausfahrt:uhrzeit(),rueckkehr:"",rueckkehrDatum:"",fz:[],m:{},r:{},bemerkung:"",el:"",art:"",ffs:{},kraefte:{},unfallfz:{},personen:{},fotos:{},atemschutz:{},schaden:{},material:{},lage:"",massnahmen:"",uebergabe:"",brandwache:false,kostenpflichtig:false,status:"aktiv",erstellt:now,geaendert:now}});
+    oeffne(r.id);
+    setTimeout(()=>$("einsatz").focus(),200);
+  }catch(e){setStatus("err","Anlegen fehlgeschlagen ("+(e.message||e.code)+").")}
+}
+
+function oeffne(id){
+  aktuellId=id; aktuell=null; docStand="";
+  $("uebersicht").style.display="none";$("leisteUebersicht").style.display="none";
+  $("einsatzView").style.display="";$("leisteEinsatz").style.display="";
+  $("zurueck").style.display="";document.querySelector("header").classList.add("mit-zurueck");
+  $("suche").value="";document.querySelectorAll(".person").forEach(p=>p.style.display="");
+  ersteFuellung=true;
+  $("btnLoeschen").style.display=rolle==="admin"?"":"none";
+  pollen();
+}
+function zeigeUebersicht(){
+  aktuellId=null;aktuell=null;listeStand="";
+  $("einsatzView").style.display="none";$("leisteEinsatz").style.display="none";
+  $("uebersicht").style.display="";$("leisteUebersicht").style.display="";
+  $("zurueck").style.display="none";document.querySelector("header").classList.remove("mit-zurueck");
+  $("kopf").innerHTML='Einsatzerfassung<small>Freiwillige Feuerwehr Auersthal</small>';
+  document.body.dataset.art="";
+  if(rolle)pollen();
+}
+
+function fuelleFormular(e){
+  // Textfelder nur setzen, wenn sie nicht gerade bearbeitet werden
+  ["einsatz","ort","gemeinde","temp","datum","ausfahrt","rueckkehr","rueckkehrDatum","bemerkung"].forEach(k=>{
+    const el=$(k); if(document.activeElement!==el && el.value!==(e[k]||"")) el.value=e[k]||"";
+  });
+  document.querySelectorAll("input[data-fz]").forEach(i=>i.checked=(e.fz||[]).includes(i.dataset.fz));
+  document.querySelectorAll("input[data-art]").forEach(i=>i.checked=(e.art||"")===i.dataset.art);
+  const ueber=!!e.ueberoertlich;
+  document.querySelector('input[data-gem="Auersthal"]').checked=!ueber;
+  document.querySelector('input[data-gem="ueber"]').checked=ueber;
+  $("gemeinde").style.display=ueber?"":"none";
+  if(!ueber&&document.activeElement!==$("gemeinde"))$("gemeinde").value="";
+  if(e.rueckkehrDatum&&e.rueckkehrDatum!==e.datum)rdZeigen(true); else if(!e.rueckkehrDatum&&document.activeElement!==$("rueckkehrDatum"))rdZeigen(false);
+  document.querySelectorAll("input[data-wetter]").forEach(i=>i.checked=(e.wetter||[]).includes(i.dataset.wetter));
+
+  document.body.dataset.art=e.art||"";
+  $("einsatz").placeholder=ARTBEISPIELE[e.art]||"Bezeichnung des Einsatzes";
+  document.querySelectorAll('input[data-gruppe="m"]').forEach(i=>i.checked=!!(e.m||{})[i.dataset.nr]);
+  document.querySelectorAll('input[data-gruppe="r"]').forEach(i=>i.checked=!!(e.r||{})[i.dataset.nr]);
+  document.querySelectorAll(".person").forEach(p=>p.classList.toggle("ist-el",!!e.el&&p.querySelector("input").dataset.nr===String(e.el)));
+  $("elInfo").innerHTML="Einsatzleiter: <b>"+(e.el&&NAMEN[e.el]?esc(e.el+" "+NAMEN[e.el]):"–")+'</b> <span style="color:#6b7280">(Name lang gedrückt halten, um ihn als Einsatzleiter zu setzen)</span>';
+  zeichneFF(e); zeichneKr(e); zeichneUf(e); zeichnePers(e); zeichneDoku(e);
+  if(ersteFuellung){
+    ersteFuellung=false;
+    const gem=klappZustand();
+    if(gem){ ALLE_SEKTIONEN.forEach(z=>{ if(typeof gem[z]==="boolean")sektion(z,gem[z]); else sektion(z,standardOffen(z,e)); }); }
+    else ALLE_SEKTIONEN.forEach(z=>sektion(z,standardOffen(z,e)));
+  }
+  const abgeschlossen=e.status==="abgeschlossen";
+  $("einsatzView").classList.toggle("gesperrt",abgeschlossen);
+  $("btnStatus").textContent=abgeschlossen?"Einsatz wieder öffnen":"Einsatz abschließen";
+  $("btnStatus").className="btn btn-klein "+(abgeschlossen?"btn-gruen":"btn-grau");
+  $("kopf").innerHTML=esc(e.einsatz||kurz(e.art)||"Einsatz")+'<small>'+esc([e.art&&e.einsatz?kurz(e.art):"",ortText(e),datumDE(e.datum)+(e.ausfahrt?" "+e.ausfahrt:""),abgeschlossen?"abgeschlossen":""].filter(Boolean).join(" · "))+'</small>';
+  zaehlen(e); zfAlle(); bilderLaden();
+}
+function zaehlen(e){
+  const m=Object.values(e.m||{}).filter(Boolean).length,r=Object.values(e.r||{}).filter(Boolean).length;
+  $("anzMann").textContent=m?`(${m})`:"";$("anzRes").textContent=r?`(${r})`:"";
+  $("anzGesamt").textContent=(m+r)+" Mitglieder";
+}
+
+// Schreiben: ein Feld (oder eine Person) pro Aufruf, nacheinander
+function tiefMerge(ziel,patch){
+  Object.keys(patch).forEach(k=>{
+    const v=patch[k];
+    if(v===null){delete ziel[k]}
+    else if(v&&typeof v==="object"&&!Array.isArray(v)){ if(!ziel[k]||typeof ziel[k]!=="object"||Array.isArray(ziel[k]))ziel[k]={}; tiefMerge(ziel[k],v) }
+    else ziel[k]=v;
+  });
+  return ziel;
+}
+function schreibe(patch){
+  if(!aktuellId)return;
+  const id=aktuellId;
+  patch.geaendert=new Date().toISOString();
+  if(aktuell){ tiefMerge(aktuell,patch); fuelleFormular(aktuell); }
+  schreibKette=schreibKette.then(()=>api("patch",{id,patch})).then(r=>{ if(r&&r.stand&&id===aktuellId)docStand=r.stand; }).catch(e=>{
+    if(e.code==="auth")return;
+    setStatus("warn","Speichern fehlgeschlagen ("+(e.message||e.code)+") – bitte Verbindung prüfen.");
+  });
+}
+let textTimer={};
+function textFeld(k){
+  clearTimeout(textTimer[k]);
+  textTimer[k]=setTimeout(()=>{ if(aktuell && aktuell[k]!==$(k).value) schreibe({[k]:$(k).value}); },500);
+}
+["einsatz","ort","gemeinde","temp","bemerkung"].forEach(k=>$(k).addEventListener("input",()=>textFeld(k)));
+["datum","ausfahrt","rueckkehr","rueckkehrDatum"].forEach(k=>$(k).addEventListener("change",()=>{ if(aktuell && aktuell[k]!==$(k).value) schreibe({[k]:$(k).value}); }));
+function rdZeigen(an){$("rdWrap").style.display=an?"":"none";$("rdPlatz").style.display=an?"none":"";$("rdLink").style.display=an?"none":"";}
+function jetzt(id){
+  $(id).value=uhrzeit(); const patch={[id]:$(id).value};
+  if(id==="rueckkehr"&&aktuell&&aktuell.datum&&aktuell.datum!==heute()){patch.rueckkehrDatum=heute();$("rueckkehrDatum").value=heute();rdZeigen(true)}
+  schreibe(patch);
+}
+
+document.addEventListener("click",ev=>{
+  const r=ev.target; if(r.type==="radio"&&r.dataset.art&&aktuell&&aktuell.art===r.dataset.art){ r.checked=false; schreibe({art:""}); }
+});
+document.addEventListener("change",ev=>{
+  const i=ev.target; if(!aktuell)return;
+  if(i.dataset.art){ schreibe({art:i.checked?i.dataset.art:""}); return; }
+  if(i.dataset.gem){ const u=i.dataset.gem==="ueber"; $("gemeinde").style.display=u?"":"none"; const gv=$("gemeinde").value; if(u&&gv==="Auersthal")$("gemeinde").value=""; schreibe({ueberoertlich:u, gemeinde:u?($("gemeinde").value||""):"Auersthal"}); if(u)setTimeout(()=>$("gemeinde").focus(),100); return; }
+  if(i.dataset.wetter){ const w=WETTER.filter(x=>document.querySelector(`input[data-wetter="${x}"]`).checked); schreibe({wetter:w}); return; }
+  if(i.type!=="checkbox")return;
+  if(i.dataset.ff){ const n=i.dataset.ff; const alt=(aktuell.ffs||{})[n]||{}; schreibe({ffs:{[n]:{aktiv:i.checked,fz:alt.fz||0,mann:alt.mann||0,extra:!!alt.extra}}}); return; }
+  if(i.dataset.stelle){ schreibe({kraefte:{stellen:{[i.dataset.stelle]:i.checked}}}); return; }
+  if(i.dataset.fz){
+    const fz=FAHRZEUGE.filter(f=>document.querySelector(`input[data-fz="${f}"]`).checked);
+    schreibe({fz});
+  }else if(i.dataset.gruppe){
+    schreibe({[i.dataset.gruppe]:{[i.dataset.nr]:i.checked}});
+    const kopie={...aktuell,[i.dataset.gruppe]:{...(aktuell[i.dataset.gruppe]||{}),[i.dataset.nr]:i.checked}};
+    zaehlen(kopie);
+  }
+});
+
+// Ein-/Ausklappen
+const ALLE_SEKTIONEN=["secEinsatz","secFz","secMann","reserve","secFF","secKr","secAS","secSchaden","secMat","secWetter","secUf","secPers","secDoku","secMass"];
+function sektion(ziel,offen,merken){
+  const h=document.querySelector(`[data-ziel="${ziel}"]`), el=$(ziel);
+  if(typeof offen!=="boolean"){offen=el.style.display==="none";merken=true}
+  el.style.display=offen?"":"none"; h.classList.toggle("offen",offen);
+  zfAktualisieren(ziel);
+  if(merken&&aktuellId){
+    try{const k="ffa-klapp-"+aktuellId;const st=JSON.parse(localStorage.getItem(k)||"{}");st[ziel]=offen;localStorage.setItem(k,JSON.stringify(st))}catch(e){}
+  }
+}
+function standardOffen(z,e){
+  switch(z){
+    case "secEinsatz": case "secFz": case "secMann": return true;
+    case "reserve": return Object.values(e.r||{}).some(Boolean);
+    case "secFF": return Object.values(e.ffs||{}).some(f=>f&&f.aktiv);
+    case "secKr": return !!zusammenfassung("secKr",e);
+    case "secWetter": return !!wetterText(e);
+    case "secUf": return ufListe(e).length>0;
+    case "secPers": return persListe(e).length>0;
+    case "secDoku": return dokuListe(e).length>0;
+    case "secAS": case "secSchaden": case "secMat": case "secMass": return !!zusammenfassung(z,e);
+  }
+  return false;
+}
+function klappZustand(){try{return JSON.parse(localStorage.getItem("ffa-klapp-"+aktuellId)||"null")}catch(e){return null}}
+function kurzName(n){const t=n.split(" ");return t[0]+(t[1]?" "+t[1][0]+".":"")}
+function zusammenfassung(ziel,e){
+  if(!e)return "";
+  const liste=(arr,max=4)=>arr.length<=max?arr.join(", "):arr.slice(0,max).join(", ")+" +"+(arr.length-max);
+  switch(ziel){
+    case "secWetter": return wetterText(e)||"";
+    case "secEinsatz": return [e.einsatz,ortText(e),datumDE(e.datum)+(e.ausfahrt?" "+e.ausfahrt:"")+(e.rueckkehr?"–"+e.rueckkehr:"")].filter(Boolean).join(" · ");
+    case "secFz": return (e.fz||[]).join(", ");
+    case "secMann": { const m=namenListe(e.m,MANNSCHAFT).map(x=>kurzName(x.replace(/^\d+\s+/,""))); return m.length?(e.el&&NAMEN[e.el]?"EL "+kurzName(NAMEN[e.el])+" · ":"")+liste(m,5):""; }
+    case "reserve": { const r=namenListe(e.r,RESERVE).map(x=>kurzName(x.replace(/^\d+\s+/,""))); return liste(r,5); }
+    case "secFF": { const ffs=e.ffs||{},akt=ffListe(e).filter(n=>ffs[n]&&ffs[n].aktiv); return liste(akt.map(n=>n+((+ffs[n].fz||+ffs[n].mann)?" ("+(ffs[n].fz||0)+" Fzg/"+(ffs[n].mann||0)+")":"")),3); }
+    case "secKr": { const k=e.kraefte||{};const z=[];RETTUNG.forEach(([key])=>{const v=+tief(k,"rettung."+key)||0;if(v)z.push(v+"× "+key)});if(+k.polizei)z.push("Polizei "+k.polizei);Object.keys(k.stellen||{}).filter(x=>k.stellen[x]).forEach(x=>z.push(STELLEN_KURZ[x]||x));if(k.sonst)z.push(k.sonst);return liste(z,6); }
+    case "secUf": return liste(ufListe(e).map(f=>f.kennzeichen||f.marke||"Fahrzeug"),4);
+    case "secPers": return liste(persListe(e).map(f=>(f.name||"Person")+(f.rolle?" ("+f.rolle.replace(/\/.*$/,"")+")":"")),3);
+    case "secDoku": { const n=dokuListe(e).length; return n?n+" Foto"+(n>1?"s":""):""; }
+    case "secAS": { const a=e.atemschutz||{};const z=[];if(+a.trupps)z.push(a.trupps+" Trupp"+(a.trupps>1?"s":""));if(+a.traeger)z.push(a.traeger+" Träger");if(+a.geraete)z.push(a.geraete+" Geräte");return z.join(", "); }
+    case "secSchaden": { const a=e.schaden||{};const z=[];[["gerettet","gerettet"],["geborgen","geborgen"],["verletzt","verletzt"],["tot","tot"],["tiere","Tiere"]].forEach(([k,l])=>{if(+a[k])z.push(a[k]+" "+l)});return z.join(", "); }
+    case "secMat": { const m=e.material||{};const z=[];if(+m.oel)z.push(m.oel+" kg Ölbindemittel");if(+m.schaum)z.push(m.schaum+" l Schaummittel");if(+m.wasser)z.push(m.wasser+" l Löschwasser");if(m.sonst)z.push(m.sonst);return z.join(", "); }
+    case "secMass": { const z=[];const t=(e.lage||e.massnahmen||"").trim().split("\n")[0];if(t)z.push(t.slice(0,70)+(t.length>70?" …":""));if(e.uebergabe)z.push("Übergabe: "+e.uebergabe);if(e.brandwache)z.push("Brandwache");if(e.kostenpflichtig)z.push("kostenpflichtig");return z.join(" · "); }
+  }
+  return "";
+}
+function zfAktualisieren(ziel){
+  const z=$("zf_"+ziel); if(!z)return;
+  z.textContent=sektionOffen(ziel)?"":zusammenfassung(ziel,aktuell);
+}
+function zfAlle(){ALLE_SEKTIONEN.forEach(zfAktualisieren)}
+function numPlus(pf,d){
+  if(!aktuell||aktuell.status==="abgeschlossen")return;
+  const i=document.querySelector(`[data-num="${pf}"]`); const v=Math.max(0,(parseInt(i.value)||0)+d); i.value=v; schreibe(patchAus(pf,v));
+}
+document.addEventListener("input",ev=>{
+  const i=ev.target; if(!i.dataset||!aktuell)return;
+  const pf=i.dataset.num||i.dataset.text; if(!pf)return;
+  clearTimeout(textTimer[pf]);
+  textTimer[pf]=setTimeout(()=>{ const v=i.dataset.num?(i.value===""?"":Math.max(0,parseInt(i.value)||0)):i.value; if((tief(aktuell,pf)??"")!==v) schreibe(patchAus(pf,v)); },500);
+});
+["lage","massnahmen","uebergabe"].forEach(k=>$(k).addEventListener("input",()=>textFeld(k)));
+document.addEventListener("change",ev=>{const i=ev.target;if(i.dataset&&i.dataset.flag&&aktuell)schreibe({[i.dataset.flag]:i.checked})});
+function tempPlus(d){
+  if(!aktuell||aktuell.status==="abgeschlossen")return;
+  const v=($("temp").value===""?(d>0?0:0):parseInt($("temp").value)||0)+d;
+  $("temp").value=v; schreibe({temp:String(v)});
+}
+function sektionOffen(ziel){return $(ziel).style.display!=="none"}
+function reserveToggle(zu){sektion("reserve",zu)}
+document.querySelectorAll(".klapp[data-ziel]").forEach(h=>h.addEventListener("click",()=>sektion(h.dataset.ziel)));
+
+// Stepper (−/+)
+function stepperHtml(key){return `<div class="stepper" data-key="${key}"><button type="button" data-d="-1">−</button><span>0</span><button type="button" data-d="1">+</button></div>`}
+function stepperWert(key,v){const st=document.querySelector(`.stepper[data-key="${key}"]`);if(!st)return;st.querySelector("span").textContent=v||0;st.classList.toggle("aktivz",(v||0)>0)}
+function tief(obj,pfad){return pfad.split(".").reduce((o,k)=>(o&&o[k]!=null)?o[k]:undefined,obj)}
+function patchAus(pfad,wert){const teile=pfad.split(".");const root={};let o=root;teile.forEach((k,i)=>{if(i===teile.length-1)o[k]=wert;else{o[k]={};o=o[k]}});return root}
+document.addEventListener("click",ev=>{
+  const b=ev.target.closest(".stepper button"); if(!b||!aktuell||aktuell.status==="abgeschlossen")return;
+  const st=b.closest(".stepper"), key=st.dataset.key, d=+b.dataset.d;
+  let alt=+(st.querySelector("span").textContent)||0, neu=Math.max(0,alt+d);
+  if(neu===alt)return;
+  stepperWert(key,neu);
+  if(key.startsWith("ff.")){ const [,name,feld]=key.split("."); schreibe({ffs:{[name]:{[feld]:neu}}}); }
+  else schreibe(patchAus(key,neu));
+});
+
+// Weitere Feuerwehren
+function ffListe(e){const ffs=e.ffs||{};const extra=Object.keys(ffs).filter(n=>!FEUERWEHREN.includes(n)&&ffs[n]&&ffs[n].extra);return FEUERWEHREN.concat(extra)}
+function zeichneFF(e){
+  const ffs=e.ffs||{};
+  $("ffChips").innerHTML=ffListe(e).map(n=>`<label class="chip"><input type="checkbox" data-ff="${esc(n)}" ${ffs[n]&&ffs[n].aktiv?"checked":""}>${esc(n)}</label>`).join("");
+  const akt=ffListe(e).filter(n=>ffs[n]&&ffs[n].aktiv);
+  const fz=akt.reduce((a,n)=>a+(+ffs[n].fz||0),0), mann=akt.reduce((a,n)=>a+(+ffs[n].mann||0),0);
+  const aktivEl=document.activeElement, fokusKey=aktivEl&&aktivEl.dataset&&aktivEl.dataset.ffnum;
+  if(!fokusKey){
+    $("ffZeilen").innerHTML=akt.length?`<table class="fftab"><thead><tr><th>Feuerwehr</th><th class="z">Fahrzeuge</th><th class="z">Mannschaft</th></tr></thead><tbody>`+
+      akt.map(n=>`<tr><td>${esc(n)}</td><td class="z"><input type="number" inputmode="numeric" min="0" placeholder="–" data-ffnum="${esc(n)}|fz" value="${ffs[n].fz||""}"></td><td class="z"><input type="number" inputmode="numeric" min="0" placeholder="–" data-ffnum="${esc(n)}|mann" value="${ffs[n].mann||""}"></td></tr>`).join("")+
+      `</tbody><tfoot><tr><td>Gesamt (${akt.length} FF)</td><td class="z">${fz}</td><td class="z">${mann}</td></tr></tfoot></table>`:"";
+  }
+  $("anzFF").textContent=akt.length?`(${akt.length})`:"";
+  $("ffSumme").textContent="";
+}
+function ffHinzu(){
+  const n=$("ffNeu").value.trim().replace(/[.\/]/g,"-"); if(!n||!aktuell)return;
+  $("ffNeu").value="";
+  schreibe({ffs:{[n]:{aktiv:true,extra:true,fz:0,mann:0}}});
+}
+document.addEventListener("input",ev=>{
+  const i=ev.target; if(!i.dataset||!i.dataset.ffnum||!aktuell)return;
+  const [n,feld]=i.dataset.ffnum.split("|"); const v=Math.max(0,parseInt(i.value)||0);
+  clearTimeout(textTimer[i.dataset.ffnum]);
+  textTimer[i.dataset.ffnum]=setTimeout(()=>{ if(((aktuell.ffs||{})[n]||{})[feld]!==v) schreibe({ffs:{[n]:{[feld]:v}}}); },600);
+});
+document.addEventListener("focusout",ev=>{ const i=ev.target; if(i.dataset&&i.dataset.ffnum&&aktuell) setTimeout(()=>zeichneFF(aktuell),50); });
+$("ffNeu").addEventListener("keydown",ev=>{if(ev.key==="Enter"){ev.preventDefault();ffHinzu()}});
+
+// Foto-Kachel (generisch): key = "art|id|typ"
+function fotoKachel(key,assetId,label,ico){
+  return assetId?`<div class="foto hat" onclick="fotoGross('${assetId}')"><img data-pfad="${assetId}" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="${label}"><span class="lbl">${label}</span><button type="button" class="x" onclick="event.stopPropagation();fotoWeg('${key}')">×</button></div>`
+    :`<label class="foto"><span class="ico">${ico}</span>${label}<input type="file" accept="image/*" data-fotouf="${key}"></label>`;
+}
+function fotoPatch(key,wert){
+  const [art,id,typ]=key.split("|");
+  if(art==="uf")return {unfallfz:{[id]:{fotos:{[typ]:wert}}}};
+  if(art==="pers")return {personen:{[id]:{fotos:{[typ]:wert}}}};
+  if(art==="doku")return {fotos:{[id]:wert?{asset:wert,text:"",erstellt:new Date().toISOString()}:null}};
+}
+function fotoId(key){
+  const [art,id,typ]=key.split("|"), e=aktuell||{};
+  if(art==="uf")return (((e.unfallfz||{})[id]||{}).fotos||{})[typ];
+  if(art==="pers")return (((e.personen||{})[id]||{}).fotos||{})[typ];
+  if(art==="doku")return ((e.fotos||{})[id]||{}).asset;
+}
+
+// Beteiligte / Geschädigte
+const ROLLEN=["Geschädigte/r","Zulassungsbesitzer/in","Verletzte/r","Zeuge/Zeugin","Anrufer/in","Sonstige"];
+function persListe(e){const u=e.personen||{};return Object.keys(u).filter(k=>u[k]).sort((a,b)=>(u[a].erstellt||"").localeCompare(u[b].erstellt||"")).map(k=>({id:k,...u[k]}))}
+function zeichnePers(e){
+  const liste=persListe(e);
+  $("anzPers").textContent=liste.length?`(${liste.length})`:"";
+  const ae=document.activeElement; if(ae&&ae.dataset&&ae.dataset.uf)return;
+  $("persListe").innerHTML=liste.map((f,i)=>`<div class="ufkarte">
+    <div class="ufkopf"><b>Person ${i+1}</b><button type="button" onclick="persLoeschen('${f.id}')">Entfernen</button></div>
+    <div class="ufgrid">
+      <label class="feld">Name<input type="text" data-uf="pers|${f.id}|name" value="${esc(f.name||"")}" autocomplete="off"></label>
+      <label class="feld">Rolle<select data-uf="pers|${f.id}|rolle" style="margin-top:4px;font-size:18px;padding:11px;border:2px solid var(--rand);border-radius:10px;background:#fff;font-family:inherit"><option value="">–</option>${ROLLEN.map(r=>`<option ${f.rolle===r?"selected":""}>${r}</option>`).join("")}</select></label>
+      <label class="feld voll">Adresse / Telefon<input type="text" data-uf="pers|${f.id}|kontakt" value="${esc(f.kontakt||"")}" autocomplete="off"></label>
+      <label class="feld voll">Anmerkung<input type="text" data-uf="pers|${f.id}|anm" value="${esc(f.anm||"")}" autocomplete="off"></label>
+    </div>
+    <div class="fotos">${fotoKachel("pers|"+f.id+"|ausweis",(f.fotos||{}).ausweis,"Ausweis","🪪")}${fotoKachel("pers|"+f.id+"|sonst",(f.fotos||{}).sonst,"Weiteres Foto","📷")}</div>
+  </div>`).join("")||'<div class="leer" style="padding:8px">Noch keine Person erfasst</div>';
+}
+function persNeu(){ if(!aktuell)return; const id="p"+Date.now().toString(36); schreibe({personen:{[id]:{erstellt:new Date().toISOString(),name:"",rolle:"",kontakt:"",anm:"",fotos:{}}}}); sektion("secPers",true,true); }
+function persLoeschen(id){
+  frage("Diese Person samt Fotos entfernen?",()=>{
+    const f=(aktuell.personen||{})[id]||{};
+    Object.values(f.fotos||{}).forEach(aid=>{ if(aid)api("fotoweg",{id:aid}).catch(()=>{}); });
+    schreibe({personen:{[id]:null}});
+  });
+}
+
+// Fotos / Dokumentation
+function dokuListe(e){const u=e.fotos||{};return Object.keys(u).filter(k=>u[k]&&u[k].asset).sort((a,b)=>(u[a].erstellt||"").localeCompare(u[b].erstellt||"")).map(k=>({id:k,...u[k]}))}
+function zeichneDoku(e){
+  const liste=dokuListe(e);
+  $("anzDoku").textContent=liste.length?`(${liste.length})`:"";
+  const ae=document.activeElement; if(ae&&ae.dataset&&ae.dataset.uf)return;
+  $("dokuListe").className="fotos doku";
+  $("dokuListe").innerHTML=liste.map((f,i)=>`<div class="dokuitem">${fotoKachel("doku|"+f.id+"|asset",f.asset,"Foto "+(i+1),"📷")}<div class="dokutext"><input type="text" placeholder="Bildtext …" data-uf="doku|${f.id}|text" value="${esc(f.text||"")}" autocomplete="off"></div></div>`).join("")
+    +`<label class="foto"><span class="neu">+</span>Foto hinzufügen<input type="file" accept="image/*" data-fotouf="doku|neu|asset"></label>`;
+}
+
+// Unfallfahrzeuge
+const FOTOTYPEN=[["ausweis","🪪","Ausweis Lenker"],["zulassung","📄","Zulassungsschein"],["fahrzeug","🚗","Fahrzeug"]];
+function ufListe(e){const u=e.unfallfz||{};return Object.keys(u).filter(k=>u[k]).sort((a,b)=>(u[a].erstellt||"").localeCompare(u[b].erstellt||"")).map(k=>({id:k,...u[k]}))}
+function zeichneUf(e){
+  const liste=ufListe(e);
+  const zeigen=e.art==="Technisch"||e.art==="Sonstiges"||liste.length>0;
+  $("ufBlock").style.display=zeigen?"":"none";
+  $("anzUf").textContent=liste.length?`(${liste.length})`:"";
+  const ae=document.activeElement; if(ae&&ae.dataset&&ae.dataset.uf)return; // nicht neu zeichnen während getippt wird
+  $("ufListe").innerHTML=liste.map((f,i)=>`<div class="ufkarte">
+    <div class="ufkopf"><b>Fahrzeug ${i+1}</b><button type="button" onclick="ufLoeschen('${f.id}')">Entfernen</button></div>
+    <div class="ufgrid">
+      <label class="feld">Kennzeichen<input type="text" data-uf="uf|${f.id}|kennzeichen" value="${esc(f.kennzeichen||"")}" autocomplete="off" style="text-transform:uppercase"></label>
+      <label class="feld">Marke / Type<input type="text" data-uf="uf|${f.id}|marke" value="${esc(f.marke||"")}" autocomplete="off"></label>
+      <label class="feld voll">Lenker/in (Name)<input type="text" data-uf="uf|${f.id}|lenker" value="${esc(f.lenker||"")}" autocomplete="off"></label>
+      <label class="feld voll">Anmerkung (Verletzt, Zulassungsbesitzer, Telefon …)<input type="text" data-uf="uf|${f.id}|anm" value="${esc(f.anm||"")}" autocomplete="off"></label>
+    </div>
+    <div class="fotos">${FOTOTYPEN.map(([t,ico,l])=>fotoKachel("uf|"+f.id+"|"+t,(f.fotos||{})[t],l,ico)).join("")}</div>
+  </div>`).join("")||'<div class="leer" style="padding:8px">Noch kein Fahrzeug erfasst</div>';
+}
+function ufNeu(){
+  if(!aktuell)return;
+  const id="f"+Date.now().toString(36);
+  schreibe({unfallfz:{[id]:{erstellt:new Date().toISOString(),kennzeichen:"",marke:"",lenker:"",anm:"",fotos:{}}}});
+  sektion("secUf",true,true);
+}
+function ufLoeschen(id){
+  frage("Dieses Unfallfahrzeug samt Fotos entfernen?",()=>{
+    const f=(aktuell.unfallfz||{})[id]||{};
+    Object.values(f.fotos||{}).forEach(aid=>{ if(aid)api("fotoweg",{id:aid}).catch(()=>{}); });
+    schreibe({unfallfz:{[id]:null}});
+  });
+}
+async function fotoGross(id){$("fotoGross").querySelector("img").src=await fotoUrl(id);$("fotoGross").style.display="block"}
+function fotoWeg(key){
+  frage("Foto löschen?",()=>{
+    const aid=fotoId(key);
+    if(aid)api("fotoweg",{id:aid}).catch(()=>{});
+    schreibe(fotoPatch(key,""));
+  });
+}
+function bildVerkleinern(file,max){
+  return new Promise((res,rej)=>{
+    const img=new Image(); const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      let w=img.width,h=img.height; const f=Math.min(1,max/Math.max(w,h)); w=Math.round(w*f);h=Math.round(h*f);
+      const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      c.toBlob(b=>b?res(b):rej(new Error("toBlob")),"image/jpeg",0.82);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("Bild konnte nicht gelesen werden"))};
+    img.src=url;
+  });
+}
+document.addEventListener("change",async ev=>{
+  const i=ev.target; if(!i.dataset||!i.dataset.fotouf||!i.files||!i.files[0])return;
+  let key=i.dataset.fotouf; if(key==="doku|neu|asset")key="doku|d"+Date.now().toString(36)+"|asset"; const box=i.closest(".foto");
+  const lade=document.createElement("div");lade.className="lade";lade.textContent="Lade hoch …";box.appendChild(lade);
+  try{
+    const blob=await bildVerkleinern(i.files[0],1600);
+    const fd=new FormData(); fd.append("einsatz",aktuellId); fd.append("foto",blob,"foto.jpg");
+    const r=await api("upload",fd);
+    schreibe(fotoPatch(key,r.id));
+  }catch(e){ setStatus("warn","Foto konnte nicht gespeichert werden ("+(e&&(e.code||e.message))+")."); lade.remove(); }
+});
+document.addEventListener("input",ev=>{
+  const i=ev.target; if(!i.dataset||!i.dataset.uf||!aktuell)return;
+  const [art,fid,feld]=i.dataset.uf.split("|"); let v=i.value; if(feld==="kennzeichen")v=v.toUpperCase();
+  const coll={uf:"unfallfz",pers:"personen",doku:"fotos"}[art];
+  clearTimeout(textTimer[i.dataset.uf]);
+  textTimer[i.dataset.uf]=setTimeout(()=>{ if((((aktuell[coll]||{})[fid]||{})[feld]||"")!==v) schreibe({[coll]:{[fid]:{[feld]:v}}}); },500);
+});
+document.addEventListener("change",ev=>{ const i=ev.target; if(i.tagName==="SELECT"&&i.dataset.uf&&aktuell){const [art,fid,feld]=i.dataset.uf.split("|");schreibe({personen:{[fid]:{[feld]:i.value}}})} });
+document.addEventListener("focusout",ev=>{ const i=ev.target; if(i.dataset&&i.dataset.uf&&aktuell) setTimeout(()=>{if(aktuell){zeichneUf(aktuell);zeichnePers(aktuell);zeichneDoku(aktuell)}},80); });
+
+// Weitere Kräfte
+function zeichneKr(e){
+  const k=e.kraefte||{};
+  RETTUNG.forEach(([key])=>stepperWert("kraefte.rettung."+key,tief(k,"rettung."+key)));
+  stepperWert("kraefte.polizei",k.polizei);
+  // Atemschutz / Schäden / Material / Maßnahmen
+  ["atemschutz.trupps","atemschutz.traeger","atemschutz.geraete","schaden.gerettet","schaden.geborgen","schaden.verletzt","schaden.tot","schaden.tiere"].forEach(pf=>stepperWert(pf,tief(e,pf)));
+  document.querySelectorAll("[data-num],[data-text]").forEach(i=>{const pf=i.dataset.num||i.dataset.text;const v=tief(e,pf);if(document.activeElement!==i)i.value=(v==null?"":v)});
+  ["lage","massnahmen","uebergabe"].forEach(k=>{if(document.activeElement!==$(k))$(k).value=e[k]||""});
+  document.querySelectorAll("input[data-flag]").forEach(i=>i.checked=!!e[i.dataset.flag]);
+  document.querySelectorAll("input[data-stelle]").forEach(i=>i.checked=!!(k.stellen||{})[i.dataset.stelle]);
+  if(document.activeElement!==$("krSonst"))$("krSonst").value=k.sonst||"";
+  const n=RETTUNG.reduce((a,[key])=>a+(+tief(k,"rettung."+key)||0),0)+(+k.polizei||0)+Object.values(k.stellen||{}).filter(Boolean).length+(k.sonst?1:0);
+  $("anzKr").textContent=n?`(${n})`:"";
+}
+$("krSonst").addEventListener("input",()=>{clearTimeout(textTimer.krSonst);textTimer.krSonst=setTimeout(()=>{if(aktuell&&((aktuell.kraefte||{}).sonst||"")!==$("krSonst").value)schreibe({kraefte:{sonst:$("krSonst").value}})},500)});
+
+// Longpress auf eine Person = Einsatzleiter setzen / entfernen
+let lpTimer=null, lpAusgeloest=false;
+function lpStart(ev){
+  const p=ev.target.closest(".person"); if(!p||!aktuell||aktuell.status==="abgeschlossen")return;
+  lpAusgeloest=false;
+  lpTimer=setTimeout(()=>{
+    lpAusgeloest=true;
+    const inp=p.querySelector("input"), nr=inp.dataset.nr, g=inp.dataset.gruppe;
+    if(navigator.vibrate)try{navigator.vibrate(30)}catch(e){}
+    if(String(aktuell.el)===nr){ schreibe({el:""}); }
+    else { const patch={el:nr}; if(!inp.checked){patch[g]={[nr]:true}} schreibe(patch); }
+  },550);
+}
+function lpEnde(){clearTimeout(lpTimer)}
+document.addEventListener("pointerdown",lpStart);
+document.addEventListener("pointerup",lpEnde);
+document.addEventListener("pointercancel",lpEnde);
+document.addEventListener("pointermove",ev=>{ if(lpTimer&&ev.pressure===0&&ev.pointerType==="mouse")return; });
+document.addEventListener("scroll",lpEnde,true);
+document.addEventListener("contextmenu",ev=>{ if(ev.target.closest(".person"))ev.preventDefault(); });
+document.addEventListener("click",ev=>{ if(lpAusgeloest&&ev.target.closest(".person")){ev.preventDefault();ev.stopPropagation();lpAusgeloest=false;} },true);
+
+$("suche").addEventListener("input",e=>{
+  const q=e.target.value.toLowerCase().trim();
+  document.querySelectorAll("#mannschaft .person, #reserve .person").forEach(p=>p.style.display=(!q||p.dataset.name.includes(q))?"":"none");
+  if(q){sektion("secMann",true);sektion("reserve",true)}
+});
+
+function statusWechseln(){
+  if(!aktuell)return;
+  const neu=aktuell.status==="abgeschlossen"?"aktiv":"abgeschlossen";
+  const patch={status:neu};
+  if(neu==="abgeschlossen"&&!$("rueckkehr").value){patch.rueckkehr=uhrzeit(); if(aktuell.datum&&aktuell.datum!==heute())patch.rueckkehrDatum=heute();}
+  schreibe(patch);
+}
+function frage(text,cb){$("frageText").textContent=text;$("frage").style.display="block";$("frageJa").onclick=()=>{$("frage").style.display="none";cb()}}
+function loeschenFragen(){
+  frage("Diesen Einsatz endgültig löschen?",async()=>{
+    const id=aktuellId; zeigeUebersicht();
+    try{await api("loeschen",{id})}catch(e){setStatus("warn","Löschen fehlgeschlagen ("+(e.message||e.code)+").")}
+  });
+}
+
+// ---------- E-Mail ----------
+function namenListe(obj,quelle){
+  const nrs=Object.keys(obj||{}).filter(n=>obj[n]);
+  return quelle.filter(([n])=>nrs.includes(String(n))).map(([n,name])=>n+"  "+name);
+}
+function textErzeugen(e){
+  const m=namenListe(e.m,MANNSCHAFT),r=namenListe(e.r,RESERVE);
+  let t="EINSATZERFASSUNG – FF Auersthal\n\n";
+  t+="Einsatzart: "+(e.art||"–")+"\n";
+  t+="Einsatz:   "+(e.einsatz||"")+"\nOrt:       "+ortText(e)+(e.ueberoertlich?" (überörtlich)":"")+"\nDatum:     "+datumDE(e.datum)+"\n";
+  t+="Ausfahrt:  "+(e.ausfahrt||"")+"\nRückkehr:  "+(e.rueckkehrDatum&&e.rueckkehrDatum!==e.datum?datumDE(e.rueckkehrDatum)+" ":"")+(e.rueckkehr||"")+"\nFahrzeuge: "+((e.fz||[]).join(", ")||"–")+"\n";
+  t+="Einsatzleiter: "+(e.el&&NAMEN[e.el]?e.el+" "+NAMEN[e.el]:"–")+"\n";
+  t+="Witterung: "+(wetterText(e)||"–")+"\n\n";
+  t+="MANNSCHAFT ("+m.length+"):\n"+(m.join("\n")||"–")+"\n\nRESERVE ("+r.length+"):\n"+(r.join("\n")||"–")+"\n\n";
+  t+="Gesamt: "+(m.length+r.length)+" Mitglieder\n";
+  const ffs=e.ffs||{}, akt=ffListe(e).filter(n=>ffs[n]&&ffs[n].aktiv);
+  if(akt.length){ t+="\nWEITERE FEUERWEHREN ("+akt.length+"):\n"+akt.map(n=>n+" – "+(ffs[n].fz||0)+" Fzg., "+(ffs[n].mann||0)+" Mann").join("\n")+"\n"; }
+  const k=e.kraefte||{}; const kz=[];
+  RETTUNG.forEach(([key,l])=>{const v=+tief(k,"rettung."+key)||0; if(v)kz.push(v+"× "+key+" ("+l+")")});
+  if(+k.polizei)kz.push("Polizei: "+k.polizei+" Streife"+(k.polizei>1?"n":""));
+  Object.keys(k.stellen||{}).filter(x=>k.stellen[x]).forEach(x=>kz.push(x));
+  if(k.sonst)kz.push(k.sonst);
+  if(kz.length) t+="\nWEITERE KRÄFTE:\n"+kz.join("\n")+"\n";
+  const uf=ufListe(e);
+  if(uf.length){ t+="\nUNFALLFAHRZEUGE ("+uf.length+"):\n"+uf.map((f,i)=>"Fahrzeug "+(i+1)+": "+[f.kennzeichen,f.marke].filter(Boolean).join(" – ")+(f.lenker?" | Lenker/in: "+f.lenker:"")+(f.anm?" | "+f.anm:"")+" | Fotos: "+(Object.values(f.fotos||{}).filter(Boolean).length)+" (in der Einsatzerfassung)").join("\n")+"\n"; }
+  if((e.bemerkung||"").trim())t+="\nBemerkungen:\n"+e.bemerkung.trim()+"\n";
+  return t;
+}
+// ---------- PDF ----------
+function herunterladen(blob,name){const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(u)},4000)}
+function dateiname(e){
+  const t=[datumDE(e.datum).split(".").reverse().join("-"),kurz(e.art),e.einsatz].filter(Boolean).join("_").replace(/[^\wäöüÄÖÜß\- ]+/g,"").replace(/\s+/g,"_");
+  return "Einsatz_"+t+".pdf";
+}
+async function bildAlsDataUrl(id){
+  return new Promise((res,rej)=>{const img=new Image();img.crossOrigin="anonymous";img.onload=()=>{try{const c=document.createElement("canvas");const f=Math.min(1,1200/Math.max(img.width,img.height));c.width=img.width*f;c.height=img.height*f;c.getContext("2d").drawImage(img,0,0,c.width,c.height);res({url:c.toDataURL("image/jpeg",0.8),w:c.width,h:c.height})}catch(e){rej(e)}};img.onerror=rej;fotoUrl(id).then(u=>{img.src=u});});
+}
+async function pdfErzeugen(btn){
+  if(!aktuell)return;
+  if(!window.jspdf){setStatus("warn","PDF-Bibliothek nicht geladen – bitte Seite neu laden.");return}
+  const alt=btn.textContent; btn.textContent="Erstelle PDF …"; btn.disabled=true;
+  try{
+    const e=aktuell, {jsPDF}=window.jspdf, doc=new jsPDF({unit:"mm",format:"a4"});
+    const W=210, L=15, R=195; let y=0;
+    const farbe=ARTFARBEN[e.art]||"#c8102e"; const rgb=[1,3,5].map(i=>parseInt(farbe.substr(i,2),16));
+    const neueSeite=()=>{doc.addPage();y=20};
+    const check=(h)=>{if(y+h>282)neueSeite()};
+    const H=(t)=>{check(14);y+=6;doc.setFillColor(...rgb);doc.rect(L,y-4.5,R-L,0.8,"F");doc.setFont("helvetica","bold");doc.setFontSize(12);doc.setTextColor(...rgb);doc.text(t.toUpperCase(),L,y+2);y+=8;doc.setTextColor(20,20,20)};
+    const KV=(k,v)=>{if(!v)return;check(7);doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.text(k,L,y);doc.setFont("helvetica","normal");const lines=doc.splitTextToSize(String(v),R-L-45);doc.text(lines,L+45,y);y+=lines.length*5.2+1.2};
+    const P=(t,size=10.5)=>{doc.setFont("helvetica","normal");doc.setFontSize(size);const lines=doc.splitTextToSize(t,R-L);lines.forEach(l=>{check(6);doc.text(l,L,y);y+=5.2})};
+    const spalten=(items,n)=>{const bw=(R-L)/n;const rows=Math.ceil(items.length/n);doc.setFont("helvetica","normal");doc.setFontSize(10);for(let r=0;r<rows;r++){check(6);for(let c=0;c<n;c++){const it=items[r+c*rows];if(it)doc.text(it,L+c*bw,y)}y+=5.4}};
+    // Kopf
+    doc.setFillColor(...rgb);doc.rect(0,0,W,26,"F");
+    doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(16);doc.text("Einsatzbericht – Freiwillige Feuerwehr Auersthal",L,11);
+    doc.setFont("helvetica","normal");doc.setFontSize(10);doc.text("Neubaugasse 24, 2214 Auersthal · Tel. 02288/2122 · auersthal@feuerwehr.gv.at",L,18);
+    doc.setFontSize(9);doc.text("Erstellt: "+new Date().toLocaleString("de-AT"),R,18,{align:"right"});
+    y=36;doc.setTextColor(20,20,20);
+    doc.setFont("helvetica","bold");doc.setFontSize(18);doc.text(doc.splitTextToSize((e.einsatz||kurz(e.art)||"Einsatz"),R-L),L,y);y+=10;
+    doc.setFont("helvetica","normal");doc.setFontSize(11);doc.text([e.art,ortText(e),datumDE(e.datum)].filter(Boolean).join("  ·  "),L,y);y+=4;
+    H("Einsatzdaten");
+    KV("Einsatzart",e.art||"–");KV("Bezeichnung",e.einsatz);KV("Einsatzort",ortText(e)+(e.ueberoertlich?" (überörtlich)":""));
+    KV("Datum",datumDE(e.datum));KV("Ausfahrt",e.ausfahrt);KV("Rückkehr",(e.rueckkehrDatum&&e.rueckkehrDatum!==e.datum?datumDE(e.rueckkehrDatum)+" ":"")+(e.rueckkehr||""));
+    KV("Fahrzeuge",(e.fz||[]).join(", "));KV("Einsatzleiter",e.el&&NAMEN[e.el]?e.el+" "+NAMEN[e.el]:"");KV("Witterung",wetterText(e));KV("Status",e.status==="abgeschlossen"?"abgeschlossen":"aktiv");
+    const m=namenListe(e.m,MANNSCHAFT),r=namenListe(e.r,RESERVE);
+    H("Mannschaft ("+(m.length+r.length)+" Mitglieder)");
+    if(m.length)spalten(m,2);else P("–");
+    if(r.length){y+=2;doc.setFont("helvetica","bold");doc.setFontSize(10.5);check(6);doc.text("Reserve ("+r.length+")",L,y);y+=5.5;spalten(r,2)}
+    const ffs=e.ffs||{},akt=ffListe(e).filter(n=>ffs[n]&&ffs[n].aktiv);
+    if(akt.length){H("Weitere Feuerwehren ("+akt.length+")");akt.forEach(n=>KV(n,(ffs[n].fz||0)+" Fahrzeuge, "+(ffs[n].mann||0)+" Mann"));
+      KV("Gesamt",akt.reduce((a,n)=>a+(+ffs[n].fz||0),0)+" Fahrzeuge, "+akt.reduce((a,n)=>a+(+ffs[n].mann||0),0)+" Mann")}
+    const k=e.kraefte||{};const kz=[];
+    RETTUNG.forEach(([key,l])=>{const v=+tief(k,"rettung."+key)||0;if(v)kz.push(v+"× "+key+" ("+l+")")});
+    if(+k.polizei)kz.push("Polizei: "+k.polizei+" Streife"+(k.polizei>1?"n":""));
+    Object.keys(k.stellen||{}).filter(x=>k.stellen[x]).forEach(x=>kz.push(x));
+    if(k.sonst)kz.push(k.sonst);
+    if(kz.length){H("Weitere Kräfte");kz.forEach(z=>P("• "+z))}
+    if(zusammenfassung("secAS",e)){H("Atemschutz");const a=e.atemschutz||{};KV("Trupps",a.trupps);KV("Träger",a.traeger);KV("Geräte",a.geraete)}
+    if(zusammenfassung("secSchaden",e)){H("Personenschäden");const a=e.schaden||{};KV("Gerettet",a.gerettet);KV("Geborgen",a.geborgen);KV("Verletzt",a.verletzt);KV("Tot",a.tot);KV("Tiere",a.tiere)}
+    if(zusammenfassung("secMat",e)){H("Verbrauchsmaterial");const mt=e.material||{};KV("Ölbindemittel",mt.oel?mt.oel+" kg":"");KV("Schaummittel",mt.schaum?mt.schaum+" l":"");KV("Löschwasser",mt.wasser?mt.wasser+" l":"");KV("Sonstiges",mt.sonst)}
+    const uf=ufListe(e);
+    if(uf.length){H("Unfallfahrzeuge ("+uf.length+")");uf.forEach((f,i)=>{doc.setFont("helvetica","bold");doc.setFontSize(10.5);check(6);doc.text("Fahrzeug "+(i+1),L,y);y+=5.5;KV("Kennzeichen",f.kennzeichen);KV("Marke / Type",f.marke);KV("Lenker/in",f.lenker);KV("Anmerkung",f.anm);y+=2})}
+    const pers=persListe(e);
+    if(pers.length){H("Beteiligte / Geschädigte ("+pers.length+")");pers.forEach((f,i)=>{doc.setFont("helvetica","bold");doc.setFontSize(10.5);check(6);doc.text("Person "+(i+1)+(f.rolle?" – "+f.rolle:""),L,y);y+=5.5;KV("Name",f.name);KV("Adresse / Telefon",f.kontakt);KV("Anmerkung",f.anm);y+=2})}
+    if(zusammenfassung("secMass",e)){H("Lage und Maßnahmen");
+      if((e.lage||"").trim()){doc.setFont("helvetica","bold");doc.setFontSize(10.5);check(6);doc.text("Lage beim Eintreffen",L,y);y+=5.5;P(e.lage.trim());y+=2}
+      if((e.massnahmen||"").trim()){doc.setFont("helvetica","bold");doc.setFontSize(10.5);check(6);doc.text("Gesetzte Maßnahmen",L,y);y+=5.5;P(e.massnahmen.trim());y+=2}
+      KV("Übergeben an",e.uebergabe);KV("Brandwache",e.brandwache?"ja":"");KV("Kostenpflichtig",e.kostenpflichtig?"ja":"")}
+    if((e.bemerkung||"").trim()){H("Bemerkungen");P(e.bemerkung.trim())}
+    const bild=async(titel,id)=>{try{const b=await bildAlsDataUrl(id);const maxW=R-L,maxH=110;let w=maxW,h=w*b.h/b.w;if(h>maxH){h=maxH;w=h*b.w/b.h}
+      check(h+12);doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.text(titel,L,y);y+=4;doc.addImage(b.url,"JPEG",L,y,w,h);y+=h+6}catch(err){P(titel+": Foto konnte nicht eingebettet werden")}};
+    const doku=dokuListe(e);
+    if(doku.length){H("Fotos / Dokumentation ("+doku.length+")");for(const [i,f] of doku.entries())await bild("Foto "+(i+1)+(f.text?" – "+f.text:""),f.asset)}
+    if(pers.some(f=>Object.values(f.fotos||{}).some(Boolean))){H("Fotos Beteiligte");for(const [i,f] of pers.entries()){for(const [t,l] of [["ausweis","Ausweis"],["sonst","Foto"]]){const id=(f.fotos||{})[t];if(id)await bild("Person "+(i+1)+(f.name?" ("+f.name+")":"")+" – "+l,id)}}}
+    if(uf.some(f=>Object.values(f.fotos||{}).some(Boolean))){H("Fotos Unfallfahrzeuge");
+      for(const [i,f] of uf.entries()){
+        for(const [t,,l] of FOTOTYPEN){const id=(f.fotos||{})[t];if(!id)continue;
+          try{const b=await bildAlsDataUrl(id);const maxW=R-L,maxH=110;let w=maxW,h=w*b.h/b.w;if(h>maxH){h=maxH;w=h*b.w/b.h}
+            check(h+12);doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.text("Fahrzeug "+(i+1)+" – "+l+(f.kennzeichen?" ("+f.kennzeichen+")":""),L,y);y+=4;doc.addImage(b.url,"JPEG",L,y,w,h);y+=h+6}
+          catch(err){P("Fahrzeug "+(i+1)+" – "+l+": Foto konnte nicht eingebettet werden")}
+        }
+      }
+    }
+    // Fußzeile
+    const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(8.5);doc.setTextColor(120,120,120);doc.text("Einsatzerfassung FF Auersthal · Seite "+i+" von "+n,W/2,291,{align:"center"})}
+    const blob=doc.output("blob");
+    const datei=new File([blob],dateiname(e),{type:"application/pdf"});
+    if(navigator.canShare&&navigator.canShare({files:[datei]})){
+      try{ await navigator.share({files:[datei],title:dateiname(e)}); }
+      catch(err){ if(err&&err.name==="AbortError")throw {code:"declined"}; herunterladen(blob,dateiname(e)); }
+    } else herunterladen(blob,dateiname(e));
+    btn.textContent="PDF erstellt ✓";setTimeout(()=>{btn.textContent=alt},2000);
+  }catch(err){
+    if(err&&err.code==="declined"){btn.textContent=alt}
+    else{setStatus("warn","PDF konnte nicht erstellt werden ("+(err&&(err.code||err.message))+").");btn.textContent=alt}
+  }finally{btn.disabled=false}
+}
+// ---------- Admin: Mitglieder ----------
+let adminMitglieder=[];
+async function adminOeffnen(){
+  try{const r=await api("mitglieder");adminMitglieder=r.mitglieder;}catch(e){setStatus("warn","Laden fehlgeschlagen");return}
+  adminZeichnen(); $("adminView").style.display="block";
+}
+function adminZeichnen(){
+  adminMitglieder.sort((a,b)=>a.name.localeCompare(b.name,"de"));
+  $("adminListe").innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:15px"><thead><tr><th style="text-align:left;padding:4px">Nr.</th><th style="text-align:left;padding:4px">Name</th><th style="padding:4px">Gruppe</th><th></th></tr></thead><tbody>`+
+    adminMitglieder.map((m,i)=>`<tr><td style="padding:3px"><input type="number" value="${m.nr}" data-ai="${i}|nr" style="width:64px;font-size:15px;padding:6px;border:1px solid var(--rand);border-radius:6px"></td>
+      <td style="padding:3px"><input type="text" value="${esc(m.name)}" data-ai="${i}|name" style="width:100%;font-size:15px;padding:6px;border:1px solid var(--rand);border-radius:6px"></td>
+      <td style="padding:3px;text-align:center"><select data-ai="${i}|gruppe" style="font-size:14px;padding:6px;border:1px solid var(--rand);border-radius:6px"><option value="m" ${m.gruppe!=="r"?"selected":""}>Mannschaft</option><option value="r" ${m.gruppe==="r"?"selected":""}>Reserve</option></select></td>
+      <td style="padding:3px"><button type="button" onclick="adminMitglieder.splice(${i},1);adminZeichnen()" style="background:none;border:none;color:var(--rot);font-size:18px">×</button></td></tr>`).join("")+`</tbody></table>`;
+}
+document.addEventListener("input",ev=>{const i=ev.target;if(!i.dataset||!i.dataset.ai)return;const [idx,f]=i.dataset.ai.split("|");adminMitglieder[+idx][f]=f==="nr"?parseInt(i.value)||0:i.value;});
+document.addEventListener("change",ev=>{const i=ev.target;if(!i.dataset||!i.dataset.ai)return;const [idx,f]=i.dataset.ai.split("|");adminMitglieder[+idx][f]=f==="nr"?parseInt(i.value)||0:i.value;});
+function adminZeile(){adminMitglieder.unshift({nr:0,name:"",gruppe:"m"});adminZeichnen();setTimeout(()=>{const i=$("adminListe").querySelector('input[data-ai$="|name"]');if(i)i.focus()},50)}
+function adminImport(){
+  const zeilen=$("importText").value.split(/\r?\n/).map(z=>z.trim()).filter(Boolean); let neu=0,upd=0;
+  zeilen.forEach(z=>{const t=z.split(/[;\t,]/).map(x=>x.trim()).filter(Boolean);if(t.length<2)return;const nr=parseInt(t[0]);if(!nr)return;
+    const name=t.slice(1).join(" ").replace(/\s+/g," ");const vorh=adminMitglieder.find(m=>m.nr===nr);
+    if(vorh){if(vorh.name!==name){vorh.name=name;upd++}}else{adminMitglieder.push({nr,name,gruppe:"m"});neu++}});
+  $("importText").value=""; adminZeichnen(); setStatus("ok",neu+" neu, "+upd+" aktualisiert – noch „Speichern“ drücken."); setTimeout(()=>setStatus("",""),4000);
+}
+async function adminSpeichern(btn){
+  const liste=adminMitglieder.filter(m=>m.nr&&m.name.trim());
+  const nrs=liste.map(m=>m.nr); if(new Set(nrs).size!==nrs.length){setStatus("warn","Doppelte Nummern in der Liste.");return}
+  btn.disabled=true;
+  try{const r=await api("mitglieder_speichern",{mitglieder:liste});mitgliederSetzen(r.mitglieder);if(aktuell)fuelleFormular(aktuell);$("adminView").style.display="none";setStatus("ok","Mitgliederliste gespeichert.");setTimeout(()=>setStatus("",""),3000)}
+  catch(e){setStatus("warn","Speichern fehlgeschlagen ("+(e.message||e.code)+")")}finally{btn.disabled=false}
+}
+
+start();
+</script>
+</body>
+</html>
