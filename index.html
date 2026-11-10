@@ -10,8 +10,8 @@
 <meta name="theme-color" content="#c8102e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="lib/jspdf.umd.min.js"></script>
+<script src="lib/supabase.js"></script>
 <style>
   :root{--rot:#c8102e;--grau:#f3f4f6;--rand:#d1d5db;--text:#111827;--gruen:#15803d;--gelb:#b45309;}
   body[data-art="Brand"]{--rot:#c8102e}
@@ -455,7 +455,7 @@ function mitgliederSetzen(liste){
 
 let ersteFuellung=true;
 let assetsNs=true, downloadsNs=true, db=true; // Backend vorhanden (PHP)
-let rolle=null, aktuellId=null, aktuell=null, pollTimer=null, listeStand="", docStand="", ladeTimer=null, schreibKette=Promise.resolve();
+let rolle=null, aktuellId=null, aktuell=null, pollTimer=null, listeStand="", docStand="", ladeTimer=null;
 
 // ---------- Supabase ----------
 const SB_URL="https://zukookhfrgmffottgrng.supabase.co";
@@ -477,7 +477,7 @@ async function api(a,body,opts={}){
     case "einsatz": { const {data,error}=await sb.from("einsaetze").select("data,version,updated_at").eq("id",q.id).maybeSingle(); if(error)sbFehler(error); if(!data)return {ok:true,geloescht:true};
       const stand=data.version+"|"+data.updated_at; if(q.stand===stand)return {ok:true,geaendert:false,stand}; return {ok:true,stand,data:data.data}; }
     case "neu": { const {data,error}=await sb.from("einsaetze").insert({data:body.data}).select("id").single(); if(error)sbFehler(error); return {ok:true,id:data.id}; }
-    case "patch": { const {data,error}=await sb.rpc("einsatz_patch",{p_id:body.id,p_patch:body.patch}); if(error)sbFehler(error); return {ok:true,stand:data+"|?"}; }
+    case "patch": { const {data,error}=await sb.rpc("einsatz_patch",{p_id:body.id,p_patch:body.patch}); if(error)sbFehler(error); return {ok:true}; }
     case "loeschen": { const {data:objs}=await sb.storage.from("fotos").list(body.id,{limit:1000}); if(objs&&objs.length)await sb.storage.from("fotos").remove(objs.map(o=>body.id+"/"+o.name));
       const {error}=await sb.from("einsaetze").delete().eq("id",body.id); if(error)sbFehler(error); return {ok:true}; }
     case "upload": { const einsatz=body.get("einsatz"), blob=body.get("foto"); const pfad=einsatz+"/"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)+".jpg";
@@ -504,7 +504,9 @@ function realtimeStarten(){
   if(rtKanal)return;
   rtKanal=sb.channel("einsaetze").on("postgres_changes",{event:"*",schema:"public",table:"einsaetze"},()=>{ pollen(); }).subscribe();
 }
-sb.auth.onAuthStateChange((ev)=>{ if(ev==="SIGNED_OUT"){rolle=null;zeigeLogin();} });
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&rolle){ pollen(); qAbarbeiten(); } });
+window.addEventListener("online",()=>{ if(rolle){ pollen(); qAbarbeiten(); } });
+sb&&sb.auth.onAuthStateChange((ev)=>{ if(ev==="SIGNED_OUT"){rolle=null;zeigeLogin();} });
 
 // ---------- Aufbau ----------
 function personHtml([nr,name],gruppe){
@@ -538,7 +540,7 @@ async function start(){
     rolle=me.rolle; mitgliederSetzen(me.mitglieder||[]);
     $("adminBtn").style.display=rolle==="admin"?"":"none";
     $("loginView").style.display="none";
-    realtimeStarten(); pollen();
+    realtimeStarten(); pollen(); qAbarbeiten();
   }catch(e){ if(e.code!=="auth")setStatus("err","Server nicht erreichbar ("+(e.message||e.code)+")."); }
 }
 function zeigeLogin(){
@@ -559,7 +561,7 @@ async function login(ev){
     const r=await api("login",{pw:$("pw").value,konto});
     $("pw").value=""; rolle=r.rolle; mitgliederSetzen(r.mitglieder||[]);
     $("adminBtn").style.display=rolle==="admin"?"":"none";
-    $("loginView").style.display="none"; realtimeStarten(); pollen();
+    $("loginView").style.display="none"; realtimeStarten(); pollen(); qAbarbeiten();
   }catch(e){ $("loginFehler").textContent=e.code==="falsch"?"Passwort falsch ("+(e.message||"")+")":"Fehler: "+(e.message||e.code||e); }
   finally{ clearTimeout(zeit); btn.disabled=false; btn.textContent="Anmelden"; }
   return false;
@@ -573,15 +575,19 @@ async function pollen(){
     if(aktuellId){
       const r=await api("einsatz",undefined,{q:"&id="+encodeURIComponent(aktuellId)+"&stand="+encodeURIComponent(docStand)});
       if(r.geloescht){zeigeUebersicht();}
-      else if(r.geaendert!==false){docStand=r.stand; aktuell=r.data; fuelleFormular(aktuell);}
+      else if(r.geaendert!==false){
+        docStand=r.stand; const d=JSON.parse(JSON.stringify(r.data));
+        warteschlange.filter(j=>j.id===aktuellId).forEach(j=>tiefMerge(d,JSON.parse(JSON.stringify(j.patch))));  // eigene, noch nicht gespeicherte Änderungen obenauf
+        aktuell=d; fuelleFormular(aktuell);
+      }
     }else{
       const r=await api("liste",undefined,{q:"&stand="+encodeURIComponent(listeStand)});
       if(r.geaendert!==false){listeStand=r.stand; zeichneUebersicht(r.liste);}
     }
-    pollFehler=0; $("sync").textContent="● verbunden"; if($("status").classList.contains("warn"))setStatus("","");
+    pollFehler=0; online=true; syncAnzeige(); if(!warteschlange.length&&$("status").classList.contains("warn"))setStatus("","");
   }catch(e){
     if(e.code==="auth")return;
-    pollFehler++; $("sync").textContent="⟳ offline";
+    pollFehler++; online=false; syncAnzeige();
     if(pollFehler>=3)setStatus("warn","Keine Verbindung zum Server – Anzeige könnte veraltet sein.");
   }
   pollTimer=setTimeout(pollen, 20000);
@@ -703,15 +709,40 @@ function tiefMerge(ziel,patch){
   });
   return ziel;
 }
+// Warteschlange: Änderungen gehen nie verloren – bei Funkloch wird wiederholt, auch nach Neuladen
+let warteschlange=[]; try{warteschlange=JSON.parse(localStorage.getItem("ffa-queue")||"[]")}catch(e){}
+let qLaeuft=false, online=true;
+function qSpeichern(){try{localStorage.setItem("ffa-queue",JSON.stringify(warteschlange))}catch(e){}}
+function patchMerge(a,b){ Object.keys(b).forEach(k=>{const v=b[k]; if(v&&typeof v==="object"&&!Array.isArray(v)&&a[k]&&typeof a[k]==="object"&&!Array.isArray(a[k]))patchMerge(a[k],v); else a[k]=v;}); return a; }
+function syncAnzeige(){
+  const n=warteschlange.length;
+  $("sync").textContent=n?("⟳ "+n+" ausstehend"):(online?"● verbunden":"⟳ offline");
+}
+const warte=ms=>new Promise(r=>setTimeout(r,ms));
+async function qAbarbeiten(){
+  if(qLaeuft)return; qLaeuft=true;
+  while(warteschlange.length&&rolle){
+    const j=warteschlange[0];
+    try{ await api("patch",{id:j.id,patch:j.patch}); warteschlange.shift(); qSpeichern(); online=true; if($("status").classList.contains("warn"))setStatus("",""); }
+    catch(e){
+      if(/^(P0|22|23|42)/.test(e.code||"")){ warteschlange.shift(); qSpeichern(); setStatus("warn","Eine Änderung wurde vom Server abgelehnt ("+(e.message||e.code)+")."); }
+      else { online=false; syncAnzeige(); setStatus("warn","Keine Verbindung – Änderungen werden gespeichert, sobald wieder Netz da ist."); await warte(3000); }
+    }
+    syncAnzeige();
+  }
+  qLaeuft=false;
+  if(rolle&&!warteschlange.length)pollen();
+}
 function schreibe(patch){
   if(!aktuellId)return;
   const id=aktuellId;
   patch.geaendert=new Date().toISOString();
   if(aktuell){ tiefMerge(aktuell,patch); fuelleFormular(aktuell); }
-  schreibKette=schreibKette.then(()=>api("patch",{id,patch})).then(r=>{ if(r&&r.stand&&id===aktuellId)docStand=r.stand; }).catch(e=>{
-    if(e.code==="auth")return;
-    setStatus("warn","Speichern fehlgeschlagen ("+(e.message||e.code)+") – bitte Verbindung prüfen.");
-  });
+  // aufeinanderfolgende Änderungen am selben Einsatz zusammenfassen (nicht den gerade laufenden Eintrag)
+  const letzter=warteschlange[warteschlange.length-1];
+  if(letzter&&letzter.id===id&&(warteschlange.length>1||!qLaeuft)) patchMerge(letzter.patch,patch);
+  else warteschlange.push({id,patch:JSON.parse(JSON.stringify(patch))});
+  qSpeichern(); syncAnzeige(); qAbarbeiten();
 }
 let textTimer={};
 function textFeld(k){
