@@ -43,6 +43,7 @@
   .status.ok{display:block;background:#dcfce7;color:#166534;border:1px solid #86efac}
   /* Übersicht */
   .karte{--kf:#9ca3af;display:block;padding:12px 14px 12px 16px;border:2px solid var(--rand);border-left:10px solid var(--kf);border-radius:12px;margin-bottom:12px;cursor:pointer;background:#fff}
+  .karte{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
   .karte.aktiv{box-shadow:0 2px 10px rgba(0,0,0,.08)}
   .karte.alt{opacity:.8}
   .karte .kopfz{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
@@ -638,7 +639,7 @@ function zeichneUebersicht(alle){
     const ffN=Object.values(e.ffs||{}).filter(f=>f&&f.aktiv).length;
     const farbe=ARTFARBEN[e.art]||"#9ca3af";
     const rk=e.rueckkehr?((e.rueckkehrDatum&&e.rueckkehrDatum!==e.datum)?datumDE(e.rueckkehrDatum)+" ":"")+esc(e.rueckkehr):"";
-    return `<div class="karte ${aktivE?"aktiv":"alt"}" style="--kf:${farbe}" onclick="oeffne('${e.id}')">
+    return `<div class="karte ${aktivE?"aktiv":"alt"}" style="--kf:${farbe}" data-id="${e.id}" onclick="oeffne('${e.id}')">
       <div class="kopfz">${e.art?`<span class="art">${esc(kurz(e.art))}</span>`:""}<span style="color:#6b7280;font-size:14px">${datumDE(e.datum)}</span>${e._lokal?'<span class="badge" style="background:#fef3c7;color:#92400e">noch nicht übertragen</span>':""}<span class="badge ${aktivE?"aktiv":"abg"}">${aktivE?"AKTIV":"abgeschlossen"}</span></div>
       <div class="titel">${esc(e.einsatz)||"<i style='color:#6b7280'>Ohne Bezeichnung</i>"}</div>
       <div class="ort">${esc(ortText(e))}</div>
@@ -1104,7 +1105,25 @@ document.addEventListener("pointerup",lpEnde);
 document.addEventListener("pointercancel",lpEnde);
 document.addEventListener("pointermove",ev=>{ if(lpTimer&&ev.pressure===0&&ev.pointerType==="mouse")return; });
 document.addEventListener("scroll",lpEnde,true);
-document.addEventListener("contextmenu",ev=>{ if(ev.target.closest(".person"))ev.preventDefault(); });
+document.addEventListener("contextmenu",ev=>{ if(ev.target.closest(".person,.karte"))ev.preventDefault(); });
+// Longpress auf eine Einsatzkarte = PDF teilen
+let kpTimer=null, kpAusgeloest=false;
+document.addEventListener("pointerdown",ev=>{
+  const k=ev.target.closest(".karte"); if(!k)return;
+  kpAusgeloest=false; clearTimeout(kpTimer);
+  kpTimer=setTimeout(()=>{
+    kpAusgeloest=true; if(navigator.vibrate)try{navigator.vibrate(30)}catch(e){}
+    const e=mitQueue(letzteListe).find(x=>x.id===k.dataset.id); if(!e)return;
+    const name=[kurz(e.art),e.einsatz].filter(Boolean).join(" – ")||"Ohne Bezeichnung";
+    frage("PDF-Bericht für „"+name+"“ vom "+datumDE(e.datum)+" erstellen und teilen?",()=>{
+      setStatus("ok","Erstelle PDF …");
+      pdfErzeugen({textContent:"",disabled:false},e).then(()=>{ if($("status").classList.contains("ok"))setStatus("",""); });
+    },"PDF teilen");
+  },550);
+});
+["pointerup","pointercancel"].forEach(t=>document.addEventListener(t,()=>clearTimeout(kpTimer)));
+document.addEventListener("scroll",()=>clearTimeout(kpTimer),true);
+document.addEventListener("click",ev=>{ if(kpAusgeloest&&ev.target.closest(".karte")){ev.preventDefault();ev.stopPropagation();kpAusgeloest=false;} },true);
 document.addEventListener("click",ev=>{ if(lpAusgeloest&&ev.target.closest(".person")){ev.preventDefault();ev.stopPropagation();lpAusgeloest=false;} },true);
 
 $("suche").addEventListener("input",e=>{
@@ -1119,7 +1138,7 @@ function statusWechseln(){
   const patch={status:neu};
   schreibe(patch);
 }
-function frage(text,cb){$("frageText").textContent=text;$("frage").style.display="block";$("frageJa").onclick=()=>{$("frage").style.display="none";cb()}}
+function frage(text,cb,jaText){$("frageText").textContent=text;$("frageJa").textContent=jaText||"Ja, löschen";$("frage").style.display="block";$("frageJa").onclick=()=>{$("frage").style.display="none";cb()}}
 function loeschenFragen(){
   if(!aktuell)return;
   const name=[kurz(aktuell.art),aktuell.einsatz].filter(Boolean).join(" – ")||"Ohne Bezeichnung";
@@ -1172,12 +1191,12 @@ function dateiname(e){
 async function bildAlsDataUrl(id){
   return new Promise((res,rej)=>{const img=new Image();img.crossOrigin="anonymous";img.onload=()=>{try{const c=document.createElement("canvas");const f=Math.min(1,1200/Math.max(img.width,img.height));c.width=img.width*f;c.height=img.height*f;c.getContext("2d").drawImage(img,0,0,c.width,c.height);res({url:c.toDataURL("image/jpeg",0.8),w:c.width,h:c.height})}catch(e){rej(e)}};img.onerror=rej;fotoUrl(id).then(u=>{img.src=u});});
 }
-async function pdfErzeugen(btn){
-  if(!aktuell)return;
+async function pdfErzeugen(btn,einsatz){
+  einsatz=einsatz||aktuell; if(!einsatz)return;
   if(!window.jspdf){setStatus("warn","PDF-Bibliothek nicht geladen – bitte Seite neu laden.");return}
   const alt=btn.textContent; btn.textContent="Erstelle PDF …"; btn.disabled=true;
   try{
-    const e=aktuell, {jsPDF}=window.jspdf, doc=new jsPDF({unit:"mm",format:"a4"});
+    const e=einsatz, {jsPDF}=window.jspdf, doc=new jsPDF({unit:"mm",format:"a4"});
     const W=210, L=15, R=195; let y=0;
     const farbe=ARTFARBEN[e.art]||"#c8102e"; const rgb=[1,3,5].map(i=>parseInt(farbe.substr(i,2),16));
     const neueSeite=()=>{doc.addPage();y=20};
