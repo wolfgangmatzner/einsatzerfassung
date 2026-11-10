@@ -1046,7 +1046,6 @@ function statusWechseln(){
   if(!aktuell)return;
   const neu=aktuell.status==="abgeschlossen"?"aktiv":"abgeschlossen";
   const patch={status:neu};
-  if(neu==="abgeschlossen"&&!$("rueckkehr").value){patch.rueckkehr=uhrzeit(); if(aktuell.datum&&aktuell.datum!==heute())patch.rueckkehrDatum=heute();}
   schreibe(patch);
 }
 function frage(text,cb){$("frageText").textContent=text;$("frage").style.display="block";$("frageJa").onclick=()=>{$("frage").style.display="none";cb()}}
