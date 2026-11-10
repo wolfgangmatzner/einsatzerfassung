@@ -679,7 +679,7 @@ function oeffne(id){
   aktuellId=id; aktuell=null; docStand="";
   $("uebersicht").style.display="none";$("leisteUebersicht").style.display="none";
   $("einsatzView").style.display="";$("leisteEinsatz").style.display="";
-  $("zurueck").style.display="";document.querySelector("header").classList.add("mit-zurueck");
+  
   $("suche").value="";document.querySelectorAll(".person").forEach(p=>p.style.display="");
   ersteFuellung=true;
   aktuell=lokalerEinsatz(id); if(aktuell)fuelleFormular(aktuell);  // sofort aus dem Zwischenspeicher, Server-Stand folgt
