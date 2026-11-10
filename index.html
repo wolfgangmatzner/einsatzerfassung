@@ -398,7 +398,7 @@
 </div>
 <div class="leiste" id="leisteEinsatz" style="display:none">
   <button class="btn btn-grau" onclick="zeigeUebersicht();window.scrollTo(0,0)">‹ Einsätze</button>
-  <div class="anz" id="anzGesamt" style="text-align:center">0 Mitglieder</div>
+  <div class="anz" id="anzGesamt" style="text-align:center;cursor:pointer" onclick="zurMannschaft()">0 Mitglieder</div>
   <button class="btn btn-rot" id="pdfBtn" onclick="pdfErzeugen(this)">PDF teilen</button>
 </div>
 
@@ -845,6 +845,11 @@ function standardOffen(z,e){
   return false;
 }
 function klappZustand(){try{return JSON.parse(localStorage.getItem("ffa-klapp-"+aktuellId)||"null")}catch(e){return null}}
+function zurMannschaft(){
+  sektion("secMann",true,true);
+  const h=document.querySelector('h2[data-ziel="secMann"]'), kopf=document.querySelector("header").offsetHeight;
+  window.scrollTo({top:h.getBoundingClientRect().top+window.scrollY-kopf-8,behavior:"smooth"});
+}
 function kurzName(n){const t=n.split(" ");return t[0]+(t[1]?" "+t[1][0]+".":"")}
 function zusammenfassung(ziel,e){
   if(!e)return "";
