@@ -44,6 +44,7 @@
   /* Übersicht */
   .karte{--kf:#9ca3af;display:block;padding:12px 14px 12px 16px;border:2px solid var(--rand);border-left:10px solid var(--kf);border-radius:12px;margin-bottom:12px;cursor:pointer;background:#fff}
   .karte{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+  .rotText{color:var(--rot)}
   .karte.aktiv{box-shadow:0 2px 10px rgba(0,0,0,.08)}
   .karte.alt{opacity:.8}
   .karte .kopfz{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
@@ -423,6 +424,15 @@
 </div>
 
 <div id="fotoGross" class="dialog" onclick="this.style.display='none'"><div class="box" style="background:transparent;padding:0"><img src="" alt=""></div></div>
+
+<div id="aktion" class="dialog" onclick="if(event.target===this)this.style.display='none'">
+  <div class="box" style="max-width:420px">
+    <div id="aktionTitel" style="font-weight:700;font-size:19px"></div>
+    <div id="aktionSub" style="color:#6b7280;font-size:15px;margin:2px 0 14px"></div>
+    <div id="aktionKnoepfe" style="display:flex;flex-direction:column;gap:10px"></div>
+    <button class="btn btn-grau" style="width:100%;margin-top:10px" onclick="document.getElementById('aktion').style.display='none'">Abbrechen</button>
+  </div>
+</div>
 
 <div id="frage" class="dialog" onclick="if(event.target===this)this.style.display='none'">
   <div class="box" style="max-width:420px;text-align:center">
@@ -1112,7 +1122,7 @@ document.addEventListener("pointercancel",lpEnde);
 document.addEventListener("pointermove",ev=>{ if(lpTimer&&ev.pressure===0&&ev.pointerType==="mouse")return; });
 document.addEventListener("scroll",lpEnde,true);
 document.addEventListener("contextmenu",ev=>{ if(ev.target.closest(".person,.karte"))ev.preventDefault(); });
-// Longpress auf eine Einsatzkarte = PDF teilen
+// Longpress auf eine Einsatzkarte = Aktionsmenü
 let kpTimer=null, kpAusgeloest=false;
 document.addEventListener("pointerdown",ev=>{
   const k=ev.target.closest(".karte"); if(!k)return;
@@ -1120,16 +1130,12 @@ document.addEventListener("pointerdown",ev=>{
   kpTimer=setTimeout(()=>{
     kpAusgeloest=true; if(navigator.vibrate)try{navigator.vibrate(30)}catch(e){}
     const e=mitQueue(letzteListe).find(x=>x.id===k.dataset.id); if(!e)return;
-    const name=[kurz(e.art),e.einsatz].filter(Boolean).join(" – ")||"Ohne Bezeichnung";
-    frage("PDF-Bericht für „"+name+"“ vom "+datumDE(e.datum)+" erstellen und teilen?",()=>{
-      setStatus("ok","Erstelle PDF …");
-      pdfErzeugen({textContent:"",disabled:false},e).then(()=>{ if($("status").classList.contains("ok"))setStatus("",""); });
-    },"PDF teilen");
+    aktionsMenue(e);
   },550);
 });
 ["pointerup","pointercancel"].forEach(t=>document.addEventListener(t,()=>clearTimeout(kpTimer)));
 document.addEventListener("scroll",()=>clearTimeout(kpTimer),true);
-document.addEventListener("click",ev=>{ if(kpAusgeloest&&ev.target.closest(".karte")){ev.preventDefault();ev.stopPropagation();kpAusgeloest=false;} },true);
+document.addEventListener("click",ev=>{ if(kpAusgeloest){ kpAusgeloest=false; if(ev.target.closest(".karte")){ev.preventDefault();ev.stopPropagation();} } },true);
 document.addEventListener("click",ev=>{ if(lpAusgeloest&&ev.target.closest(".person")){ev.preventDefault();ev.stopPropagation();lpAusgeloest=false;} },true);
 
 $("suche").addEventListener("input",e=>{
@@ -1145,19 +1151,45 @@ function statusWechseln(){
   schreibe(patch);
 }
 function frage(text,cb,jaText){$("frageText").textContent=text;$("frageJa").textContent=jaText||"Ja, löschen";$("frage").style.display="block";$("frageJa").onclick=()=>{$("frage").style.display="none";cb()}}
-function loeschenFragen(){
-  if(!aktuell)return;
-  const name=[kurz(aktuell.art),aktuell.einsatz].filter(Boolean).join(" – ")||"Ohne Bezeichnung";
-  frage("Einsatz „"+name+"“ vom "+datumDE(aktuell.datum)+" samt allen Fotos endgültig löschen? Das kann nicht rückgängig gemacht werden.",async()=>{
-    const id=aktuellId;
-    const nurLokal=warteschlange.some(j=>j.typ==="neu"&&j.id===id);
-    warteschlange=warteschlange.filter((j,i)=>j.id!==id||(i===0&&qLaeuft)); qSpeichern();
-    letzteListe=letzteListe.filter(e=>e.id!==id); cache.liste=cache.liste.filter(e=>e.id!==id); cacheSpeichern();
-    zeigeUebersicht();
-    if(nurLokal)return;
-    try{await api("loeschen",{id}); listeStand=""; pollen();}
-    catch(e){setStatus("warn","Löschen fehlgeschlagen ("+(e.message||e.code)+") – dafür ist eine Verbindung nötig. Bitte später erneut versuchen."); listeStand=""; }
-  });
+function einsatzLoeschenFragen(id,e){
+  const name=[kurz(e.art),e.einsatz].filter(Boolean).join(" – ")||"Ohne Bezeichnung";
+  frage("Einsatz „"+name+"“ vom "+datumDE(e.datum)+" samt allen Fotos löschen?",()=>{
+    setTimeout(()=>frage("Wirklich endgültig löschen? „"+name+"“ ist danach auf allen Tablets weg und kann nicht wiederhergestellt werden.",async()=>{
+      const nurLokal=warteschlange.some(j=>j.typ==="neu"&&j.id===id);
+      warteschlange=warteschlange.filter((j,i)=>j.id!==id||(i===0&&qLaeuft)); qSpeichern();
+      letzteListe=letzteListe.filter(x=>x.id!==id); cache.liste=cache.liste.filter(x=>x.id!==id); cacheSpeichern();
+      zeigeUebersicht();
+      if(nurLokal)return;
+      try{await api("loeschen",{id}); listeStand=""; pollen();}
+      catch(err){setStatus("warn","Löschen fehlgeschlagen ("+(err.message||err.code)+") – dafür ist eine Verbindung nötig. Bitte später erneut versuchen."); listeStand=""; }
+    },"Endgültig löschen"),150);
+  },"Löschen …");
+}
+function loeschenFragen(){ if(aktuell)einsatzLoeschenFragen(aktuellId,aktuell); }
+// Änderung an einem Einsatz, der gerade nicht geöffnet ist (aus der Übersicht)
+function schreibeFuer(id,patch){
+  patch.geaendert=new Date().toISOString();
+  warteschlange.push({typ:"patch",id,patch:klon(patch)}); qSpeichern(); syncAnzeige();
+  zeichneUebersicht(mitQueue(letzteListe)); qAbarbeiten();
+}
+function aktionsMenue(e){
+  const name=[kurz(e.art),e.einsatz].filter(Boolean).join(" – ")||"Ohne Bezeichnung";
+  const abg=e.status==="abgeschlossen";
+  $("aktionTitel").textContent=name;
+  $("aktionSub").textContent=[ortText(e),datumDE(e.datum),abg?"abgeschlossen":"aktiv"].filter(Boolean).join(" · ");
+  const zu=()=>{$("aktion").style.display="none"};
+  const pdf=()=>{ zu(); setStatus("ok","Erstelle PDF …"); pdfErzeugen({textContent:"",disabled:false},e).then(()=>{ if($("status").classList.contains("ok"))setStatus("",""); }); };
+  const knoepfe=abg?[
+    ["Wieder öffnen","btn-gruen",()=>{zu();schreibeFuer(e.id,{status:"aktiv"})}],
+    ["PDF teilen","btn-grau",pdf],
+    ["Löschen …","btn-grau rotText",()=>{zu();einsatzLoeschenFragen(e.id,e)}],
+  ]:[
+    ["Einsatz abschließen","btn-rot",()=>{zu();schreibeFuer(e.id,{status:"abgeschlossen"})}],
+    ["PDF teilen","btn-grau",pdf],
+  ];
+  const box=$("aktionKnoepfe"); box.innerHTML="";
+  knoepfe.forEach(([t,kl,fn])=>{const b=document.createElement("button");b.className="btn "+kl;b.style.width="100%";b.textContent=t;b.onclick=fn;box.appendChild(b)});
+  $("aktion").style.display="block";
 }
 
 // ---------- E-Mail ----------
