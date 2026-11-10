@@ -384,7 +384,7 @@
     <div class="hinweis">Änderungen werden sofort gespeichert und auf allen Tablets angezeigt.</div>
     <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn btn-grau btn-klein" id="btnStatus" onclick="statusWechseln()">Einsatz abschließen</button>
-      <button class="btn btn-grau btn-klein" id="btnLoeschen" onclick="loeschenFragen()" style="color:var(--rot);display:none">Einsatz löschen (Admin)</button>
+      <button class="btn btn-grau btn-klein" id="btnLoeschen" onclick="loeschenFragen()" style="color:var(--rot);display:none">Einsatz löschen</button>
     </div>
   </section>
 </main>
@@ -427,7 +427,7 @@
     <p id="frageText" style="font-size:18px;margin:0 0 16px"></p>
     <div style="display:flex;gap:10px;justify-content:center">
       <button class="btn btn-grau" onclick="document.getElementById('frage').style.display='none'">Abbrechen</button>
-      <button class="btn btn-rot" id="frageJa">Ja</button>
+      <button class="btn btn-rot" id="frageJa">Ja, löschen</button>
     </div>
   </div>
 </div>
@@ -465,10 +465,30 @@ const sb=window.supabase?window.supabase.createClient(SB_URL,SB_KEY,{auth:{persi
 function sbFehler(e){ const msg=(e&&(e.message||e.error_description||e.code))||"Fehler"; throw {code:e&&e.code||"sb",message:msg}; }
 function rolleAus(session){ return session&&session.user ? ((session.user.app_metadata||{}).rolle==="admin"?"admin":"user") : null; }
 async function mitgliederLaden(){ const {data,error}=await sb.from("mitglieder").select("nr,name,gruppe").order("name"); if(error)sbFehler(error); return data; }
+// Lokaler Zwischenspeicher (für Betrieb ohne Netz)
+let cache={liste:[],mitglieder:[],rolle:null}; try{cache=Object.assign(cache,JSON.parse(localStorage.getItem("ffa-cache")||"{}"))}catch(e){}
+let letzteListe=cache.liste||[];
+function cacheSpeichern(){try{localStorage.setItem("ffa-cache",JSON.stringify(cache))}catch(e){try{cache.liste=cache.liste.slice(0,30);localStorage.setItem("ffa-cache",JSON.stringify(cache))}catch(e2){}}}
+const klon=o=>JSON.parse(JSON.stringify(o));
+function neueUuid(){ if(window.crypto&&crypto.randomUUID)return crypto.randomUUID(); return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==="x"?r:(r&3|8)).toString(16)}); }
+// Serverliste + eigene, noch nicht übertragene Änderungen
+function mitQueue(liste){
+  const map=new Map(liste.map(e=>[e.id,klon(e)]));
+  warteschlange.forEach(j=>{
+    if(j.typ==="neu"){ if(!map.has(j.id))map.set(j.id,Object.assign(klon(j.data),{id:j.id,_lokal:true})); }
+    else if(map.has(j.id))tiefMerge(map.get(j.id),klon(j.patch));
+  });
+  return [...map.values()];
+}
+function lokalerEinsatz(id){ const e=mitQueue(letzteListe).find(x=>x.id===id); if(!e)return null; delete e.id; delete e._lokal; return e; }
 async function api(a,body,opts={}){
   const q=Object.fromEntries(new URLSearchParams((opts.q||"").replace(/^&/,"")));
   switch(a){
-    case "me": { const {data:{session}}=await sb.auth.getSession(); const r=rolleAus(session); return {ok:true,rolle:r,mitglieder:r?await mitgliederLaden():[]}; }
+    case "me": { const {data:{session},error}=await sb.auth.getSession(); let r=rolleAus(session);
+      if(!r&&error&&cache.rolle&&(error.name==="AuthRetryableFetchError"||navigator.onLine===false))r=cache.rolle; // ohne Netz: mit gemerkter Anmeldung weiterarbeiten
+      if(!r)return {ok:true,rolle:null,mitglieder:[]};
+      let mg; try{mg=await mitgliederLaden()}catch(e){mg=cache.mitglieder||[]}
+      return {ok:true,rolle:r,mitglieder:mg}; }
     case "login": { const {data,error}=await sb.auth.signInWithPassword({email:KONTEN[body.konto]||KONTEN.tablet,password:body.pw}); if(error)throw {code:"falsch",message:error.message}; return {ok:true,rolle:rolleAus(data.session),mitglieder:await mitgliederLaden()}; }
     case "logout": await sb.auth.signOut(); return {ok:true};
     case "liste": { const {data,error}=await sb.from("einsaetze").select("id,data,version,updated_at").order("datum",{ascending:false}).limit(500); if(error)sbFehler(error);
@@ -476,7 +496,7 @@ async function api(a,body,opts={}){
       if(q.stand===stand)return {ok:true,geaendert:false,stand}; return {ok:true,stand,liste:data.map(r=>({...r.data,id:r.id}))}; }
     case "einsatz": { const {data,error}=await sb.from("einsaetze").select("data,version,updated_at").eq("id",q.id).maybeSingle(); if(error)sbFehler(error); if(!data)return {ok:true,geloescht:true};
       const stand=data.version+"|"+data.updated_at; if(q.stand===stand)return {ok:true,geaendert:false,stand}; return {ok:true,stand,data:data.data}; }
-    case "neu": { const {data,error}=await sb.from("einsaetze").insert({data:body.data}).select("id").single(); if(error)sbFehler(error); return {ok:true,id:data.id}; }
+    case "neu": { const {error}=await sb.from("einsaetze").insert({id:body.id,data:body.data}); if(error&&error.code!=="23505")sbFehler(error); return {ok:true,id:body.id}; }
     case "patch": { const {data,error}=await sb.rpc("einsatz_patch",{p_id:body.id,p_patch:body.patch}); if(error)sbFehler(error); return {ok:true}; }
     case "loeschen": { const {data:objs}=await sb.storage.from("fotos").list(body.id,{limit:1000}); if(objs&&objs.length)await sb.storage.from("fotos").remove(objs.map(o=>body.id+"/"+o.name));
       const {error}=await sb.from("einsaetze").delete().eq("id",body.id); if(error)sbFehler(error); return {ok:true}; }
@@ -538,8 +558,10 @@ async function start(){
     const me=await api("me");
     if(!me.rolle){zeigeLogin();return}
     rolle=me.rolle; mitgliederSetzen(me.mitglieder||[]);
+    cache.rolle=rolle; if((me.mitglieder||[]).length)cache.mitglieder=me.mitglieder; cacheSpeichern();
     $("adminBtn").style.display=rolle==="admin"?"":"none";
     $("loginView").style.display="none";
+    if(letzteListe.length||warteschlange.length)zeichneUebersicht(mitQueue(letzteListe));
     realtimeStarten(); pollen(); qAbarbeiten();
   }catch(e){ if(e.code!=="auth")setStatus("err","Server nicht erreichbar ("+(e.message||e.code)+")."); }
 }
@@ -560,37 +582,50 @@ async function login(ev){
     const konto=(document.querySelector('input[name="konto"]:checked')||{}).value||"tablet";
     const r=await api("login",{pw:$("pw").value,konto});
     $("pw").value=""; rolle=r.rolle; mitgliederSetzen(r.mitglieder||[]);
+    cache.rolle=rolle; cache.mitglieder=r.mitglieder||[]; cacheSpeichern();
     $("adminBtn").style.display=rolle==="admin"?"":"none";
     $("loginView").style.display="none"; realtimeStarten(); pollen(); qAbarbeiten();
   }catch(e){ $("loginFehler").textContent=e.code==="falsch"?"Passwort falsch ("+(e.message||"")+")":"Fehler: "+(e.message||e.code||e); }
   finally{ clearTimeout(zeit); btn.disabled=false; btn.textContent="Anmelden"; }
   return false;
 }
-async function logout(){ try{await api("logout",{})}catch(e){} rolle=null; zeigeUebersicht(); zeigeLogin(); }
+async function logout(){ try{await api("logout",{})}catch(e){} rolle=null; cache.rolle=null; cacheSpeichern(); zeigeUebersicht(); zeigeLogin(); }
 
 let pollFehler=0;
 async function pollen(){
   if(pollTimer)clearTimeout(pollTimer);
   try{
     if(aktuellId){
-      const r=await api("einsatz",undefined,{q:"&id="+encodeURIComponent(aktuellId)+"&stand="+encodeURIComponent(docStand)});
-      if(r.geloescht){zeigeUebersicht();}
-      else if(r.geaendert!==false){
-        docStand=r.stand; const d=JSON.parse(JSON.stringify(r.data));
-        warteschlange.filter(j=>j.id===aktuellId).forEach(j=>tiefMerge(d,JSON.parse(JSON.stringify(j.patch))));  // eigene, noch nicht gespeicherte Änderungen obenauf
-        aktuell=d; fuelleFormular(aktuell);
+      const id=aktuellId;
+      if(warteschlange.some(j=>j.typ==="neu"&&j.id===id)){
+        // Einsatz existiert erst lokal – wird übertragen, sobald Netz da ist
+        if(!aktuell){ aktuell=lokalerEinsatz(id); if(aktuell)fuelleFormular(aktuell); }
+      }else{
+        const r=await api("einsatz",undefined,{q:"&id="+encodeURIComponent(id)+"&stand="+encodeURIComponent(docStand)});
+        if(id!==aktuellId){ /* inzwischen gewechselt */ }
+        else if(r.geloescht){ letzteListe=letzteListe.filter(e=>e.id!==id); zeigeUebersicht(); }
+        else if(r.geaendert!==false){
+          docStand=r.stand; const d=klon(r.data);
+          warteschlange.filter(j=>j.id===id&&j.typ!=="neu").forEach(j=>tiefMerge(d,klon(j.patch)));  // eigene, noch nicht gespeicherte Änderungen obenauf
+          aktuell=d; fuelleFormular(aktuell);
+        }
+        online=true;
       }
     }else{
       const r=await api("liste",undefined,{q:"&stand="+encodeURIComponent(listeStand)});
-      if(r.geaendert!==false){listeStand=r.stand; zeichneUebersicht(r.liste);}
+      if(r.geaendert!==false){ listeStand=r.stand; letzteListe=r.liste; cache.liste=r.liste.slice(0,150); cacheSpeichern(); }
+      online=true;
+      if(!aktuellId)zeichneUebersicht(mitQueue(letzteListe));
     }
-    pollFehler=0; online=true; syncAnzeige(); if(!warteschlange.length&&$("status").classList.contains("warn"))setStatus("","");
+    pollFehler=0; syncAnzeige(); if(online&&!warteschlange.length&&$("status").classList.contains("warn"))setStatus("","");
   }catch(e){
     if(e.code==="auth")return;
     pollFehler++; online=false; syncAnzeige();
-    if(pollFehler>=3)setStatus("warn","Keine Verbindung zum Server – Anzeige könnte veraltet sein.");
+    if(aktuellId){ if(!aktuell){ aktuell=lokalerEinsatz(aktuellId); if(aktuell)fuelleFormular(aktuell); } }
+    else zeichneUebersicht(mitQueue(letzteListe));
+    setStatus("warn","Kein Netz – Anzeige aus dem Zwischenspeicher. Änderungen und neue Einsätze werden übertragen, sobald wieder Verbindung besteht.");
   }
-  pollTimer=setTimeout(pollen, 20000);
+  pollTimer=setTimeout(pollen, online?20000:8000);
 }
 
 function zeichneUebersicht(alle){
@@ -603,7 +638,7 @@ function zeichneUebersicht(alle){
     const farbe=ARTFARBEN[e.art]||"#9ca3af";
     const rk=e.rueckkehr?((e.rueckkehrDatum&&e.rueckkehrDatum!==e.datum)?datumDE(e.rueckkehrDatum)+" ":"")+esc(e.rueckkehr):"";
     return `<div class="karte ${aktivE?"aktiv":"alt"}" style="--kf:${farbe}" onclick="oeffne('${e.id}')">
-      <div class="kopfz">${e.art?`<span class="art">${esc(kurz(e.art))}</span>`:""}<span style="color:#6b7280;font-size:14px">${datumDE(e.datum)}</span><span class="badge ${aktivE?"aktiv":"abg"}">${aktivE?"AKTIV":"abgeschlossen"}</span></div>
+      <div class="kopfz">${e.art?`<span class="art">${esc(kurz(e.art))}</span>`:""}<span style="color:#6b7280;font-size:14px">${datumDE(e.datum)}</span>${e._lokal?'<span class="badge" style="background:#fef3c7;color:#92400e">noch nicht übertragen</span>':""}<span class="badge ${aktivE?"aktiv":"abg"}">${aktivE?"AKTIV":"abgeschlossen"}</span></div>
       <div class="titel">${esc(e.einsatz)||"<i style='color:#6b7280'>Ohne Bezeichnung</i>"}</div>
       <div class="ort">${esc(ortText(e))}</div>
       <div class="zeile2">
@@ -629,13 +664,13 @@ function kraefteBadges(e){
 }
 function anzahl(e){return Object.values(e.m||{}).filter(Boolean).length+Object.values(e.r||{}).filter(Boolean).length}
 
-async function neuerEinsatz(){
+function neuerEinsatz(){
   const now=new Date().toISOString();
-  try{
-    const r=await api("neu",{data:{einsatz:"",ort:"",gemeinde:"Auersthal",ueberoertlich:false,wetter:[],temp:"",datum:heute(),ausfahrt:uhrzeit(),rueckkehr:"",rueckkehrDatum:"",fz:[],m:{},r:{},bemerkung:"",el:"",art:"",ffs:{},kraefte:{},unfallfz:{},personen:{},fotos:{},atemschutz:{},schaden:{},material:{},lage:"",massnahmen:"",uebergabe:"",brandwache:false,kostenpflichtig:false,status:"aktiv",erstellt:now,geaendert:now}});
-    oeffne(r.id);
-    setTimeout(()=>$("einsatz").focus(),200);
-  }catch(e){setStatus("err","Anlegen fehlgeschlagen ("+(e.message||e.code)+").")}
+  const id=neueUuid();
+  warteschlange.push({typ:"neu",id,data:{einsatz:"",ort:"",gemeinde:"Auersthal",ueberoertlich:false,wetter:[],temp:"",datum:heute(),ausfahrt:uhrzeit(),rueckkehr:"",rueckkehrDatum:"",fz:[],m:{},r:{},bemerkung:"",el:"",art:"",ffs:{},kraefte:{},unfallfz:{},personen:{},fotos:{},atemschutz:{},schaden:{},material:{},lage:"",massnahmen:"",uebergabe:"",brandwache:false,kostenpflichtig:false,status:"aktiv",erstellt:now,geaendert:now}});
+  qSpeichern(); syncAnzeige();
+  oeffne(id); qAbarbeiten();
+  setTimeout(()=>$("einsatz").focus(),200);
 }
 
 function oeffne(id){
@@ -645,7 +680,7 @@ function oeffne(id){
   $("zurueck").style.display="";document.querySelector("header").classList.add("mit-zurueck");
   $("suche").value="";document.querySelectorAll(".person").forEach(p=>p.style.display="");
   ersteFuellung=true;
-  $("btnLoeschen").style.display=rolle==="admin"?"":"none";
+  aktuell=lokalerEinsatz(id); if(aktuell)fuelleFormular(aktuell);  // sofort aus dem Zwischenspeicher, Server-Stand folgt
   pollen();
 }
 function zeigeUebersicht(){
@@ -687,6 +722,7 @@ function fuelleFormular(e){
     else ALLE_SEKTIONEN.forEach(z=>sektion(z,standardOffen(z,e)));
   }
   const abgeschlossen=e.status==="abgeschlossen";
+  $("btnLoeschen").style.display=(rolle==="admin"||abgeschlossen)?"":"none";
   $("einsatzView").classList.toggle("gesperrt",abgeschlossen);
   $("btnStatus").textContent=abgeschlossen?"Einsatz wieder öffnen":"Einsatz abschließen";
   $("btnStatus").className="btn btn-klein "+(abgeschlossen?"btn-gruen":"btn-grau");
@@ -723,7 +759,7 @@ async function qAbarbeiten(){
   if(qLaeuft)return; qLaeuft=true;
   while(warteschlange.length&&rolle){
     const j=warteschlange[0];
-    try{ await api("patch",{id:j.id,patch:j.patch}); warteschlange.shift(); qSpeichern(); online=true; if($("status").classList.contains("warn"))setStatus("",""); }
+    try{ if(j.typ==="neu")await api("neu",{id:j.id,data:j.data}); else await api("patch",{id:j.id,patch:j.patch}); warteschlange.shift(); qSpeichern(); online=true; if($("status").classList.contains("warn"))setStatus("",""); }
     catch(e){
       if(/^(P0|22|23|42)/.test(e.code||"")){ warteschlange.shift(); qSpeichern(); setStatus("warn","Eine Änderung wurde vom Server abgelehnt ("+(e.message||e.code)+")."); }
       else { online=false; syncAnzeige(); setStatus("warn","Keine Verbindung – Änderungen werden gespeichert, sobald wieder Netz da ist."); await warte(3000); }
@@ -740,8 +776,10 @@ function schreibe(patch){
   if(aktuell){ tiefMerge(aktuell,patch); fuelleFormular(aktuell); }
   // aufeinanderfolgende Änderungen am selben Einsatz zusammenfassen (nicht den gerade laufenden Eintrag)
   const letzter=warteschlange[warteschlange.length-1];
-  if(letzter&&letzter.id===id&&(warteschlange.length>1||!qLaeuft)) patchMerge(letzter.patch,patch);
-  else warteschlange.push({id,patch:JSON.parse(JSON.stringify(patch))});
+  const frei=letzter&&letzter.id===id&&(warteschlange.length>1||!qLaeuft);
+  if(frei&&letzter.typ==="neu") tiefMerge(letzter.data,klon(patch));
+  else if(frei) patchMerge(letzter.patch,klon(patch));
+  else warteschlange.push({typ:"patch",id,patch:klon(patch)});
   qSpeichern(); syncAnzeige(); qAbarbeiten();
 }
 let textTimer={};
@@ -1017,7 +1055,7 @@ document.addEventListener("change",async ev=>{
     const fd=new FormData(); fd.append("einsatz",aktuellId); fd.append("foto",blob,"foto.jpg");
     const r=await api("upload",fd);
     schreibe(fotoPatch(key,r.id));
-  }catch(e){ setStatus("warn","Foto konnte nicht gespeichert werden ("+(e&&(e.code||e.message))+")."); lade.remove(); }
+  }catch(e){ setStatus("warn",online?"Foto konnte nicht gespeichert werden ("+(e&&(e.message||e.code))+").":"Fotos können nur mit Netzverbindung hochgeladen werden – bitte später nochmal aufnehmen."); lade.remove(); }
 });
 document.addEventListener("input",ev=>{
   const i=ev.target; if(!i.dataset||!i.dataset.uf||!aktuell)return;
@@ -1082,9 +1120,17 @@ function statusWechseln(){
 }
 function frage(text,cb){$("frageText").textContent=text;$("frage").style.display="block";$("frageJa").onclick=()=>{$("frage").style.display="none";cb()}}
 function loeschenFragen(){
-  frage("Diesen Einsatz endgültig löschen?",async()=>{
-    const id=aktuellId; zeigeUebersicht();
-    try{await api("loeschen",{id})}catch(e){setStatus("warn","Löschen fehlgeschlagen ("+(e.message||e.code)+").")}
+  if(!aktuell)return;
+  const name=[kurz(aktuell.art),aktuell.einsatz].filter(Boolean).join(" – ")||"Ohne Bezeichnung";
+  frage("Einsatz „"+name+"“ vom "+datumDE(aktuell.datum)+" samt allen Fotos endgültig löschen? Das kann nicht rückgängig gemacht werden.",async()=>{
+    const id=aktuellId;
+    const nurLokal=warteschlange.some(j=>j.typ==="neu"&&j.id===id);
+    warteschlange=warteschlange.filter((j,i)=>j.id!==id||(i===0&&qLaeuft)); qSpeichern();
+    letzteListe=letzteListe.filter(e=>e.id!==id); cache.liste=cache.liste.filter(e=>e.id!==id); cacheSpeichern();
+    zeigeUebersicht();
+    if(nurLokal)return;
+    try{await api("loeschen",{id}); listeStand=""; pollen();}
+    catch(e){setStatus("warn","Löschen fehlgeschlagen ("+(e.message||e.code)+") – dafür ist eine Verbindung nötig. Bitte später erneut versuchen."); listeStand=""; }
   });
 }
 
@@ -1236,6 +1282,7 @@ async function adminSpeichern(btn){
   catch(e){setStatus("warn","Speichern fehlgeschlagen ("+(e.message||e.code)+")")}finally{btn.disabled=false}
 }
 
+if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(()=>{});
 start();
 </script>
 </body>
