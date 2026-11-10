@@ -23,7 +23,7 @@
   header,.chip,.btn,.person,.el,h2,label.feld input,label.feld textarea{transition:background-color .25s,border-color .25s,color .25s}
   .chip[data-art]{--rot:var(--farbe)}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{max-width:100%;overflow-x:hidden}
+  html,body{max-width:100%;overflow-x:hidden;overflow-x:clip}
   body{margin:0;font-family:system-ui,-apple-system,Roboto,Arial,sans-serif;font-size:18px;color:var(--text);background:#fff}
   main,.leiste,header{width:100%}
   .grid>*{min-width:0}
@@ -847,8 +847,9 @@ function standardOffen(z,e){
 function klappZustand(){try{return JSON.parse(localStorage.getItem("ffa-klapp-"+aktuellId)||"null")}catch(e){return null}}
 function zurMannschaft(){
   sektion("secMann",true,true);
-  const h=document.querySelector('h2[data-ziel="secMann"]'), kopf=document.querySelector("header").offsetHeight;
-  window.scrollTo({top:h.getBoundingClientRect().top+window.scrollY-kopf-8,behavior:"smooth"});
+  const h=document.querySelector('h2[data-ziel="secMann"]'), kopfEl=document.querySelector("header");
+  const klebt=getComputedStyle(kopfEl).position==="sticky"&&CSS.supports("overflow-x","clip");
+  requestAnimationFrame(()=>window.scrollTo({top:h.getBoundingClientRect().top+window.scrollY-(klebt?kopfEl.offsetHeight:0)-10,behavior:"smooth"}));
 }
 function kurzName(n){const t=n.split(" ");return t[0]+(t[1]?" "+t[1][0]+".":"")}
 function zusammenfassung(ziel,e){
