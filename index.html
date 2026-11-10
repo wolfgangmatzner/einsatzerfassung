@@ -216,6 +216,7 @@
     <div id="listeAktiv"><div class="leer">Lade …</div></div>
     <h2>Abgeschlossene Einsätze</h2>
     <div id="listeAlt"></div>
+    <div class="hinweis" style="text-align:center;margin-top:24px" id="versionInfo"></div>
   </section>
 
   <!-- EINSATZ -->
@@ -574,7 +575,8 @@ async function start(){
     $("adminBtn").style.display=rolle==="admin"?"":"none";
     $("loginView").style.display="none";
     if(letzteListe.length||warteschlange.length)zeichneUebersicht(mitQueue(letzteListe));
-    realtimeStarten(); pollen(); qAbarbeiten();
+    let wiederOeffnen=null; try{wiederOeffnen=sessionStorage.getItem("ffa-offen");sessionStorage.removeItem("ffa-offen")}catch(e){}
+    realtimeStarten(); if(wiederOeffnen)oeffne(wiederOeffnen); else pollen(); qAbarbeiten();
   }catch(e){ if(e.code!=="auth")setStatus("err","Server nicht erreichbar ("+(e.message||e.code)+")."); }
 }
 function zeigeLogin(){
@@ -1340,6 +1342,29 @@ async function adminSpeichern(btn){
   catch(e){setStatus("warn","Speichern fehlgeschlagen ("+(e.message||e.code)+")")}finally{btn.disabled=false}
 }
 
+// ---------- Automatische Aktualisierung ----------
+const BUILD="__BUILD__";   // wird beim Veröffentlichen durch die Versionsnummer ersetzt
+let neueVersion=null;
+function updateAnwenden(){
+  if(!neueVersion||warteschlange.length)return;                       // nichts Ungespeichertes verlieren
+  const ae=document.activeElement; if(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))return;   // niemand tippt gerade
+  if([...document.querySelectorAll(".dialog")].some(d=>d.id!=="loginView"&&getComputedStyle(d).display!=="none"))return;
+  try{ if(sessionStorage.getItem("ffa-reload")===neueVersion)return; sessionStorage.setItem("ffa-reload",neueVersion); if(aktuellId)sessionStorage.setItem("ffa-offen",aktuellId); }catch(e){}
+  location.reload();
+}
+async function updatePruefen(){
+  if(BUILD.startsWith("__")||!location.protocol.startsWith("http"))return;
+  try{
+    const r=await fetch("version.txt?t="+Date.now(),{cache:"no-store"}); if(!r.ok)return;
+    const v=(await r.text()).trim();
+    if(v&&v!==BUILD){ neueVersion=v; updateAnwenden(); }
+  }catch(e){}
+}
+$("versionInfo").textContent=BUILD.startsWith("__")?"":"Version "+BUILD;
+setTimeout(updatePruefen,8000);
+setInterval(updatePruefen,30*60*1000);
+setInterval(updateAnwenden,60*1000);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden)updatePruefen(); });
 if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(()=>{});
 start();
 </script>
