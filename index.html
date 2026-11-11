@@ -176,6 +176,10 @@
   .suche{width:100%;font-size:18px;padding:12px;border:2px solid var(--rand);border-radius:10px;margin-bottom:10px}
   .leiste{position:fixed;left:0;right:0;bottom:0;padding-bottom:calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:2px solid var(--rand);padding:10px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 -4px 16px rgba(0,0,0,.08);flex-wrap:wrap}
   .leiste .anz{font-weight:700;font-size:17px;flex:1}
+  .leiste{flex-wrap:nowrap!important}
+  .leiste .btn{height:50px;padding:0 16px;font-size:16px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;flex:none}
+  .leiste .btn.mitte{flex:1;min-width:0}
+  .leiste .anz{flex:1}
   .btn{border:none;border-radius:12px;padding:14px 20px;font-size:18px;font-weight:700;cursor:pointer}
   .btn-rot{background:var(--rot);color:#fff}
   .btn-gruen{background:var(--gruen);color:#fff}
@@ -399,14 +403,14 @@
 </div>
 
 <div class="leiste" id="leisteUebersicht">
-  <button class="btn btn-grau btn-klein" id="adminBtn" style="display:none" onclick="adminOeffnen()">⚙︎ Admin</button>
-  <button class="btn btn-grau btn-klein" onclick="logout()">Abmelden</button>
+  <button class="btn btn-grau" onclick="logout()">Abmelden</button>
+  <button class="btn btn-grau" id="adminBtn" style="display:none" onclick="adminOeffnen()">Admin</button>
   <div class="anz"></div>
   <button class="btn btn-rot" onclick="neuerEinsatz()">+ Neuer Einsatz</button>
 </div>
 <div class="leiste" id="leisteEinsatz" style="display:none">
   <button class="btn btn-grau" onclick="zeigeUebersicht()">‹ Einsätze</button>
-  <div class="anz" id="anzGesamt" style="text-align:center;cursor:pointer" onclick="zurMannschaft()">0 Mitglieder</div>
+  <button class="btn btn-grau mitte" id="anzGesamt" onclick="zurMannschaft()">0 Mitglieder</button>
   <button class="btn btn-rot" id="pdfBtn" onclick="pdfErzeugen(this)">PDF teilen</button>
 </div>
 
