@@ -24,8 +24,6 @@
   .chip[data-art]{--rot:var(--farbe)}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{max-width:100%;overflow-x:hidden;overflow-x:clip}
-  html{background-color:#c8102e}
-  body{min-height:100vh;min-height:100dvh}
   body{margin:0;font-family:system-ui,-apple-system,Roboto,Arial,sans-serif;font-size:18px;color:var(--text);background:#fff}
   main,.leiste,header{width:100%}
   .grid>*{min-width:0}
@@ -705,7 +703,7 @@ function zeigeUebersicht(){
   $("uebersicht").style.display="";$("leisteUebersicht").style.display="";
   $("zurueck").style.display="none";document.querySelector("header").classList.remove("mit-zurueck");
   $("kopf").innerHTML='Einsatzerfassung<small>Freiwillige Feuerwehr Auersthal</small>';
-  document.body.dataset.art=""; farbeSetzen();
+  document.body.dataset.art="";
   if(rolle)pollen();
 }
 
@@ -724,7 +722,7 @@ function fuelleFormular(e){
   if(e.rueckkehrDatum&&e.rueckkehrDatum!==e.datum)rdZeigen(true); else if(!e.rueckkehrDatum&&document.activeElement!==$("rueckkehrDatum"))rdZeigen(false);
   document.querySelectorAll("input[data-wetter]").forEach(i=>i.checked=(e.wetter||[]).includes(i.dataset.wetter));
 
-  document.body.dataset.art=e.art||""; farbeSetzen();
+  document.body.dataset.art=e.art||"";
   $("einsatz").placeholder=ARTBEISPIELE[e.art]||"Bezeichnung des Einsatzes";
   document.querySelectorAll('input[data-gruppe="m"]').forEach(i=>i.checked=!!(e.m||{})[i.dataset.nr]);
   document.querySelectorAll('input[data-gruppe="r"]').forEach(i=>i.checked=!!(e.r||{})[i.dataset.nr]);
@@ -859,12 +857,6 @@ function standardOffen(z,e){
   return false;
 }
 function klappZustand(){try{return JSON.parse(localStorage.getItem("ffa-klapp-"+aktuellId)||"null")}catch(e){return null}}
-// Bereich oberhalb der Seite (beim Herunterziehen) und Statusleiste in der Farbe der Einsatzart
-function farbeSetzen(){
-  const c=getComputedStyle(document.body).getPropertyValue("--rot").trim()||"#c8102e";
-  document.documentElement.style.backgroundColor=c;
-  const m=document.querySelector('meta[name="theme-color"]'); if(m)m.setAttribute("content",c);
-}
 function zurMannschaft(){
   sektion("secMann",true,true);
   const h=document.querySelector('h2[data-ziel="secMann"]'), kopfEl=document.querySelector("header");
