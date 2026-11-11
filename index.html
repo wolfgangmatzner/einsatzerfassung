@@ -23,7 +23,11 @@
   header,.chip,.btn,.person,.el,h2,label.feld input,label.feld textarea{transition:background-color .25s,border-color .25s,color .25s}
   .chip[data-art]{--rot:var(--farbe)}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{max-width:100%;overflow-x:hidden;overflow-x:clip}
+  /* App-Hülle: Kopfzeile steht fest, nur der Inhalt darunter scrollt (und federt) */
+  html{height:100%;overflow:hidden;overscroll-behavior:none;background:#fff}
+  body{height:100%;height:100dvh;max-width:100%;overflow:hidden;overscroll-behavior:none;display:flex;flex-direction:column}
+  header{flex:none}
+  #scroller{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
   body{margin:0;font-family:system-ui,-apple-system,Roboto,Arial,sans-serif;font-size:18px;color:var(--text);background:#fff}
   main,.leiste,header{width:100%}
   .grid>*{min-width:0}
@@ -207,6 +211,7 @@
 
 </header>
 
+<div id="scroller">
 <main>
   <div id="status" class="status"></div>
 
@@ -391,6 +396,7 @@
     </div>
   </section>
 </main>
+</div>
 
 <div class="leiste" id="leisteUebersicht">
   <button class="btn btn-grau btn-klein" id="adminBtn" style="display:none" onclick="adminOeffnen()">⚙︎ Admin</button>
@@ -399,7 +405,7 @@
   <button class="btn btn-rot" onclick="neuerEinsatz()">+ Neuer Einsatz</button>
 </div>
 <div class="leiste" id="leisteEinsatz" style="display:none">
-  <button class="btn btn-grau" onclick="zeigeUebersicht();window.scrollTo(0,0)">‹ Einsätze</button>
+  <button class="btn btn-grau" onclick="zeigeUebersicht()">‹ Einsätze</button>
   <div class="anz" id="anzGesamt" style="text-align:center;cursor:pointer" onclick="zurMannschaft()">0 Mitglieder</div>
   <button class="btn btn-rot" id="pdfBtn" onclick="pdfErzeugen(this)">PDF teilen</button>
 </div>
@@ -693,11 +699,12 @@ function oeffne(id){
   $("einsatzView").style.display="";$("leisteEinsatz").style.display="";
   
   $("suche").value="";document.querySelectorAll(".person").forEach(p=>p.style.display="");
-  ersteFuellung=true;
+  ersteFuellung=true; $("scroller").scrollTop=0;
   aktuell=lokalerEinsatz(id); if(aktuell)fuelleFormular(aktuell);  // sofort aus dem Zwischenspeicher, Server-Stand folgt
   pollen();
 }
 function zeigeUebersicht(){
+  $("scroller").scrollTop=0;
   aktuellId=null;aktuell=null;listeStand="";
   $("einsatzView").style.display="none";$("leisteEinsatz").style.display="none";
   $("uebersicht").style.display="";$("leisteUebersicht").style.display="";
@@ -859,9 +866,8 @@ function standardOffen(z,e){
 function klappZustand(){try{return JSON.parse(localStorage.getItem("ffa-klapp-"+aktuellId)||"null")}catch(e){return null}}
 function zurMannschaft(){
   sektion("secMann",true,true);
-  const h=document.querySelector('h2[data-ziel="secMann"]'), kopfEl=document.querySelector("header");
-  const klebt=getComputedStyle(kopfEl).position==="sticky"&&CSS.supports("overflow-x","clip");
-  requestAnimationFrame(()=>window.scrollTo({top:h.getBoundingClientRect().top+window.scrollY-(klebt?kopfEl.offsetHeight:0)-10,behavior:"smooth"}));
+  const h=document.querySelector('h2[data-ziel="secMann"]'), sc=$("scroller");
+  requestAnimationFrame(()=>sc.scrollTo({top:h.getBoundingClientRect().top-sc.getBoundingClientRect().top+sc.scrollTop-10,behavior:"smooth"}));
 }
 function kurzName(n){const t=n.split(" ");return t[0]+(t[1]?" "+t[1][0]+".":"")}
 function zusammenfassung(ziel,e){
