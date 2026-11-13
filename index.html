@@ -19,7 +19,7 @@
   body[data-art="Schadstoff"]{--rot:#15803d}
   body[data-art="Brandsicherheitswache"]{--rot:#ca8a04}
   body[data-art="Fehlalarm"]{--rot:#4b5563}
-  body[data-art="Sonstiges"]{--rot:#6d28d9}
+  body[data-art="Übung"]{--rot:#6d28d9}
   header,.chip,.btn,.person,.el,h2,label.feld input,label.feld textarea{transition:background-color .25s,border-color .25s,color .25s}
   .chip[data-art]{--rot:var(--farbe)}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -458,7 +458,7 @@
 <script>
 // ====== HIER ANPASSEN: Empfänger, Fahrzeuge, Mannschaft ======
 const EMPFAENGER = "auersthal@feuerwehr.gv.at";
-const EINSATZARTEN = ["Brand","Technisch","Schadstoff","Brandsicherheitswache","Fehlalarm","Sonstiges"];
+const EINSATZARTEN = ["Brand","Technisch","Schadstoff","Brandsicherheitswache","Fehlalarm","Übung"];
 const FEUERWEHREN = ["Schönkirchen-Reyersdorf","Groß Schweinbarth","Raggendorf","Bockfließ","Prottes","Strasshof","Gänserndorf","Deutsch Wagram"];
 const RETTUNG = [["NAH","Notarzthubschrauber"],["NEF","Notarztfahrzeug"],["RTW","Rettungsfahrzeug"],["Arzt","zusätzlicher Arzt / Notarzt (nicht der von NEF/NAH)"],["FR","First Responder"]];
 const STELLEN_KURZ={"BH (Bezirkshauptmannschaft)":"BH","ÖBB Einsatzleiter":"ÖBB EL","Gemeinde / Bürgermeister":"Gemeinde","Gasversorger":"Gas","Wasserversorger":"Wasser","Krisenintervention (KIT)":"KIT","Abschleppdienst":"Abschleppen"};
@@ -555,10 +555,10 @@ sb&&sb.auth.onAuthStateChange((ev)=>{ if(ev==="SIGNED_OUT"){rolle=null;zeigeLogi
 function personHtml([nr,name],gruppe){
   return `<label class="person" data-name="${name.toLowerCase()}"><input type="checkbox" data-gruppe="${gruppe}" data-nr="${nr}"><span class="nr">${nr}</span><span class="name">${name}</span><span class="el">EL</span></label>`;
 }
-const ARTBEISPIELE={Brand:"z. B. Wohnhausbrand, Fahrzeugbrand, Flurbrand",Technisch:"z. B. Verkehrsunfall, Sturmschaden, Türöffnung",Schadstoff:"z. B. Ölspur, Gasgeruch, Gefahrgutaustritt",Brandsicherheitswache:"z. B. Veranstaltung, Festzelt, Konzert",Fehlalarm:"z. B. Brandmeldeanlage, Täuschungsalarm",Sonstiges:"z. B. Unterstützung Rettung, Personensuche"};
+const ARTBEISPIELE={Brand:"z. B. Wohnhausbrand, Fahrzeugbrand, Flurbrand",Technisch:"z. B. Verkehrsunfall, Sturmschaden, Türöffnung",Schadstoff:"z. B. Ölspur, Gasgeruch, Gefahrgutaustritt",Brandsicherheitswache:"z. B. Veranstaltung, Festzelt, Konzert",Fehlalarm:"z. B. Brandmeldeanlage, Täuschungsalarm","Übung":"z. B. Atemschutzübung, Technische Übung, Branddienstübung"};
 const ARTKURZ={Brandsicherheitswache:"BSW"};
 const kurz=a=>ARTKURZ[a]||a||"";
-const ARTFARBEN={Brand:"#c8102e",Technisch:"#1d4ed8",Schadstoff:"#15803d",Brandsicherheitswache:"#ca8a04",Fehlalarm:"#4b5563",Sonstiges:"#6d28d9"};
+const ARTFARBEN={Brand:"#c8102e",Technisch:"#1d4ed8",Schadstoff:"#15803d",Brandsicherheitswache:"#ca8a04",Fehlalarm:"#4b5563","Übung":"#6d28d9"};
 $("arten").innerHTML=EINSATZARTEN.map(a=>`<label class="chip" data-art="${a}" style="--farbe:${ARTFARBEN[a]||"#c8102e"}"><input type="radio" name="art" data-art="${a}">${kurz(a)}</label>`).join("");
 $("rettung").innerHTML=RETTUNG.map(([k,l])=>`<div class="zeile"><div class="zname">${k}<span class="zsub">${l}</span></div>${stepperHtml("kraefte.rettung."+k)}</div>`).join("");
 $("polizei").innerHTML=`<div class="zeile"><div class="zname">Streifen</div>${stepperHtml("kraefte.polizei")}</div>`;
@@ -1027,7 +1027,7 @@ const FOTOTYPEN=[["ausweis","🪪","Ausweis Lenker"],["zulassung","📄","Zulass
 function ufListe(e){const u=e.unfallfz||{};return Object.keys(u).filter(k=>u[k]).sort((a,b)=>(u[a].erstellt||"").localeCompare(u[b].erstellt||"")).map(k=>({id:k,...u[k]}))}
 function zeichneUf(e){
   const liste=ufListe(e);
-  const zeigen=e.art==="Technisch"||e.art==="Sonstiges"||liste.length>0;
+  const zeigen=e.art==="Technisch"||e.art==="Übung"||liste.length>0;
   $("ufBlock").style.display=zeigen?"":"none";
   $("anzUf").textContent=liste.length?`(${liste.length})`:"";
   const ae=document.activeElement; if(ae&&ae.dataset&&ae.dataset.uf)return; // nicht neu zeichnen während getippt wird
@@ -1236,7 +1236,7 @@ function textErzeugen(e){
 function herunterladen(blob,name){const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(u)},4000)}
 function dateiname(e){
   const t=[datumDE(e.datum).split(".").reverse().join("-"),kurz(e.art),e.einsatz].filter(Boolean).join("_").replace(/[^\wäöüÄÖÜß\- ]+/g,"").replace(/\s+/g,"_");
-  return "Einsatz_"+t+".pdf";
+  return (e.art==="Übung"?"Uebung_":"Einsatz_")+t+".pdf";
 }
 async function bildAlsDataUrl(id){
   return new Promise((res,rej)=>{const img=new Image();img.crossOrigin="anonymous";img.onload=()=>{try{const c=document.createElement("canvas");const f=Math.min(1,1200/Math.max(img.width,img.height));c.width=img.width*f;c.height=img.height*f;c.getContext("2d").drawImage(img,0,0,c.width,c.height);res({url:c.toDataURL("image/jpeg",0.8),w:c.width,h:c.height})}catch(e){rej(e)}};img.onerror=rej;fotoUrl(id).then(u=>{img.src=u});});
@@ -1257,7 +1257,7 @@ async function pdfErzeugen(btn,einsatz){
     const spalten=(items,n)=>{const bw=(R-L)/n;const rows=Math.ceil(items.length/n);doc.setFont("helvetica","normal");doc.setFontSize(10);for(let r=0;r<rows;r++){check(6);for(let c=0;c<n;c++){const it=items[r+c*rows];if(it)doc.text(it,L+c*bw,y)}y+=5.4}};
     // Kopf
     doc.setFillColor(...rgb);doc.rect(0,0,W,26,"F");
-    doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(16);doc.text("Einsatzbericht – Freiwillige Feuerwehr Auersthal",L,11);
+    doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(16);doc.text((e.art==="Übung"?"Übungsbericht":"Einsatzbericht")+" – Freiwillige Feuerwehr Auersthal",L,11);
     doc.setFont("helvetica","normal");doc.setFontSize(10);doc.text("Neubaugasse 24, 2214 Auersthal · Tel. 02288/2122 · auersthal@feuerwehr.gv.at",L,18);
     doc.setFontSize(9);doc.text("Erstellt: "+new Date().toLocaleString("de-AT"),R,18,{align:"right"});
     y=36;doc.setTextColor(20,20,20);

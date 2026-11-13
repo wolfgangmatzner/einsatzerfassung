@@ -26,6 +26,8 @@ Schreiben immer als Patch über RPC `einsatz_patch` (tiefes Merge, `null` lösch
 - Auto-Update: `BUILD`, `updatePruefen()`, `updateAnwenden()`
 - Rollen: `rolle` = "user" | "admin" (aus JWT app_metadata.rolle)
 
+Einsatzarten: Brand, Technisch, Schadstoff, Brandsicherheitswache (Kurz: BSW), Fehlalarm, Übung (früher „Sonstiges“).
+
 ## Regeln
 - Keine Klarnamen der Mitglieder ins Repo (öffentlich!). Mitglieder liegen nur in der Datenbank.
 - Keine Passwörter/Service-Keys ins Repo. Der Publishable Key in index.html ist öffentlich und okay.
