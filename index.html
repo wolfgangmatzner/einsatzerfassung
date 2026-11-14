@@ -339,6 +339,26 @@
   #suchZeile input{flex:1;min-width:0;font-size:18px;padding:12px;border:2px solid var(--rand);border-radius:10px;font-family:inherit;-webkit-appearance:none}
   #uebersicht.sucht>div[id^="liste"]{display:block!important}
   #uebersicht.sucht>div[id^="liste"].leerg,#uebersicht.sucht>h2.leerg{display:none!important}
+  .dialog.voll{padding:0;overflow:hidden}
+  .dialog.voll .box{margin:0 auto;height:100%;max-width:700px;border-radius:0;display:flex;flex-direction:column;gap:8px;padding:calc(14px + env(safe-area-inset-top)) 14px calc(12px + env(safe-area-inset-bottom))}
+  @media(min-width:760px){.dialog.voll .box{height:calc(100% - 40px);margin:20px auto;border-radius:16px;padding:16px}}
+  #statBox{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch}
+  #adminSuche,#importText{width:100%;font-size:16px;padding:11px 12px;border:2px solid var(--rand);border-radius:10px;font-family:inherit}
+  #importText{font-family:ui-monospace,monospace;font-size:14px;margin:6px 0}
+  #importBox .btn{height:44px;padding:0 16px;font-size:15px}
+  #adminListe{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;border-top:2px solid var(--rand);border-bottom:2px solid var(--rand)}
+  .amz{display:flex;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid #eef0f3}
+  .amz input{height:44px;font-size:16px;padding:0 10px;border:2px solid var(--rand);border-radius:10px;font-family:inherit;min-width:0;background:#fff}
+  .amz input:focus{outline:none;border-color:var(--rot)}
+  .amz .nr{width:64px;flex:none;text-align:center;font-variant-numeric:tabular-nums;padding:0 2px}
+  .amz .nm{flex:1;font-weight:600}
+  .amz .agr{flex:none;width:94px;padding:0;height:44px;border:2px solid var(--rand);border-radius:10px;background:#fff;font-size:14px;font-weight:600;color:var(--text);font-family:inherit}
+  .amz .agr.r{background:#fef3c7;border-color:#f1d27a;color:#92400e}
+  .amz .adel{flex:none;width:36px;height:36px;border-radius:50%;border:none;background:var(--grau);color:#6b7280;font-size:18px;line-height:1}
+  .afuss{display:flex;gap:8px}
+  #pwDlg{align-items:flex-start!important}
+  #pwDlg .box{margin-top:calc(80px + env(safe-area-inset-top))}
+  .afuss .btn{flex:1;height:50px;padding:0;font-size:16px;white-space:nowrap}
   .einstz{display:block;width:100%;text-align:left;background:none;border:none;border-top:1px solid #e5e7eb;padding:16px 4px;font-size:18px;font-weight:600;color:var(--text);font-family:inherit}
   .einstz small{display:block;font-size:13px;font-weight:400;color:#6b7280;margin-top:2px}
   .einstz small:empty{display:none}
@@ -644,36 +664,38 @@
 <div id="einstDlg" class="dialog sheet" onclick="if(event.target===this)einstZu()">
   <div class="box">
     <div class="shkopf"><div><div class="shtitel">Einstellungen</div><div class="shsub" id="einstInfo"></div></div><button type="button" class="shzu" onclick="einstZu()">×</button></div>
-    <button type="button" class="einstz" onclick="einstMitglieder()">Mitgliederliste bearbeiten<small id="einstMHinweis"></small></button>
-    <div id="einstPw" style="display:none">
-      <div class="feingabe"><input id="adminPw" type="password" placeholder="Admin-Passwort" autocomplete="off" enterkeyhint="go"><button type="button" class="btn btn-rot" id="adminPwOk" onclick="einstFreischalten()">Öffnen</button></div>
-      <div class="hinweis" id="adminPwFehler" style="color:var(--rot)"></div>
-    </div>
+    <button type="button" class="einstz" onclick="einstMitglieder()">Mitgliederliste bearbeiten<small class="pwhinweis"></small></button>
+    <button type="button" class="einstz" onclick="einstZu();statOeffnen()">Statistik<small class="pwhinweis"></small></button>
     <button type="button" class="einstz" onclick="einstZu();updatePruefen(true)">Nach neuer Version suchen</button>
     <button type="button" class="einstz" onclick="einstZu();logout()">Abmelden</button>
   </div>
 </div>
-<div id="statDlg" class="dialog" onclick="if(event.target===this)this.style.display='none'">
-  <div class="box" id="statBox"></div>
-</div>
-<div id="adminView" class="dialog" onclick="if(event.target===this)adminZu()">
+<div id="pwDlg" class="dialog sheet" onclick="if(event.target===this)pwZu()">
   <div class="box">
-    <div class="statkopf"><h3 style="margin:0">Mitgliederliste</h3><button type="button" class="shzu" onclick="adminZu()">×</button></div>
-    <div class="hinweis" style="margin-bottom:8px">Nr., Name, Gruppe. Änderungen gelten sofort auf allen Tablets; angehakte Namen in alten Einsätzen bleiben über die Nr. erhalten.</div>
-    <div id="adminListe" style="max-height:50vh;overflow:auto;border:2px solid var(--rand);border-radius:10px;padding:6px"></div>
-    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-      <button class="btn btn-grau btn-klein" onclick="adminZeile()">+ Mitglied</button>
-      <button class="btn btn-grau btn-klein" onclick="$('importBox').style.display=$('importBox').style.display==='none'?'':'none'">Import (FDISK-Export einfügen)</button>
-      <button class="btn btn-rot btn-klein" onclick="adminSpeichern(this)">Speichern</button>
+    <div class="shkopf"><div><div class="shtitel" id="pwTitel"></div><div class="shsub">Bitte Admin-Passwort eingeben</div></div><button type="button" class="shzu" onclick="pwZu()">×</button></div>
+    <div class="feingabe" style="margin-top:12px"><input id="adminPw" type="password" placeholder="Admin-Passwort" autocomplete="off" enterkeyhint="go"><button type="button" class="btn btn-rot" id="adminPwOk" onclick="pwOk()">Öffnen</button></div>
+    <div class="hinweis" id="adminPwFehler" style="color:var(--rot);min-height:20px"></div>
+  </div>
+</div>
+<div id="statDlg" class="dialog voll" onclick="if(event.target===this)statZu()">
+  <div class="box"><div id="statBox"></div></div>
+</div>
+<div id="adminView" class="dialog voll" onclick="if(event.target===this)adminZu()">
+  <div class="box">
+    <div class="statkopf"><div><div class="shtitel">Mitgliederliste</div><div class="shsub" id="adminAnz"></div></div><button type="button" class="shzu" onclick="adminZu()">×</button></div>
+    <input id="adminSuche" type="text" placeholder="Suchen (Name oder Nr.) …" autocomplete="off">
+    <div id="adminListe"></div>
+    <div id="importBox" style="display:none">
+      <div class="hinweis">Zeilen im Format <code>Nr;Nachname Vorname</code>, <code>Nr,Name</code> oder mit Tabulator (aus Excel kopieren). Vorhandene Nr. werden aktualisiert, neue angelegt, fehlende bleiben erhalten.</div>
+      <textarea id="importText" rows="5"></textarea>
+      <button class="btn btn-grau" onclick="adminImport()">Einlesen</button>
     </div>
-    <div class="hinweis" id="adminFehler" style="color:var(--rot);font-weight:600;margin-top:8px"></div>
-    <div id="importBox" style="display:none;margin-top:10px">
-      <div class="hinweis">Zeilen im Format <code>Nr;Nachname Vorname</code> oder <code>Nr,Name</code> oder mit Tabulator (aus Excel kopieren). Vorhandene Nr. werden aktualisiert, neue angelegt, fehlende bleiben erhalten.</div>
-      <textarea id="importText" rows="6" style="width:100%;font-size:14px;padding:8px;border:2px solid var(--rand);border-radius:10px;font-family:ui-monospace,monospace"></textarea>
-      <button class="btn btn-grau btn-klein" style="margin-top:6px" onclick="adminImport()">Einlesen</button>
+    <div class="hinweis" id="adminFehler" style="color:var(--rot);font-weight:600"></div>
+    <div class="afuss">
+      <button class="btn btn-grau" onclick="adminZeile()">+ Mitglied</button>
+      <button class="btn btn-grau" onclick="$('importBox').style.display=$('importBox').style.display==='none'?'':'none'">Import</button>
+      <button class="btn btn-rot" onclick="adminSpeichern(this)">Speichern</button>
     </div>
-    <h3>Passwörter</h3>
-    <div class="hinweis">Tablet- und Admin-Passwort werden im Supabase-Dashboard unter Authentication → Users geändert.</div>
   </div>
 </div>
 
@@ -2125,23 +2147,27 @@ async function pdfErzeugen(btn,einsatz){
 // ---------- Admin: Mitglieder ----------
 let adminMitglieder=[];
 function adminZu(){ $("adminView").style.display="none"; api("admin_logout",{}).catch(()=>{}); }
-function einstZu(){ $("einstDlg").style.display="none"; $("einstPw").style.display="none"; $("adminPw").value=""; $("adminPwFehler").textContent=""; }
+function einstZu(){ $("einstDlg").style.display="none"; }
 function einstOeffnen(){
   $("einstInfo").textContent=(rolle==="admin"?"Angemeldet als Admin":"Angemeldet als Tablet")+(BUILD.startsWith("__")?"":" · Version "+BUILD);
-  $("einstMHinweis").textContent=rolle==="admin"?"":"Admin-Passwort erforderlich";
+  document.querySelectorAll(".pwhinweis").forEach(x=>x.textContent=rolle==="admin"?"":"Admin-Passwort erforderlich");
   $("einstDlg").style.display="block";
 }
-function einstMitglieder(){
-  if(rolle==="admin"){ einstZu(); adminOeffnen(); return; }
-  $("einstPw").style.display=""; $("adminPw").focus();
+function einstMitglieder(){ einstZu(); adminFrei("Mitgliederliste bearbeiten",adminOeffnen); }
+// Admin-Bereiche: als Admin angemeldet sofort, sonst erst nach dem Admin-Passwort (gilt nur, solange der Bereich offen ist)
+let pwDann=null;
+function adminFrei(titel,dann){
+  if(rolle==="admin"){ dann(); return; }
+  pwDann=dann; $("pwTitel").textContent=titel; $("adminPw").value=""; $("adminPwFehler").textContent=""; $("pwDlg").style.display="block"; $("adminPw").focus();
 }
-async function einstFreischalten(){
+function pwZu(){ $("pwDlg").style.display="none"; pwDann=null; $("adminPw").value=""; }
+async function pwOk(){
   const pw=$("adminPw").value; if(!pw)return; const b=$("adminPwOk"); b.disabled=true; $("adminPwFehler").textContent="";
-  try{ await api("admin_login",{pw}); einstZu(); await adminOeffnen(); }
-  catch(e){ $("adminPwFehler").textContent=e&&e.code==="falsch"?"Passwort stimmt nicht.":"Keine Verbindung – bitte später noch einmal."; }
+  try{ await api("admin_login",{pw}); const d=pwDann; pwZu(); if(d)await d(); }
+  catch(e){ $("adminPwFehler").textContent=e&&e.code==="falsch"?"Passwort stimmt nicht.":"Keine Verbindung – ohne Netz nicht möglich."; }
   finally{ b.disabled=false; }
 }
-$("adminPw").addEventListener("keydown",ev=>{if(ev.key==="Enter"){ev.preventDefault();einstFreischalten()}});
+$("adminPw").addEventListener("keydown",ev=>{if(ev.key==="Enter"){ev.preventDefault();pwOk()}});
 
 // ---------- Statistik (aus der geladenen Einsatzliste, nichts wird gespeichert) ----------
 let statJahr=null;
@@ -2151,7 +2177,8 @@ function einsatzMinuten(e){
   let min=(b-a)/60000; if(min<0&&!e.rueckkehrDatum)min+=1440; return min<0?null:min;
 }
 function stdText(min){ return (Math.round(min/6)/10).toLocaleString("de-AT",{minimumFractionDigits:1,maximumFractionDigits:1}); }
-function statOeffnen(){ statJahr=null; statZeichnen(); $("statDlg").style.display="block"; }
+function statOeffnen(){ adminFrei("Statistik",()=>{ statJahr=null; statZeichnen(); $("statDlg").style.display="block"; }); }
+function statZu(){ $("statDlg").style.display="none"; $("statBox").innerHTML=""; api("admin_logout",{}).catch(()=>{}); }
 function statZeichnen(){
   const alle=mitQueue(letzteListe).filter(e=>e.datum), jahre=[...new Set(alle.map(e=>e.datum.slice(0,4)))].sort().reverse();
   if(!statJahr||!jahre.includes(statJahr))statJahr=jahre[0]||String(new Date().getFullYear());
@@ -2164,7 +2191,7 @@ function statZeichnen(){
     nrs.forEach(nr=>{ const m=mitgl[nr]||(mitgl[nr]={e:0,u:0,min:0}); u?m.u++:m.e++; m.min+=min||0; }); });
   const artZ=Object.entries(arten).sort((x,y)=>y[1].n-x[1].n), maxA=Math.max(1,...artZ.map(x=>x[1].n));
   const mZ=Object.entries(mitgl).sort((x,y)=>(y[1].e+y[1].u)-(x[1].e+x[1].u)||(NAMEN[x[0]]||"").localeCompare(NAMEN[y[0]]||"","de"));
-  $("statBox").innerHTML=`<div class="statkopf"><h3 style="margin:0;font-size:20px">Statistik</h3><button type="button" class="shzu" onclick="$('statDlg').style.display='none'">×</button></div>
+  $("statBox").innerHTML=`<div class="statkopf"><h3 style="margin:0;font-size:20px">Statistik</h3><button type="button" class="shzu" onclick="statZu()">×</button></div>
     <div class="statjahre">${jahre.map(j=>`<button type="button" data-statjahr="${j}" class="${j===statJahr?"an":""}">${j}</button>`).join("")}</div>
     ${l.length?`<div class="statkz"><div><b>${eins.length}</b><span>Einsätze</span></div><div><b>${ueb.length}</b><span>Übungen</span></div><div><b>${stdText(minE)}</b><span>Einsatzstunden</span></div><div><b>${stdText(mannE)}</b><span>Mannstunden (Einsätze)</span></div></div>
     <h3>Nach Art</h3>
@@ -2178,19 +2205,28 @@ document.addEventListener("click",ev=>{ const b=ev.target.closest("[data-statjah
 
 async function adminOeffnen(){
   try{const r=await api("mitglieder");adminMitglieder=r.mitglieder;}catch(e){setStatus("warn","Laden fehlgeschlagen");return}
-  adminZeichnen(); $("adminFehler").textContent=""; $("adminView").style.display="block";
+  $("adminSuche").value=""; $("importBox").style.display="none"; adminZeichnen(); $("adminListe").scrollTop=0; $("adminFehler").textContent=""; $("adminView").style.display="block";
 }
 function adminZeichnen(){
   adminMitglieder.sort((a,b)=>a.name.localeCompare(b.name,"de"));
-  $("adminListe").innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:15px"><thead><tr><th style="text-align:left;padding:4px">Nr.</th><th style="text-align:left;padding:4px">Name</th><th style="padding:4px">Gruppe</th><th></th></tr></thead><tbody>`+
-    adminMitglieder.map((m,i)=>`<tr><td style="padding:3px"><input type="number" value="${m.nr}" data-ai="${i}|nr" style="width:64px;font-size:15px;padding:6px;border:1px solid var(--rand);border-radius:6px"></td>
-      <td style="padding:3px"><input type="text" value="${esc(m.name)}" data-ai="${i}|name" style="width:100%;font-size:15px;padding:6px;border:1px solid var(--rand);border-radius:6px"></td>
-      <td style="padding:3px;text-align:center"><select data-ai="${i}|gruppe" style="font-size:14px;padding:6px;border:1px solid var(--rand);border-radius:6px"><option value="m" ${m.gruppe!=="r"?"selected":""}>Mannschaft</option><option value="r" ${m.gruppe==="r"?"selected":""}>Reserve</option></select></td>
-      <td style="padding:3px"><button type="button" onclick="adminMitglieder.splice(${i},1);adminZeichnen()" style="background:none;border:none;color:var(--rot);font-size:18px">×</button></td></tr>`).join("")+`</tbody></table>`;
+  const l=$("adminListe"), st=l.scrollTop;
+  l.innerHTML=adminMitglieder.map((m,i)=>`<div class="amz"><input class="nr" type="number" inputmode="numeric" value="${m.nr||""}" placeholder="Nr." data-ai="${i}|nr"><input class="nm" type="text" value="${esc(m.name)}" placeholder="NACHNAME Vorname" data-ai="${i}|name" autocomplete="off"><button type="button" class="agr ${m.gruppe==="r"?"r":""}" data-agr="${i}">${m.gruppe==="r"?"Reserve":"Mannschaft"}</button><button type="button" class="adel" data-adel="${i}">×</button></div>`).join("")||'<div class="leer">Noch keine Mitglieder</div>';
+  l.scrollTop=st; adminFiltern();
 }
+function adminFiltern(){
+  const q=$("adminSuche").value.trim().toLowerCase();
+  document.querySelectorAll("#adminListe .amz").forEach((z,i)=>{ const m=adminMitglieder[i]; z.style.display=!q||!m.name||(m.name.toLowerCase().includes(q)||String(m.nr).startsWith(q))?"":"none"; });
+  const r=adminMitglieder.filter(m=>m.gruppe==="r").length; $("adminAnz").textContent=adminMitglieder.length+" Mitglieder · "+(adminMitglieder.length-r)+" Mannschaft, "+r+" Reserve";
+}
+$("adminSuche").addEventListener("input",adminFiltern);
+document.addEventListener("click",ev=>{
+  const g=ev.target.closest("[data-agr]"), d=ev.target.closest("[data-adel]");
+  if(g){ const m=adminMitglieder[+g.dataset.agr]; m.gruppe=m.gruppe==="r"?"m":"r"; g.classList.toggle("r",m.gruppe==="r"); g.textContent=m.gruppe==="r"?"Reserve":"Mannschaft"; adminFiltern(); }
+  else if(d){ adminMitglieder.splice(+d.dataset.adel,1); adminZeichnen(); }
+});
 document.addEventListener("input",ev=>{const i=ev.target;if(!i.dataset||!i.dataset.ai)return;const [idx,f]=i.dataset.ai.split("|");adminMitglieder[+idx][f]=f==="nr"?parseInt(i.value)||0:i.value;});
 document.addEventListener("change",ev=>{const i=ev.target;if(!i.dataset||!i.dataset.ai)return;const [idx,f]=i.dataset.ai.split("|");adminMitglieder[+idx][f]=f==="nr"?parseInt(i.value)||0:i.value;});
-function adminZeile(){adminMitglieder.unshift({nr:0,name:"",gruppe:"m"});adminZeichnen();setTimeout(()=>{const i=$("adminListe").querySelector('input[data-ai$="|name"]');if(i)i.focus()},50)}
+function adminZeile(){$("adminSuche").value="";adminMitglieder.unshift({nr:0,name:"",gruppe:"m"});adminZeichnen();$("adminListe").scrollTop=0;setTimeout(()=>{const i=$("adminListe").querySelector('input[data-ai$="|name"]');if(i)i.focus()},50)}
 function adminImport(){
   const zeilen=$("importText").value.split(/\r?\n/).map(z=>z.trim()).filter(Boolean); let neu=0,upd=0;
   zeilen.forEach(z=>{const t=z.split(/[;\t,]/).map(x=>x.trim()).filter(Boolean);if(t.length<2)return;const nr=parseInt(t[0]);if(!nr)return;

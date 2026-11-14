@@ -26,7 +26,7 @@ Schreiben immer als Patch über RPC `einsatz_patch` (tiefes Merge, `null` lösch
 - Auto-Update: `BUILD`, `updatePruefen()`, `updateAnwenden()`
 - Rollen: `rolle` = "user" | "admin" (aus JWT app_metadata.rolle)
 - Fußleisten: Symbolleiste `.leiste .tab` (Übersicht: Suche `ueSuche()`/`ueFilter`, Statistik `statZeichnen()` aus `letzteListe`, Optionen `einstOeffnen()`, neue Übung, neuer Einsatz; Einsatz: Übersicht/Mannschaft/Tagebuch/Atemschutz/PDF, in der Atemschutzüberwachung Klasse `asmodus`)
-- Mitgliederpflege ohne Admin-Anmeldung: `api("admin_login",{pw})` öffnet eine zweite, nicht gespeicherte Supabase-Sitzung `sbAdmin` nur für `mitglieder_speichern`; `adminZu()` meldet sie wieder ab
+- Admin-Bereiche (Mitgliederliste, Statistik) über `adminFrei(titel, dann)`: als Admin sofort, sonst Passwortdialog → `api("admin_login",{pw})` öffnet eine zweite, nicht gespeicherte Supabase-Sitzung `sbAdmin` (für `mitglieder_speichern`); `adminZu()`/`statZu()` melden sie wieder ab. Die Statistik-Sperre ist nur eine Sperre in der Oberfläche (Daten liegen ohnehin am Gerät)
 
 Einsatzarten: Brand, Technisch, Schadstoff, Brandsicherheitswache (Kurz: BSW), Fehlalarm, Übung (früher „Sonstiges“).
 
