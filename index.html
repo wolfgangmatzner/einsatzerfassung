@@ -237,13 +237,13 @@
   <section id="einsatzView" style="display:none">
     <h2>Einsatzart / Übung</h2>
     <div class="chips arten" id="arten"></div>
-    <h2 class="klapp offen" data-ziel="secEinsatz">Einsatz</h2>
+    <h2 class="klapp offen" data-ziel="secEinsatz"><span id="wEinsatz">Einsatz</span></h2>
     <div class="zusfassung" id="zf_secEinsatz"></div>
     <div class="block" id="secEinsatz">
       <label class="feld">Bezeichnung
         <input id="einsatz" type="text" placeholder="z. B. Wohnhausbrand, Verkehrsunfall …" autocomplete="off">
       </label>
-      <div class="feld" style="display:flex">Einsatzort
+      <div class="feld" style="display:flex"><span id="wOrt">Einsatzort</span>
         <div class="ortzeile">
           <div class="chips">
             <label class="chip"><input type="radio" name="gem" data-gem="Auersthal">Auersthal</label>
@@ -343,7 +343,7 @@
     <h2 class="klapp" data-ziel="secWetter">Witterung</h2>
     <div class="zusfassung" id="zf_secWetter"></div>
     <div id="secWetter" style="display:none">
-    <div class="hinweis" style="margin:0 0 8px">Lage bei Einsatzbeginn</div>
+    <div class="hinweis" style="margin:0 0 8px" id="wBeginn">Lage bei Einsatzbeginn</div>
     <div class="chips raster" id="wetter"></div>
     <div class="tempzeile">
       <span class="tlabel">Temperatur</span>
@@ -385,7 +385,7 @@
       <label class="feld">Gesetzte Maßnahmen
         <textarea id="massnahmen" rows="4" placeholder="z. B. Brandschutz aufgebaut, Person mit Spreizer befreit, Fahrbahn gereinigt"></textarea>
       </label>
-      <label class="feld">Einsatzstelle übergeben an
+      <label class="feld"><span id="wStelle">Einsatzstelle übergeben an</span>
         <input id="uebergabe" type="text" placeholder="z. B. Polizei, Besitzer, Straßendienst, ÖBB" autocomplete="off">
       </label>
       <div class="chips">
@@ -563,6 +563,11 @@ function personHtml([nr,name],gruppe){
 const ARTBEISPIELE={Brand:"z. B. Wohnhausbrand, Fahrzeugbrand, Flurbrand",Technisch:"z. B. Verkehrsunfall, Sturmschaden, Türöffnung",Schadstoff:"z. B. Ölspur, Gasgeruch, Gefahrgutaustritt",Brandsicherheitswache:"z. B. Veranstaltung, Festzelt, Konzert",Fehlalarm:"z. B. Brandmeldeanlage, Täuschungsalarm","Übung":"z. B. Atemschutzübung, Technische Übung, Branddienstübung"};
 const ARTKURZ={Brandsicherheitswache:"BSW"};
 const kurz=a=>ARTKURZ[a]||a||"";
+// Wortwahl: bei Einsatzart „Übung“ heißt alles „Übung…“ statt „Einsatz…“
+const istUeb=e=>!!e&&e.art==="Übung";
+const wort=e=>istUeb(e)?"Übung":"Einsatz";
+const stamm=e=>istUeb(e)?"Übungs":"Einsatz";   // für Zusammensetzungen: Einsatzort / Übungsort
+const wortLeiter=e=>istUeb(e)?"Übungsleiter":"Einsatzleiter";
 const ARTFARBEN={Brand:"#c8102e",Technisch:"#1d4ed8",Schadstoff:"#15803d",Brandsicherheitswache:"#ca8a04",Fehlalarm:"#4b5563","Übung":"#6d28d9"};
 $("arten").innerHTML=EINSATZARTEN.map(a=>`<label class="chip" data-art="${a}" style="--farbe:${ARTFARBEN[a]||"#c8102e"}"><input type="radio" name="art" data-art="${a}">${kurz(a)}</label>`).join("");
 $("rettung").innerHTML=RETTUNG.map(([k,l])=>`<div class="zeile"><div class="zname">${k}<span class="zsub">${l}</span></div>${stepperHtml("kraefte.rettung."+k)}</div>`).join("");
@@ -750,10 +755,12 @@ function fuelleFormular(e){
 
   document.body.dataset.art=e.art||"";
   $("einsatz").placeholder=ARTBEISPIELE[e.art]||"Bezeichnung des Einsatzes";
+  $("wEinsatz").textContent=wort(e); $("wOrt").textContent=stamm(e)+"ort"; $("wBeginn").textContent="Lage bei "+stamm(e)+"beginn"; $("wStelle").textContent=stamm(e)+"stelle übergeben an";
+  $("btnLoeschen").textContent=wort(e)+" löschen";
   document.querySelectorAll('input[data-gruppe="m"]').forEach(i=>i.checked=!!(e.m||{})[i.dataset.nr]);
   document.querySelectorAll('input[data-gruppe="r"]').forEach(i=>i.checked=!!(e.r||{})[i.dataset.nr]);
   document.querySelectorAll(".person").forEach(p=>p.classList.toggle("ist-el",!!e.el&&p.querySelector("input").dataset.nr===String(e.el)));
-  $("elInfo").innerHTML="Einsatzleiter: <b>"+(e.el&&NAMEN[e.el]?esc(e.el+" "+NAMEN[e.el]):"–")+'</b> <span style="color:#6b7280">(Name lang gedrückt halten, um ihn als Einsatzleiter zu setzen)</span>';
+  $("elInfo").innerHTML=wortLeiter(e)+": <b>"+(e.el&&NAMEN[e.el]?esc(e.el+" "+NAMEN[e.el]):"–")+'</b> <span style="color:#6b7280">(Name lang gedrückt halten, um ihn als '+wortLeiter(e)+' zu setzen)</span>';
   zeichneFF(e); zeichneKr(e); zeichneUf(e); zeichnePers(e); zeichneDoku(e);
   if(ersteFuellung){
     ersteFuellung=false;
@@ -764,7 +771,7 @@ function fuelleFormular(e){
   const abgeschlossen=e.status==="abgeschlossen";
   $("btnLoeschen").style.display=(rolle==="admin"||abgeschlossen)?"":"none";
   $("einsatzView").classList.toggle("gesperrt",abgeschlossen);
-  $("btnStatus").textContent=abgeschlossen?"Einsatz wieder öffnen":"Einsatz abschließen";
+  $("btnStatus").textContent=abgeschlossen?wort(e)+" wieder öffnen":wort(e)+" abschließen";
   $("btnStatus").className="btn btn-klein "+(abgeschlossen?"btn-gruen":"btn-grau");
   $("kopf").innerHTML=esc(e.einsatz||kurz(e.art)||"Einsatz")+'<small>'+esc([e.art&&e.einsatz?kurz(e.art):"",ortText(e),datumDE(e.datum)+(e.ausfahrt?" "+e.ausfahrt:""),abgeschlossen?"abgeschlossen":""].filter(Boolean).join(" · "))+'</small>';
   zaehlen(e); zfAlle(); bilderLaden();
@@ -1194,7 +1201,7 @@ function statusWechseln(){
 function frage(text,cb,jaText){$("frageText").textContent=text;$("frageJa").textContent=jaText||"Ja, löschen";$("frage").style.display="block";$("frageJa").onclick=()=>{$("frage").style.display="none";cb()}}
 function einsatzLoeschenFragen(id,e){
   const name=[kurz(e.art),e.einsatz].filter(Boolean).join(" – ")||"Ohne Bezeichnung";
-  frage("Einsatz „"+name+"“ vom "+datumDE(e.datum)+" samt allen Fotos löschen?",()=>{
+  frage(wort(e)+" „"+name+"“ vom "+datumDE(e.datum)+" samt allen Fotos löschen?",()=>{
     setTimeout(()=>frage("Wirklich endgültig löschen? „"+name+"“ ist danach auf allen Tablets weg und kann nicht wiederhergestellt werden.",async()=>{
       const nurLokal=warteschlange.some(j=>j.typ==="neu"&&j.id===id);
       warteschlange=warteschlange.filter((j,i)=>j.id!==id||(i===0&&qLaeuft)); qSpeichern();
@@ -1225,7 +1232,7 @@ function aktionsMenue(e){
     ["PDF teilen","btn-grau",pdf],
     ["Löschen …","btn-grau rotText",()=>{zu();einsatzLoeschenFragen(e.id,e)}],
   ]:[
-    ["Einsatz abschließen","btn-rot",()=>{zu();schreibeFuer(e.id,{status:"abgeschlossen"})}],
+    [wort(e)+" abschließen","btn-rot",()=>{zu();schreibeFuer(e.id,{status:"abgeschlossen"})}],
     ["PDF teilen","btn-grau",pdf],
   ];
   const box=$("aktionKnoepfe"); box.innerHTML="";
@@ -1292,10 +1299,10 @@ async function pdfErzeugen(btn,einsatz){
     y=36;doc.setTextColor(20,20,20);
     doc.setFont("helvetica","bold");doc.setFontSize(18);doc.text(doc.splitTextToSize((e.einsatz||kurz(e.art)||"Einsatz"),R-L),L,y);y+=10;
     doc.setFont("helvetica","normal");doc.setFontSize(11);doc.text([e.art,ortText(e),datumDE(e.datum)].filter(Boolean).join("  ·  "),L,y);y+=4;
-    H("Einsatzdaten");
-    KV("Einsatzart",e.art||"–");KV("Bezeichnung",e.einsatz);KV("Einsatzort",ortText(e)+(e.ueberoertlich?" (überörtlich)":""));
+    H(stamm(e)+"daten");
+    KV("Einsatzart",e.art||"–");KV("Bezeichnung",e.einsatz);KV(stamm(e)+"ort",ortText(e)+(e.ueberoertlich?" (überörtlich)":""));
     KV("Datum",datumDE(e.datum));KV("Ausfahrt",e.ausfahrt);KV("Rückkehr",(e.rueckkehrDatum&&e.rueckkehrDatum!==e.datum?datumDE(e.rueckkehrDatum)+" ":"")+(e.rueckkehr||""));
-    KV("Fahrzeuge",(e.fz||[]).join(", "));KV("Einsatzleiter",e.el&&NAMEN[e.el]?e.el+" "+NAMEN[e.el]:"");KV("Witterung",wetterText(e));KV("Status",e.status==="abgeschlossen"?"abgeschlossen":"aktiv");
+    KV("Fahrzeuge",(e.fz||[]).join(", "));KV(wortLeiter(e),e.el&&NAMEN[e.el]?e.el+" "+NAMEN[e.el]:"");KV("Witterung",wetterText(e));KV("Status",e.status==="abgeschlossen"?"abgeschlossen":"aktiv");
     const m=namenListe(e.m,MANNSCHAFT),r=namenListe(e.r,RESERVE);
     H("Mannschaft ("+(m.length+r.length)+" Mitglieder)");
     if(m.length)spalten(m,2);else P("–");
