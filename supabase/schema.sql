@@ -77,7 +77,7 @@ create or replace function public.mitglieder_setzen(p_liste jsonb) returns void
 language plpgsql security invoker set search_path = '' as $$
 begin
   if not public.ist_admin() then raise exception 'Nur Admin'; end if;
-  delete from public.mitglieder;
+  delete from public.mitglieder where true;   -- ohne WHERE blockt Supabase (safeupdate) das Löschen über die API
   insert into public.mitglieder (nr, name, gruppe)
   select (e->>'nr')::int, left(trim(e->>'name'),100), case when e->>'gruppe'='r' then 'r' else 'm' end
     from jsonb_array_elements(p_liste) e

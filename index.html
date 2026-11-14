@@ -658,7 +658,7 @@
 </div>
 <div id="adminView" class="dialog" onclick="if(event.target===this)adminZu()">
   <div class="box">
-    <h3 style="margin-top:0">Mitgliederliste</h3>
+    <div class="statkopf"><h3 style="margin:0">Mitgliederliste</h3><button type="button" class="shzu" onclick="adminZu()">×</button></div>
     <div class="hinweis" style="margin-bottom:8px">Nr., Name, Gruppe. Änderungen gelten sofort auf allen Tablets; angehakte Namen in alten Einsätzen bleiben über die Nr. erhalten.</div>
     <div id="adminListe" style="max-height:50vh;overflow:auto;border:2px solid var(--rand);border-radius:10px;padding:6px"></div>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
@@ -666,6 +666,7 @@
       <button class="btn btn-grau btn-klein" onclick="$('importBox').style.display=$('importBox').style.display==='none'?'':'none'">Import (FDISK-Export einfügen)</button>
       <button class="btn btn-rot btn-klein" onclick="adminSpeichern(this)">Speichern</button>
     </div>
+    <div class="hinweis" id="adminFehler" style="color:var(--rot);font-weight:600;margin-top:8px"></div>
     <div id="importBox" style="display:none;margin-top:10px">
       <div class="hinweis">Zeilen im Format <code>Nr;Nachname Vorname</code> oder <code>Nr,Name</code> oder mit Tabulator (aus Excel kopieren). Vorhandene Nr. werden aktualisiert, neue angelegt, fehlende bleiben erhalten.</div>
       <textarea id="importText" rows="6" style="width:100%;font-size:14px;padding:8px;border:2px solid var(--rand);border-radius:10px;font-family:ui-monospace,monospace"></textarea>
@@ -2177,7 +2178,7 @@ document.addEventListener("click",ev=>{ const b=ev.target.closest("[data-statjah
 
 async function adminOeffnen(){
   try{const r=await api("mitglieder");adminMitglieder=r.mitglieder;}catch(e){setStatus("warn","Laden fehlgeschlagen");return}
-  adminZeichnen(); $("adminView").style.display="block";
+  adminZeichnen(); $("adminFehler").textContent=""; $("adminView").style.display="block";
 }
 function adminZeichnen(){
   adminMitglieder.sort((a,b)=>a.name.localeCompare(b.name,"de"));
@@ -2199,10 +2200,11 @@ function adminImport(){
 }
 async function adminSpeichern(btn){
   const liste=adminMitglieder.filter(m=>m.nr&&m.name.trim());
-  const nrs=liste.map(m=>m.nr); if(new Set(nrs).size!==nrs.length){setStatus("warn","Doppelte Nummern in der Liste.");return}
-  btn.disabled=true;
+  const nrs=liste.map(m=>m.nr); $("adminFehler").textContent="";
+  if(new Set(nrs).size!==nrs.length){$("adminFehler").textContent="Doppelte Nummern in der Liste – bitte korrigieren.";return}
+  btn.disabled=true; btn.textContent="Speichere …";
   try{const r=await api("mitglieder_speichern",{mitglieder:liste});mitgliederSetzen(r.mitglieder);if(aktuell)fuelleFormular(aktuell);adminZu();setStatus("ok","Mitgliederliste gespeichert.");setTimeout(()=>setStatus("",""),3000)}
-  catch(e){setStatus("warn","Speichern fehlgeschlagen ("+(e.message||e.code)+")")}finally{btn.disabled=false}
+  catch(e){$("adminFehler").textContent="Speichern fehlgeschlagen: "+(e.message||e.code)}finally{btn.disabled=false;btn.textContent="Speichern"}
 }
 
 // ---------- Automatische Aktualisierung ----------
