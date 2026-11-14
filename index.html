@@ -333,6 +333,10 @@
   .leiste .tab .lbl{font-size:11.5px;font-weight:600;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
   .leiste .tab.as{color:#c2410c}
   .leiste .tab.pdf{color:var(--rot)}
+  .leiste .tab.neu{display:none}
+  .leiste.asmodus .tab.neu{display:flex}
+  .leiste.asmodus .tab.pdf{display:none}
+  .leiste.asmodus .tab.as:not(.neu){background:#ffedd5}
   .leiste .tab .tbd{position:absolute;top:2px;left:calc(50% + 8px);min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#374151;color:#fff;font-size:12px;font-weight:700;line-height:20px;text-align:center}
   .leiste .tab .tbd:empty{display:none}
   .leiste .tab.as .tbd{background:#ea580c}
@@ -600,16 +604,12 @@
   <div class="anz"></div>
   <button class="btn btn-rot" onclick="neuerEinsatz()">+ Neu</button>
 </div>
-<div class="leiste" id="leisteAS" style="display:none">
-  <button class="btn btn-grau" onclick="zeigeAS(false)">‹ Zum Einsatz</button>
-  <div class="anz"></div>
-  <button class="btn btn-as" id="asNeuBtn" onclick="asTruppNeu()">+ Trupp</button>
-</div>
 <div class="leiste" id="leisteEinsatz" style="display:none">
-  <button class="tab" onclick="zeigeUebersicht()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span class="lbl">Übersicht</span></button>
+  <button class="tab" onclick="asOffen?zeigeAS(false):zeigeUebersicht()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span class="lbl" id="lblZurueck">Übersicht</span></button>
   <button class="tab" onclick="zurSektion('secMann')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.6a3.5 3.5 0 010 6.8"/><path d="M18 14.3c2.1.8 3.5 2.8 3.5 5.7"/></svg><span class="lbl">Mannschaft</span><span class="tbd" id="anzGesamt"></span></button>
   <button class="tab" onclick="zurSektion('secTb')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg><span class="lbl">Tagebuch</span></button>
   <button class="tab as" onclick="zeigeAS(true)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="14" r="7"/><path d="M12 10v4l2.5 2"/><path d="M9.5 3h5"/></svg><span class="lbl">Atemschutz</span><span class="tbd" id="anzASaktiv"></span></button>
+  <button class="tab as neu" id="asNeuBtn" onclick="asTruppNeu()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span class="lbl">Trupp</span></button>
   <button class="tab pdf" id="pdfBtn" onclick="pdfErzeugen(this.querySelector('.lbl'))"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 001 1h12a1 1 0 001-1v-7"/></svg><span class="lbl">PDF teilen</span></button>
 </div>
 
@@ -935,7 +935,7 @@ function oeffne(id){
   aktuellId=id; aktuell=null; docStand="";
   $("uebersicht").style.display="none";$("leisteUebersicht").style.display="none";
   $("einsatzView").style.display="";$("leisteEinsatz").style.display="";
-  asOffen=false; $("asView").style.display="none"; $("leisteAS").style.display="none";
+  asOffen=false; $("asView").style.display="none"; asLeiste(false);
   $("suche").value="";document.querySelectorAll(".person").forEach(p=>p.style.display="");
   ersteFuellung=true; zuteilFz=null; $("scroller").scrollTop=0; sortAnwenden();
   aktuell=lokalerEinsatz(id); if(aktuell)fuelleFormular(aktuell);  // sofort aus dem Zwischenspeicher, Server-Stand folgt
@@ -945,7 +945,7 @@ function zeigeUebersicht(){
   $("scroller").scrollTop=0;
   aktuellId=null;aktuell=null;listeStand="";
   $("einsatzView").style.display="none";$("leisteEinsatz").style.display="none";
-  asOffen=false; $("asView").style.display="none"; $("leisteAS").style.display="none";
+  asOffen=false; $("asView").style.display="none"; asLeiste(false);
   $("uebersicht").style.display="";$("leisteUebersicht").style.display="";
   $("zurueck").style.display="none";document.querySelector("header").classList.remove("mit-zurueck");
   $("kopf").innerHTML='Einsatzerfassung<small>Freiwillige Feuerwehr Auersthal</small>';
@@ -1140,6 +1140,7 @@ document.querySelectorAll("h2[data-gruppe]").forEach(h=>{
   });
 });
 function zurSektion(ziel){
+  if(asOffen)zeigeAS(false,true);
   sektion(ziel,true,true);
   const h=document.querySelector('h2[data-ziel="'+ziel+'"]'), sc=$("scroller");
   requestAnimationFrame(()=>sc.scrollTo({top:h.getBoundingClientRect().top-sc.getBoundingClientRect().top+sc.scrollTop-10,behavior:"smooth"}));
@@ -1566,14 +1567,15 @@ const uhr=iso=>{ const d=new Date(iso); return pad2(d.getHours())+":"+pad2(d.get
 const gast=nr=>(aktuell&&(aktuell.gaeste||{})[nr])||null;
 const asName=nr=>NAMEN[nr]||(gast(nr)?gast(nr).name+(gast(nr).ff?" (FF "+gast(nr).ff+")":""):("Nr. "+nr));
 function gaesteFrei(e,gebunden){ const g=e.gaeste||{}; return Object.keys(g).filter(k=>g[k]&&!gebunden.has(k)); }
-function zeigeAS(an){
+function asLeiste(an){ $("leisteEinsatz").classList.toggle("asmodus",!!an); $("lblZurueck").textContent=an&&aktuell?wort(aktuell):"Übersicht"; }
+function zeigeAS(an,ohneSprung){
   if(!aktuell)return;
   asOffen=!!an; asDlgZu();
-  $("asView").style.display=an?"":"none"; $("leisteAS").style.display=an?"":"none";
-  $("einsatzView").style.display=an?"none":""; $("leisteEinsatz").style.display=an?"none":"";
+  $("asView").style.display=an?"":"none"; asLeiste(an);
+  $("einsatzView").style.display=an?"none":"";
   $("scroller").scrollTop=0;
   fuelleFormular(aktuell);
-  if(!an){ const h=document.querySelector('h2[data-ziel="secAS"]'), sc=$("scroller"); sektion("secAS",true,true); requestAnimationFrame(()=>sc.scrollTo({top:h.getBoundingClientRect().top-sc.getBoundingClientRect().top+sc.scrollTop-10})); }
+  if(!an&&!ohneSprung){ const h=document.querySelector('h2[data-ziel="secAS"]'), sc=$("scroller"); sektion("secAS",true,true); requestAnimationFrame(()=>sc.scrollTo({top:h.getBoundingClientRect().top-sc.getBoundingClientRect().top+sc.scrollTop-10})); }
 }
 // Sobald ein Trupp gestartet wurde, kommen Trupps/Träger/Geräte aus der Überwachung (statt aus den manuellen Zählern)
 function asZahlen(e){
