@@ -34,9 +34,10 @@
   header{background:var(--rot);color:#fff;padding:10px 16px 12px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:12px;row-gap:4px;position:sticky;top:0;z-index:5}
   header h1{margin:0;font-size:21px;line-height:1.2;grid-column:2}
   header.mit-zurueck h1{grid-column:1/-1}
-  header small{display:block;font-size:13px;opacity:.9;font-weight:400;margin-top:2px}
+  header h1{min-width:0}
+  header small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;font-size:13px;opacity:.9;font-weight:400;margin-top:2px}
   header button{background:rgba(255,255,255,.16);color:#fff;border:1.5px solid rgba(255,255,255,.55);border-radius:9px;padding:6px 12px 6px 8px;font-size:15px;font-weight:700;grid-column:1;grid-row:1;justify-self:start}
-  header .sync{grid-column:3;grid-row:1;font-size:13px;white-space:nowrap}
+  header .sync{grid-column:3;grid-row:1;font-size:13px;white-space:nowrap;min-width:108px;text-align:right}
   header:not(.mit-zurueck) h1{grid-column:1/3;grid-row:1}
   header:not(.mit-zurueck) .sync{grid-row:1}
   main{max-width:1100px;margin:0 auto;padding:14px;padding-bottom:125px}
@@ -1201,15 +1202,16 @@ function rollenFrei(e,nr){ // Patch, der alle Funktionen dieser Person löscht
 const AS="__AS__";   // Sonderwert für zuteilFz: Atemschutz-Auswahl
 const istDa=(e,nr)=>!!((e.m||{})[nr]||(e.r||{})[nr]);
 function asListe(e){ const a=e.as||{}; return Object.keys(a).filter(nr=>a[nr]&&istDa(e,nr)&&NAMEN[nr]).sort((x,y)=>NAMEN[x].localeCompare(NAMEN[y],"de")); }
+function setzeHtml(el,html){ if(el._html!==html){ el.innerHTML=html; el._html=html; } }
 function zeichneZuteil(e){
   const fz=(e.fz||[]), zt=e.zuteilung||{}, as=e.as||{};
   if(zuteilFz&&zuteilFz!==AS&&!fz.includes(zuteilFz))zuteilFz=null;
   $("zuteil").style.display="";
   const nAs=asListe(e).length;
-  $("zuteilChips").innerHTML=fz.map(f=>{ const n=Object.keys(zt).filter(nr=>zt[nr]===f&&istDa(e,nr)).length; return `<button type="button" class="chip ${zuteilFz===f?"an":""}" data-zfz="${f}">${f}${n?" · "+n:""}</button>`; }).join("")
-    +`<button type="button" class="chip as ${zuteilFz===AS?"an":""}" data-zfz="${AS}">Atemschutz${nAs?" · "+nAs:""}</button>`;
+  setzeHtml($("zuteilChips"),fz.map(f=>{ const n=Object.keys(zt).filter(nr=>zt[nr]===f&&istDa(e,nr)).length; return `<button type="button" class="chip ${zuteilFz===f?"an":""}" data-zfz="${f}">${f}${n?" · "+n:""}</button>`; }).join("")
+    +`<button type="button" class="chip as ${zuteilFz===AS?"an":""}" data-zfz="${AS}">Atemschutz${nAs?" · "+nAs:""}</button>`);
   const h=$("zuteilHinweis"); h.style.display=zuteilFz?"":"none"; h.classList.toggle("as",zuteilFz===AS);
-  if(zuteilFz===AS)h.innerHTML="<b>Atemschutz</b> gewählt: Namen antippen = Atemschutzträger / wieder lösen (unabhängig vom Fahrzeug). Haken vorne antippen = Mitglied ganz abmelden. „Atemschutz“ nochmal antippen = fertig.";
+  if(zuteilFz===AS)h._html=h.innerHTML="<b>Atemschutz</b> gewählt: Namen antippen = Atemschutzträger / wieder lösen (unabhängig vom Fahrzeug). Haken vorne antippen = Mitglied ganz abmelden. „Atemschutz“ nochmal antippen = fertig.";
   else if(zuteilFz)h.innerHTML="<b>"+esc(zuteilFz)+"</b> gewählt: Namen antippen = zuteilen / wieder lösen. Haken vorne antippen = Mitglied ganz abmelden. Lang drücken = Maschinist (MA), nochmal lang = Gruppenkommandant (GK). Fahrzeug nochmal antippen = fertig.";
   document.querySelectorAll(".person").forEach(p=>{
     const nr=p.querySelector("input").dataset.nr, da=istDa(e,nr), f=da&&fz.includes(zt[nr])?zt[nr]:"";
@@ -1220,7 +1222,7 @@ function zeichneZuteil(e){
     p.classList.toggle("im-as",zuteilFz===AS&&istAs);
   });
   const n=asListe(e);
-  $("asNamen").innerHTML=n.length?"<b>Atemschutzträger ("+n.length+"):</b> "+esc(n.map(nr=>NAMEN[nr]).join(", ")):"Atemschutzträger in der Mannschaftsliste über „Atemschutz“ auswählen.";
+  setzeHtml($("asNamen"),n.length?"<b>Atemschutzträger ("+n.length+"):</b> "+esc(n.map(nr=>NAMEN[nr]).join(", ")):"Atemschutzträger in der Mannschaftsliste über „Atemschutz“ auswählen.");
 }
 document.addEventListener("click",ev=>{
   const b=ev.target.closest("[data-zfz]"); if(!b||!aktuell||aktuell.status==="abgeschlossen")return;
