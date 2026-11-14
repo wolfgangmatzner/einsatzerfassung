@@ -145,8 +145,14 @@
   .person:has(input:checked){background:#dcfce7;border-color:var(--gruen)}
   .person{-webkit-touch-callout:none;-webkit-user-select:none;position:relative}
   .person .fzb{margin-left:auto;font-size:12px;font-weight:700;padding:3px 7px;border-radius:6px;background:#e0e7ff;color:#3730a3;flex:none;white-space:nowrap}
-  .person .fzb:empty{display:none}
-  .person .fzb:not(:empty)+.el{margin-left:6px}
+  .person .fzb:empty,.person .asb:empty{display:none}
+  .person .bdg{margin-left:auto;display:flex;gap:6px;align-items:center;flex:none}
+  .person .bdg .fzb,.person .bdg .el{margin-left:0}
+  .person .asb{font-size:12px;font-weight:800;padding:3px 7px;border-radius:6px;background:#ffedd5;color:#9a3412;flex:none}
+  .person.im-as{outline:3px solid #ea580c;outline-offset:-3px}
+  .zuteil .chip.as{border-color:#ea580c;color:#9a3412}
+  .zuteil .chip.as.an{background:#ea580c;border-color:#ea580c;color:#fff}
+  .zuteil .zh.as{color:#9a3412;background:#fff7ed}
   .person.im-fz{outline:3px solid #6366f1;outline-offset:-3px}
   .zuteil{margin:8px 0 10px}
   .zuteil .zt{font-size:13px;color:#6b7280;font-weight:600;margin-bottom:6px}
@@ -292,7 +298,7 @@
     <div id="secMann">
       <div class="elinfo" id="elInfo">Einsatzleiter: – <span style="color:#6b7280">(Name lang gedrückt halten, um ihn als Einsatzleiter zu setzen)</span></div>
       <div class="zuteil" id="zuteil" style="display:none">
-        <div class="zt">Fahrzeug-Zuteilung (optional) – Fahrzeug antippen, dann die Mitfahrer</div>
+        <div class="zt">Zuteilung (optional) – Fahrzeug oder Atemschutz antippen, dann die Mitglieder</div>
         <div class="chips" id="zuteilChips"></div>
         <div class="zh" id="zuteilHinweis" style="display:none"></div>
       </div>
@@ -329,6 +335,7 @@
     <h2 class="klapp" data-ziel="secAS">Atemschutz</h2>
     <div class="zusfassung" id="zf_secAS"></div>
     <div id="secAS" style="display:none">
+      <div class="hinweis" id="asNamen" style="margin:0 0 8px;font-size:15px;color:#374151"></div>
       <div class="zeile"><div class="zname">Trupps<span class="zsub">eingesetzte Atemschutztrupps</span></div><div data-stepper="atemschutz.trupps"></div></div>
       <div class="zeile"><div class="zname">Träger<span class="zsub">Atemschutzträger gesamt</span></div><div data-stepper="atemschutz.traeger"></div></div>
       <div class="zeile"><div class="zname">Geräte<span class="zsub">verwendete Atemschutzgeräte / Flaschen</span></div><div data-stepper="atemschutz.geraete"></div></div>
@@ -573,7 +580,7 @@ sb&&sb.auth.onAuthStateChange((ev)=>{ if(ev==="SIGNED_OUT"){rolle=null;zeigeLogi
 
 // ---------- Aufbau ----------
 function personHtml([nr,name],gruppe){
-  return `<label class="person" data-name="${name.toLowerCase()}"><input type="checkbox" data-gruppe="${gruppe}" data-nr="${nr}"><span class="nr">${nr}</span><span class="name">${name}</span><span class="fzb"></span><span class="el">EL</span></label>`;
+  return `<label class="person" data-name="${name.toLowerCase()}"><input type="checkbox" data-gruppe="${gruppe}" data-nr="${nr}"><span class="nr">${nr}</span><span class="name">${name}</span><span class="bdg"><span class="fzb"></span><span class="asb"></span><span class="el">EL</span></span></label>`;
 }
 const ARTBEISPIELE={Brand:"z. B. Wohnhausbrand, Fahrzeugbrand, Flurbrand",Technisch:"z. B. Verkehrsunfall, Sturmschaden, Türöffnung",Schadstoff:"z. B. Ölspur, Gasgeruch, Gefahrgutaustritt",Brandsicherheitswache:"z. B. Veranstaltung, Festzelt, Konzert",Fehlalarm:"z. B. Brandmeldeanlage, Täuschungsalarm","Übung":"z. B. Atemschutzübung, Technische Übung, Branddienstübung"};
 const ARTKURZ={Brandsicherheitswache:"BSW"};
@@ -888,6 +895,7 @@ document.addEventListener("change",ev=>{
     const pp={[i.dataset.gruppe]:{[i.dataset.nr]:i.checked}};
     if(!i.checked){ // abgemeldet: Zuteilung und Funktion lösen
       if((aktuell.zuteilung||{})[i.dataset.nr])pp.zuteilung={[i.dataset.nr]:null};
+      if((aktuell.as||{})[i.dataset.nr])pp.as={[i.dataset.nr]:null};
       const frei=rollenFrei(aktuell,i.dataset.nr); if(Object.keys(frei).length)pp.fzRollen=frei;
     }
     schreibe(pp);
@@ -956,7 +964,7 @@ function zusammenfassung(ziel,e){
     case "secUf": return liste(ufListe(e).map(f=>f.kennzeichen||f.marke||"Fahrzeug"),4);
     case "secPers": return liste(persListe(e).map(f=>(f.name||"Person")+(f.rolle?" ("+f.rolle.replace(/\/.*$/,"")+")":"")),3);
     case "secDoku": { const n=dokuListe(e).length; return n?n+" Foto"+(n>1?"s":""):""; }
-    case "secAS": { const a=e.atemschutz||{};const z=[];if(+a.trupps)z.push(a.trupps+" Trupp"+(a.trupps>1?"s":""));if(+a.traeger)z.push(a.traeger+" Träger");if(+a.geraete)z.push(a.geraete+" Geräte");return z.join(", "); }
+    case "secAS": { const a=e.atemschutz||{};const z=[];const tr=asListe(e);if(tr.length)z.push("AS: "+(tr.length<=4?tr.map(nr=>kurzName(NAMEN[nr])).join(", "):tr.length+" Träger gewählt"));if(+a.trupps)z.push(a.trupps+" Trupp"+(a.trupps>1?"s":""));if(+a.traeger)z.push(a.traeger+" Träger");if(+a.geraete)z.push(a.geraete+" Geräte");return z.join(", "); }
     case "secSchaden": { const a=e.schaden||{};const z=[];[["gerettet","gerettet"],["geborgen","geborgen"],["verletzt","verletzt"],["tot","tot"],["tiere","Tiere"]].forEach(([k,l])=>{if(+a[k])z.push(a[k]+" "+l)});return z.join(", "); }
     case "secMat": { const m=e.material||{};const z=[];if(+m.oel)z.push(m.oel+" kg Ölbindemittel");if(+m.schaum)z.push(m.schaum+" l Schaummittel");if(+m.wasser)z.push(m.wasser+" l Löschwasser");if(m.sonst)z.push(m.sonst);return z.join(", "); }
     case "secMass": { const z=[];const t=(e.lage||e.massnahmen||"").trim().split("\n")[0];if(t)z.push(t.slice(0,70)+(t.length>70?" …":""));if(e.uebergabe)z.push("Übergabe: "+e.uebergabe);if(e.brandwache)z.push("Brandwache");if(e.kostenpflichtig)z.push("kostenpflichtig");return z.join(" · "); }
@@ -1190,20 +1198,29 @@ function rollenFrei(e,nr){ // Patch, der alle Funktionen dieser Person löscht
   const p={}; Object.keys(e.fzRollen||{}).forEach(fz=>{ const r=e.fzRollen[fz]||{}; ["ma","gk"].forEach(k=>{ if(String(r[k])===String(nr)){ (p[fz]=p[fz]||{})[k]=""; } }); });
   return p;
 }
+const AS="__AS__";   // Sonderwert für zuteilFz: Atemschutz-Auswahl
+const istDa=(e,nr)=>!!((e.m||{})[nr]||(e.r||{})[nr]);
+function asListe(e){ const a=e.as||{}; return Object.keys(a).filter(nr=>a[nr]&&istDa(e,nr)&&NAMEN[nr]).sort((x,y)=>NAMEN[x].localeCompare(NAMEN[y],"de")); }
 function zeichneZuteil(e){
-  const fz=(e.fz||[]), zt=e.zuteilung||{};
-  if(zuteilFz&&!fz.includes(zuteilFz))zuteilFz=null;
-  $("zuteil").style.display=fz.length?"":"none";
-  const anwesend=nr=>!!((e.m||{})[nr]||(e.r||{})[nr]);
-  $("zuteilChips").innerHTML=fz.map(f=>{ const n=Object.keys(zt).filter(nr=>zt[nr]===f&&anwesend(nr)).length; return `<button type="button" class="chip ${zuteilFz===f?"an":""}" data-zfz="${f}">${f}${n?" · "+n:""}</button>`; }).join("");
-  const h=$("zuteilHinweis"); h.style.display=zuteilFz?"":"none";
-  if(zuteilFz)h.innerHTML="<b>"+esc(zuteilFz)+"</b> gewählt: Mitglieder antippen = zuteilen / wieder lösen. Lang drücken = Maschinist (MA), nochmal lang = Gruppenkommandant (GK). Fahrzeug nochmal antippen = fertig.";
+  const fz=(e.fz||[]), zt=e.zuteilung||{}, as=e.as||{};
+  if(zuteilFz&&zuteilFz!==AS&&!fz.includes(zuteilFz))zuteilFz=null;
+  $("zuteil").style.display="";
+  const nAs=asListe(e).length;
+  $("zuteilChips").innerHTML=fz.map(f=>{ const n=Object.keys(zt).filter(nr=>zt[nr]===f&&istDa(e,nr)).length; return `<button type="button" class="chip ${zuteilFz===f?"an":""}" data-zfz="${f}">${f}${n?" · "+n:""}</button>`; }).join("")
+    +`<button type="button" class="chip as ${zuteilFz===AS?"an":""}" data-zfz="${AS}">Atemschutz${nAs?" · "+nAs:""}</button>`;
+  const h=$("zuteilHinweis"); h.style.display=zuteilFz?"":"none"; h.classList.toggle("as",zuteilFz===AS);
+  if(zuteilFz===AS)h.innerHTML="<b>Atemschutz</b> gewählt: Mitglieder antippen = Atemschutzträger / wieder lösen (unabhängig vom Fahrzeug). „Atemschutz“ nochmal antippen = fertig.";
+  else if(zuteilFz)h.innerHTML="<b>"+esc(zuteilFz)+"</b> gewählt: Mitglieder antippen = zuteilen / wieder lösen. Lang drücken = Maschinist (MA), nochmal lang = Gruppenkommandant (GK). Fahrzeug nochmal antippen = fertig.";
   document.querySelectorAll(".person").forEach(p=>{
-    const nr=p.querySelector("input").dataset.nr, f=anwesend(nr)&&fz.includes(zt[nr])?zt[nr]:"";
-    const ro=f?rolleVon(e,nr):"";
+    const nr=p.querySelector("input").dataset.nr, da=istDa(e,nr), f=da&&fz.includes(zt[nr])?zt[nr]:"";
+    const ro=f?rolleVon(e,nr):"", istAs=da&&!!as[nr];
     p.querySelector(".fzb").textContent=f?(f+(ro?" · "+ro:"")):"";
-    p.classList.toggle("im-fz",!!zuteilFz&&f===zuteilFz);
+    p.querySelector(".asb").textContent=istAs?"AS":"";
+    p.classList.toggle("im-fz",!!zuteilFz&&zuteilFz!==AS&&f===zuteilFz);
+    p.classList.toggle("im-as",zuteilFz===AS&&istAs);
   });
+  const n=asListe(e);
+  $("asNamen").innerHTML=n.length?"<b>Atemschutzträger ("+n.length+"):</b> "+esc(n.map(nr=>NAMEN[nr]).join(", ")):"Atemschutzträger in der Mannschaftsliste über „Atemschutz“ auswählen.";
 }
 document.addEventListener("click",ev=>{
   const b=ev.target.closest("[data-zfz]"); if(!b||!aktuell||aktuell.status==="abgeschlossen")return;
@@ -1211,6 +1228,7 @@ document.addEventListener("click",ev=>{
 });
 function zuteilTipp(p){ // Tipp auf eine Person bei gewähltem Fahrzeug
   const inp=p.querySelector("input"), nr=inp.dataset.nr, g=inp.dataset.gruppe, e=aktuell;
+  if(zuteilFz===AS){ schreibe((e.as||{})[nr]&&inp.checked?{as:{[nr]:null}}:{[g]:{[nr]:true},as:{[nr]:true}}); return; }
   const patch={}, frei=rollenFrei(e,nr);
   if((e.zuteilung||{})[nr]===zuteilFz&&inp.checked){ patch.zuteilung={[nr]:null}; }
   else { patch[g]={[nr]:true}; patch.zuteilung={[nr]:zuteilFz}; }
@@ -1218,6 +1236,7 @@ function zuteilTipp(p){ // Tipp auf eine Person bei gewähltem Fahrzeug
   schreibe(patch);
 }
 function zuteilLang(p){ // Longpress bei gewähltem Fahrzeug: – → MA → GK → –
+  if(zuteilFz===AS)return;
   const inp=p.querySelector("input"), nr=inp.dataset.nr, g=inp.dataset.gruppe, e=aktuell;
   const imFz=(e.zuteilung||{})[nr]===zuteilFz&&inp.checked, r=(e.fzRollen||{})[zuteilFz]||{};
   const patch={};
@@ -1414,7 +1433,7 @@ async function pdfErzeugen(btn,einsatz){
     Object.keys(k.stellen||{}).filter(x=>k.stellen[x]).forEach(x=>kz.push(x));
     if(k.sonst)kz.push(k.sonst);
     if(kz.length){H("Weitere Kräfte");kz.forEach(z=>P("• "+z))}
-    if(zusammenfassung("secAS",e)){H("Atemschutz");const a=e.atemschutz||{};KV("Trupps",a.trupps);KV("Träger",a.traeger);KV("Geräte",a.geraete)}
+    if(zusammenfassung("secAS",e)){H("Atemschutz");const a=e.atemschutz||{};const tr=asListe(e);if(tr.length)KV("Atemschutzträger ("+tr.length+")",tr.map(nr=>NAMEN[nr]).join(", "));KV("Trupps",a.trupps);KV("Träger",a.traeger);KV("Geräte",a.geraete)}
     if(zusammenfassung("secSchaden",e)){H("Personenschäden");const a=e.schaden||{};KV("Gerettet",a.gerettet);KV("Geborgen",a.geborgen);KV("Verletzt",a.verletzt);KV("Tot",a.tot);KV("Tiere",a.tiere)}
     if(zusammenfassung("secMat",e)){H("Verbrauchsmaterial");const mt=e.material||{};KV("Ölbindemittel",mt.oel?mt.oel+" kg":"");KV("Schaummittel",mt.schaum?mt.schaum+" l":"");KV("Löschwasser",mt.wasser?mt.wasser+" l":"");KV("Sonstiges",mt.sonst)}
     const uf=ufListe(e);
