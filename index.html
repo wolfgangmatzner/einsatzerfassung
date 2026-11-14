@@ -157,6 +157,11 @@
   .druck:focus-within{border-color:#ea580c}
   .druck span{padding:0 8px 0 3px;font-weight:600;color:#4b5563;font-size:14px}
   .druck.fehlt{border-color:#fca5a5}
+  .druck input{background:transparent}
+  .druck.gut{background:#dcfce7;border-color:#16a34a}
+  .druck.schlecht{background:#fee2e2;border-color:#dc2626}
+  .dw.gut{background:#dcfce7;color:#166534!important;border-radius:5px;padding:0 5px;font-weight:700}
+  .dw.schlecht{background:#fee2e2;color:#b91c1c!important;border-radius:5px;padding:0 5px;font-weight:700}
   .tmchip{display:inline-flex;align-items:center;gap:5px;border:2px solid #fca5a5;border-radius:10px;padding:0 10px;height:44px;font-weight:700;font-size:14px;cursor:pointer;user-select:none;background:#fff;white-space:nowrap}
   .tmchip input{display:none}
   .tmchip:has(input:checked){background:#dcfce7;border-color:var(--gruen);color:#166534}
@@ -1357,6 +1362,9 @@ const truppStatus=t=>t.ende?"beendet":t.start?"aktiv":"vorb";
 function truppMitgl(t){ const m=t.mitglieder||{}; return Object.keys(m).filter(nr=>m[nr]).sort((a,b)=>(m[a].pos||0)-(m[b].pos||0)); }
 function truppBereit(t){ const l=truppMitgl(t), m=t.mitglieder||{}; return l.length===TRUPPGROESSE&&l.every(nr=>+m[nr].druck>0&&m[nr].tm); }
 function asGebunden(e){ const s=new Set(); asTrupps(e).filter(t=>truppStatus(t)!=="beendet").forEach(t=>truppMitgl(t).forEach(nr=>s.add(nr))); return s; }
+// Flaschendruck bewerten: einsatzbereit ab 90 % des Nenndrucks (300-bar-Gerät ≥ 270, 200-bar-Gerät ≥ 180).
+// Gerätetyp wird aus dem Wert abgeleitet: ab 230 bar kann es nur ein 300-bar-Gerät sein.
+function druckKlasse(v){ v=+v; if(!(v>0))return ""; if(v>=270)return "gut"; if(v>=230)return "schlecht"; if(v>=180)return "gut"; return "schlecht"; }
 const pad2=n=>String(n).padStart(2,"0");
 function dauerText(ms){ ms=Math.max(0,ms); const sek=Math.floor(ms/1000), h=Math.floor(sek/3600), m=Math.floor(sek%3600/60), s2=sek%60; return (h?h+":"+pad2(m):m)+":"+pad2(s2); }
 const uhr=iso=>{ const d=new Date(iso); return pad2(d.getHours())+":"+pad2(d.getMinutes()); };
@@ -1386,8 +1394,8 @@ function zeichneAS(e){
     const fm=funkListe(t), lm=fm[fm.length-1];
     return `<div class="astrupp aktiv" data-astile="${t.id}"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="astimer" data-timer="${t.start}">${dauerText(Date.now()-new Date(t.start))}</span></div>
       <div class="astzeit">ab ${uhr(t.start)}${t.auftrag?" · "+esc(t.auftrag):""}</div>
-      <div class="astl">${truppMitgl(t).map(nr=>`<div><span>${esc(kn(nr))}</span><span>${m[nr].druck||"–"} bar</span></div>`).join("")}</div>
-      <div class="astfunk">${lm?"Funk "+uhrS(lm.t).slice(0,5)+" · "+esc(lm.text)+(fm.length>1?" (+"+(fm.length-1)+")":""):"Antippen für Funkmeldung"}</div>
+      <div class="astl">${truppMitgl(t).map(nr=>`<div><span>${esc(kn(nr))}</span><span class="dw ${druckKlasse(m[nr].druck)}">${m[nr].druck||"–"} bar</span></div>`).join("")}</div>
+      <div class="astfunk">${lm?uhrS(lm.t).slice(0,5)+" · "+esc(lm.text)+(fm.length>1?" (+"+(fm.length-1)+")":""):"Antippen für Meldung"}</div>
       ${zu?"":`<button type="button" class="btn btn-rot" data-asende="${t.id}">■ Zurück</button>`}</div>`; };
   // Trupp in Vorbereitung: Schritt 1 Mitglieder wählen, erst danach Schritt 2 Druck + Totmannwarner
   const vorbKarte=t=>{ const m=t.mitglieder||{}, ml=truppMitgl(t), voll=ml.length>=TRUPPGROESSE;
@@ -1399,12 +1407,12 @@ function zeichneAS(e){
     const od=ml.filter(nr=>!(+m[nr].druck>0)).length, ot=ml.filter(nr=>!m[nr].tm).length, fehlt=[]; if(od)fehlt.push(od+"× Startdruck"); if(ot)fehlt.push(ot+"× Totmannwarner");
     return `<div class="astrupp vorb"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="sub">Startdruck + Totmannwarner</span></div>
       ${ml.map(nr=>`<div class="astm"><div class="n">${esc(kn(nr))}</div>
-        <div class="druck ${+m[nr].druck>0?"":"fehlt"}"><input type="number" inputmode="numeric" min="0" max="400" placeholder="–" data-asd="${t.id}|${nr}" value="${m[nr].druck||""}" ${zu?"disabled":""}><span>bar</span></div>
+        <div class="druck ${+m[nr].druck>0?druckKlasse(m[nr].druck):"fehlt"}"><input type="number" inputmode="numeric" min="0" max="400" placeholder="–" data-asd="${t.id}|${nr}" value="${m[nr].druck||""}" ${zu?"disabled":""}><span>bar</span></div>
         <label class="tmchip"><input type="checkbox" data-astm="${t.id}|${nr}" ${m[nr].tm?"checked":""} ${zu?"disabled":""}>Totmann</label>
         ${zu?"<span></span>":`<button type="button" class="x" data-asrm="${t.id}|${nr}">×</button>`}</div>`).join("")}
       ${zu?"":`<div class="astakt"><input type="text" data-ast="${t.id}" value="${esc(t.auftrag||"")}" placeholder="Auftrag (optional)" autocomplete="off"><button type="button" class="btn btn-as" data-asstart="${t.id}" ${truppBereit(t)?"":"disabled"}>▶ Start</button></div>
       ${fehlt.length?`<div class="asfehl">Fehlt noch: ${fehlt.join(", ")}</div>`:""}<button type="button" class="linkklein" data-asdel="${t.id}">Trupp verwerfen</button>`}</div>`; };
-  const endZeile=t=>{ const m=t.mitglieder||{}; return `<div class="asend" data-astile="${t.id}"><b>Trupp ${t.nr||"?"}</b> · ${uhr(t.start)}–${uhr(t.ende)} (${dauerText(new Date(t.ende)-new Date(t.start))}) · ${truppMitgl(t).map(nr=>esc(kn(nr))+" "+(m[nr].druck||"–")).join(", ")}${t.auftrag?" · "+esc(t.auftrag):""}${funkListe(t).length?" · "+funkListe(t).length+" Funkmeldung"+(funkListe(t).length>1?"en":""):""}</div>`; };
+  const endZeile=t=>{ const m=t.mitglieder||{}; return `<div class="asend" data-astile="${t.id}"><b>Trupp ${t.nr||"?"}</b> · ${uhr(t.start)}–${uhr(t.ende)} (${dauerText(new Date(t.ende)-new Date(t.start))}) · ${truppMitgl(t).map(nr=>esc(kn(nr))+" "+(m[nr].druck||"–")).join(", ")}${t.auftrag?" · "+esc(t.auftrag):""}${funkListe(t).length?" · "+funkListe(t).length+" Meldung"+(funkListe(t).length>1?"en":""):""}</div>`; };
   const akt=l.filter(t=>truppStatus(t)==="aktiv"), vor=l.filter(t=>truppStatus(t)==="vorb"), end=l.filter(t=>truppStatus(t)==="beendet").reverse();
   $("asInhalt").innerHTML=(l.length?"":`<div class="leer">Noch kein Trupp angelegt.<br>${asListe(e).length?"Mit „+ Trupp“ unten einen Trupp zusammenstellen.":"Zuerst im Einsatz bei der Mannschaft über „Atemschutz“ die Atemschutzträger auswählen."}</div>`)
     +(akt.length?`<h2>Im Einsatz (${akt.length})</h2><div class="asgrid">${akt.map(aktivKarte).join("")}</div>`:"")
@@ -1413,8 +1421,8 @@ function zeichneAS(e){
     +`<div class="hinweis" style="margin-top:12px">Frei: ${frei.length?esc(frei.map(kn).join(", ")):"–"}</div>`;
   if(asDlgTid)asDlgZeichnen();
 }
-// Funkmeldungen je Trupp: asTrupps[id].meldungen{mid:{t:ISO,text}} – chronologisch mit Sekunden
-const FUNK_SCHNELL=["Am Einsatzort","Lage in Ordnung","Person gefunden","Brand lokalisiert","Feuer aus","Rückzug angetreten"];
+// Meldungen vom Trupp (Funk u. a.): asTrupps[id].meldungen{mid:{t:ISO,text}} – chronologisch mit Sekunden
+const FUNK_SCHNELL=["Am Einsatzort","Lage in Ordnung","Person gefunden","Brand lokalisiert","Brand aus","Rückzug angetreten"];
 function funkListe(t){ const m=t.meldungen||{}; return Object.keys(m).filter(k=>m[k]).map(k=>({id:k,...m[k]})).sort((a,b)=>(a.t||"").localeCompare(b.t||"")); }
 const uhrS=iso=>{ const d=new Date(iso); return pad2(d.getHours())+":"+pad2(d.getMinutes())+":"+pad2(d.getSeconds()); };
 let asDlgTid=null;
@@ -1422,14 +1430,14 @@ function asDlgZu(){ asDlgTid=null; $("asTruppDlg").style.display="none"; }
 function asDlgZeichnen(nurListe){
   const e=aktuell, t=e&&asDlgTid&&(e.asTrupps||{})[asDlgTid]; if(!t){ asDlgZu(); return; }
   const st=truppStatus(t), m=t.mitglieder||{}, zu=e.status==="abgeschlossen", fm=funkListe(t);
-  const liste=fm.length?fm.map(x=>`<div class="fmeld"><span class="z">${uhrS(x.t)}</span><span class="t">${esc(x.text)}</span>${zu?"":`<button type="button" class="x" data-funkweg="${x.id}">×</button>`}</div>`).join(""):'<div class="leer" style="padding:14px">Noch keine Funkmeldung</div>';
+  const liste=fm.length?fm.map(x=>`<div class="fmeld"><span class="z">${uhrS(x.t)}</span><span class="t">${esc(x.text)}</span>${zu?"":`<button type="button" class="x" data-funkweg="${x.id}">×</button>`}</div>`).join(""):'<div class="leer" style="padding:14px">Noch keine Meldung vom Trupp</div>';
   if(nurListe&&$("funkListe")){ $("funkListe").innerHTML=liste; return; }
   $("asTruppBox").innerHTML=`<div class="shkopf"><div><div class="shtitel">Trupp ${t.nr||""} ${st==="aktiv"?`· <span class="astimer" style="font-size:22px" data-timer="${t.start}">${dauerText(Date.now()-new Date(t.start))}</span>`:""}</div>
-      <div class="shsub">${st==="aktiv"?"ab "+uhr(t.start):uhr(t.start)+"–"+uhr(t.ende)+" ("+dauerText(new Date(t.ende)-new Date(t.start))+")"} · ${truppMitgl(t).map(nr=>esc(NAMEN[nr]?kurzName(NAMEN[nr]):asName(nr))+" "+(m[nr].druck||"–")).join(", ")}${t.auftrag?" · "+esc(t.auftrag):""}</div></div>
+      <div class="shsub">${st==="aktiv"?"ab "+uhr(t.start):uhr(t.start)+"–"+uhr(t.ende)+" ("+dauerText(new Date(t.ende)-new Date(t.start))+")"} · ${truppMitgl(t).map(nr=>esc(NAMEN[nr]?kurzName(NAMEN[nr]):asName(nr))+` <span class="dw ${druckKlasse(m[nr].druck)}">${m[nr].druck||"–"}</span>`).join(", ")}${t.auftrag?" · "+esc(t.auftrag):""}</div></div>
       <button type="button" class="shzu" onclick="asDlgZu()">×</button></div>
     ${zu?"":`<div class="fschnell">${FUNK_SCHNELL.map(x=>`<button type="button" data-funkschnell="${esc(x)}">${esc(x)}</button>`).join("")}</div>
-    <div class="feingabe"><input id="funkText" type="text" placeholder="Funkmeldung eingeben …" autocomplete="off" enterkeyhint="send"><button type="button" class="btn btn-as" id="funkOk">Eintragen</button></div>`}
-    <div class="shgruppe" style="position:static">Funkmeldungen (${fm.length})</div>
+    <div class="feingabe"><input id="funkText" type="text" placeholder="Meldung eingeben …" autocomplete="off" enterkeyhint="send"><button type="button" class="btn btn-as" id="funkOk">Eintragen</button></div>`}
+    <div class="shgruppe" style="position:static">Meldungen (${fm.length})</div>
     <div class="shliste" id="funkListe">${liste}</div>`;
 }
 function funkEintragen(text){
@@ -1442,7 +1450,7 @@ document.addEventListener("click",ev=>{
   if(ev.target.closest("#asTruppDlg")){
     const q=ev.target.closest("[data-funkschnell]"); if(q){ funkEintragen(q.dataset.funkschnell); return; }
     if(ev.target.closest("#funkOk")){ const i=$("funkText"); funkEintragen(i.value); i.value=""; i.focus(); return; }
-    const w=ev.target.closest("[data-funkweg]"); if(w){ const tid=asDlgTid, mid=w.dataset.funkweg; frage("Diese Funkmeldung löschen?",()=>schreibe({asTrupps:{[tid]:{meldungen:{[mid]:null}}}}),"Löschen"); return; }
+    const w=ev.target.closest("[data-funkweg]"); if(w){ const tid=asDlgTid, mid=w.dataset.funkweg; frage("Diese Meldung löschen?",()=>schreibe({asTrupps:{[tid]:{meldungen:{[mid]:null}}}}),"Löschen"); return; }
     return;
   }
   if(!asOffen)return;
@@ -1498,7 +1506,8 @@ document.addEventListener("click",ev=>{
 document.addEventListener("change",ev=>{ const i=ev.target; if(!i.dataset||!i.dataset.astm||!aktuell)return; const [tid,nr]=i.dataset.astm.split("|"); schreibe({asTrupps:{[tid]:{mitglieder:{[nr]:{tm:i.checked}}}}}); });
 document.addEventListener("input",ev=>{
   const i=ev.target; if(!i.dataset||!aktuell)return;
-  if(i.dataset.asd){ const [tid,nr]=i.dataset.asd.split("|"); const v=i.value===""?"":Math.max(0,Math.min(400,parseInt(i.value)||0)); clearTimeout(textTimer["asd"+i.dataset.asd]);
+  if(i.dataset.asd){ const dk=i.closest(".druck"); if(dk)dk.className="druck "+(+i.value>0?druckKlasse(i.value):"fehlt");
+    const [tid,nr]=i.dataset.asd.split("|"); const v=i.value===""?"":Math.max(0,Math.min(400,parseInt(i.value)||0)); clearTimeout(textTimer["asd"+i.dataset.asd]);
     textTimer["asd"+i.dataset.asd]=setTimeout(()=>schreibe({asTrupps:{[tid]:{mitglieder:{[nr]:{druck:v}}}}}),400); }
   else if(i.dataset.ast){ const tid=i.dataset.ast; clearTimeout(textTimer["ast"+tid]); textTimer["ast"+tid]=setTimeout(()=>schreibe({asTrupps:{[tid]:{auftrag:i.value}}}),500); }
 });
