@@ -224,10 +224,12 @@
   <section id="uebersicht">
     <h2 class="klapp offen" data-gruppe="listeAktiv">Aktive Einsätze <span class="gz" id="gz_listeAktiv"></span></h2>
     <div id="listeAktiv"><div class="leer">Lade …</div></div>
-    <h2 class="klapp offen" data-gruppe="listeUebung">Übungen <span class="gz" id="gz_listeUebung"></span></h2>
+    <h2 class="klapp offen" data-gruppe="listeUebung">Aktive Übungen <span class="gz" id="gz_listeUebung"></span></h2>
     <div id="listeUebung"></div>
     <h2 class="klapp offen" data-gruppe="listeAlt">Abgeschlossene Einsätze <span class="gz" id="gz_listeAlt"></span></h2>
     <div id="listeAlt"></div>
+    <h2 class="klapp offen" data-gruppe="listeUebungAlt">Abgeschlossene Übungen <span class="gz" id="gz_listeUebungAlt"></span></h2>
+    <div id="listeUebungAlt"></div>
     <div class="hinweis" style="text-align:center;margin-top:24px" id="versionInfo"></div>
   </section>
 
@@ -661,8 +663,8 @@ function zeichneUebersicht(alle){
   const istUebung=e=>e.art==="Übung";
   const aktiv=alle.filter(e=>!istUebung(e)&&e.status!=="abgeschlossen").sort(absteigend);
   const alt=alle.filter(e=>!istUebung(e)&&e.status==="abgeschlossen").sort(absteigend);
-  // Übungen: laufende zuerst, dann abgeschlossene
-  const ueb=alle.filter(istUebung).sort((a,b)=>((a.status==="abgeschlossen")-(b.status==="abgeschlossen"))||absteigend(a,b));
+  const ueb=alle.filter(e=>istUebung(e)&&e.status!=="abgeschlossen").sort(absteigend);
+  const uebAlt=alle.filter(e=>istUebung(e)&&e.status==="abgeschlossen").sort(absteigend);
   const karte=e=>{
     const n=anzahl(e), aktivE=e.status!=="abgeschlossen";
     const ffN=Object.values(e.ffs||{}).filter(f=>f&&f.aktiv).length;
@@ -684,11 +686,12 @@ function zeichneUebersicht(alle){
   };
   $("listeAktiv").innerHTML=aktiv.length?aktiv.map(karte).join(""):'<div class="leer">Kein aktiver Einsatz</div>';
   $("listeAlt").innerHTML=alt.length?alt.map(karte).join(""):'<div class="leer">Noch keine abgeschlossenen Einsätze</div>';
-  $("listeUebung").innerHTML=ueb.length?ueb.map(karte).join(""):'<div class="leer">Keine Übungen</div>';
-  const uebAktiv=ueb.filter(e=>e.status!=="abgeschlossen").length;
+  $("listeUebung").innerHTML=ueb.length?ueb.map(karte).join(""):'<div class="leer">Keine aktive Übung</div>';
+  $("listeUebungAlt").innerHTML=uebAlt.length?uebAlt.map(karte).join(""):'<div class="leer">Noch keine abgeschlossenen Übungen</div>';
   $("gz_listeAktiv").textContent="("+aktiv.length+")";
   $("gz_listeAlt").textContent="("+alt.length+")";
-  $("gz_listeUebung").textContent="("+ueb.length+(uebAktiv?", "+uebAktiv+" aktiv":"")+")";
+  $("gz_listeUebung").textContent="("+ueb.length+")";
+  $("gz_listeUebungAlt").textContent="("+uebAlt.length+")";
 }
 function ortText(e){const g=e.ueberoertlich?(e.gemeinde||"überörtlich"):"Auersthal";return [e.ort,g].filter(Boolean).join(", ")}
 function wetterText(e){const w=(e.wetter||[]).join(", ");const t=(e.temp!==""&&e.temp!=null)?e.temp+" °C":"";return [w,t].filter(Boolean).join(", ")}
