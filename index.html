@@ -129,35 +129,48 @@
   .dokuitem{display:flex;flex-direction:column}
   .foto .lade{position:absolute;inset:0;background:rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center;font-size:14px}
   #fotoGross img{max-width:100%;max-height:80vh;display:block;margin:0 auto;border-radius:8px}
-  .astrupp{border:2px solid var(--rand);border-radius:14px;padding:14px;margin-bottom:14px;background:#fff}
-  .astrupp.aktiv{border-color:#ea580c;border-width:3px}
-  .astrupp.beendet{opacity:.85;background:var(--grau)}
-  .astkopf{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .astkopf b{font-size:20px}
-  .astkopf .badge.lauf{background:#ffedd5;color:#9a3412}
-  .astimer{font-family:ui-monospace,monospace;font-size:44px;font-weight:800;letter-spacing:1px;margin:6px 0 2px;color:#9a3412;font-variant-numeric:tabular-nums}
-  .astzeit{font-size:14px;color:#6b7280}
-  .astm{display:grid;grid-template-columns:1fr auto;gap:8px 10px;align-items:center;padding:10px 0;border-top:1px solid #e5e7eb}
-  .astm .n{font-weight:700;font-size:17px;min-width:0}
-  .astm .n small{display:block;font-weight:400;color:#6b7280;font-size:13px}
-  .astm .x{background:none;border:none;color:var(--rot);font-size:22px;width:40px;height:40px}
-  .astm .zeile2{grid-column:1/-1;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .druck{display:flex;align-items:center;border:2px solid var(--rand);border-radius:10px;overflow:hidden;height:48px}
-  .druck input{width:84px;border:none;font-size:20px;font-weight:700;text-align:right;padding:0 4px;height:100%;font-family:inherit}
+  .asgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px;margin-bottom:6px}
+  .astrupp{border:2px solid var(--rand);border-radius:12px;padding:10px 12px;background:#fff;min-width:0}
+  .astrupp.aktiv{border-color:#ea580c;border-width:3px;display:flex;flex-direction:column}
+  .astrupp.vorb{margin-bottom:10px}
+  .astkopf{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .astkopf b{font-size:17px;white-space:nowrap}
+  .astkopf .sub{font-size:13px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .astimer{font-family:ui-monospace,monospace;font-size:30px;font-weight:800;color:#9a3412;font-variant-numeric:tabular-nums;line-height:1.1}
+  .astzeit{font-size:12.5px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .astl{font-size:14px;line-height:1.35;margin:6px 0 8px;flex:1}
+  .astl div{display:flex;justify-content:space-between;gap:6px}
+  .astl span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+  .astl span:last-child{color:#6b7280;white-space:nowrap}
+  .astrupp.aktiv .btn{height:40px;padding:0 10px;font-size:14px;width:100%}
+  .aswahl{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .aswahl button{border-radius:10px;padding:9px 12px;font-size:15px;font-weight:600}
+  .aswahl .drin{border:2px solid #ea580c;background:#ea580c;color:#fff}
+  .aswahl .frei{border:2px dashed #ea580c;background:#fff7ed;color:#9a3412}
+  .astm{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:6px 0;border-top:1px solid #e5e7eb}
+  .astm:first-of-type{margin-top:8px}
+  .astm .n{font-weight:700;font-size:16px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .astm .x{background:none;border:none;color:#9ca3af;font-size:20px;width:30px;height:44px}
+  .druck{display:flex;align-items:center;border:2px solid var(--rand);border-radius:10px;overflow:hidden;height:44px}
+  .druck input{width:58px;border:none;font-size:19px;font-weight:700;text-align:right;padding:0 2px;height:100%;font-family:inherit}
   .druck input:focus{outline:none}
   .druck:focus-within{border-color:#ea580c}
-  .druck span{padding:0 10px 0 4px;font-weight:600;color:#4b5563}
+  .druck span{padding:0 8px 0 3px;font-weight:600;color:#4b5563;font-size:14px}
   .druck.fehlt{border-color:#fca5a5}
-  .tmchip{display:inline-flex;align-items:center;gap:8px;border:2px solid var(--rand);border-radius:10px;padding:0 12px;height:48px;font-weight:600;font-size:15px;cursor:pointer;user-select:none;background:#fff}
+  .tmchip{display:inline-flex;align-items:center;gap:5px;border:2px solid #fca5a5;border-radius:10px;padding:0 10px;height:44px;font-weight:700;font-size:14px;cursor:pointer;user-select:none;background:#fff;white-space:nowrap}
   .tmchip input{display:none}
   .tmchip:has(input:checked){background:#dcfce7;border-color:var(--gruen);color:#166534}
   .tmchip:has(input:checked)::before{content:"✓";font-weight:800}
-  .asfrei{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-  .asfrei button{border:2px dashed #ea580c;background:#fff7ed;color:#9a3412;border-radius:10px;padding:10px 12px;font-size:15px;font-weight:600}
-  .astakt{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .astakt{display:flex;gap:8px;margin-top:10px;align-items:center}
+  .astakt .btn{height:44px;padding:0 14px;font-size:15px}
+  .astakt input{flex:1;min-width:0;height:44px;font-size:15px;padding:0 10px;border:2px solid var(--rand);border-radius:10px;font-family:inherit}
   .btn-as{background:#ea580c;color:#fff}
   .btn:disabled{opacity:.45}
-  .asfehl{font-size:14px;color:#9a3412;margin-top:8px}
+  .asfehl{font-size:13px;color:#9a3412;margin-top:6px}
+  .asend{font-size:14px;padding:7px 0;border-top:1px solid #e5e7eb;color:#374151}
+  .asend b{color:var(--text)}
+  .linkklein{background:none;border:none;color:#6b7280;font-size:13px;text-decoration:underline;padding:6px 0}
+  #asView h2{margin:14px 0 8px;font-size:14px}
   .zusfassung{display:none;font-size:15px;color:#4b5563;margin:-4px 0 10px}
   .zusfassung:not(:empty){display:block}
   .chip:has(input[type=radio]){justify-content:center;text-align:center}
@@ -1326,32 +1339,36 @@ function zeichneAS(e){
   const ae=document.activeElement; if(ae&&ae.dataset&&(ae.dataset.asd||ae.dataset.ast))return;   // nicht neu zeichnen, während getippt wird
   const zu=e.status==="abgeschlossen", l=asTrupps(e), gebunden=asGebunden(e), frei=asListe(e).filter(nr=>!gebunden.has(nr));
   $("asNeuBtn").style.display=zu?"none":"";
-  const karte=t=>{
-    const st=truppStatus(t), m=t.mitglieder||{}, ml=truppMitgl(t);
-    const titel=`<b>Trupp ${t.nr||"?"}</b>`+(st==="aktiv"?'<span class="badge lauf">IM EINSATZ</span>':st==="beendet"?'<span class="badge">beendet</span>':'<span class="badge">Vorbereitung</span>');
-    const auftrag=st==="vorb"&&!zu?`<label class="feld" style="margin-top:8px">Auftrag / Ort (optional)<input type="text" data-ast="${t.id}" value="${esc(t.auftrag||"")}" placeholder="z. B. Innenangriff 1. OG, Personensuche" autocomplete="off"></label>`:(t.auftrag?`<div class="astzeit" style="margin-top:4px">Auftrag: ${esc(t.auftrag)}</div>`:"");
-    if(st==="vorb"){
-      const zeilen=ml.map(nr=>`<div class="astm"><div class="n">${esc(asName(nr))}</div>${zu?"":`<button type="button" class="x" data-asrm="${t.id}|${nr}">×</button>`}
-        <div class="zeile2"><div class="druck ${+m[nr].druck>0?"":"fehlt"}"><input type="number" inputmode="numeric" min="0" max="400" placeholder="–" data-asd="${t.id}|${nr}" value="${m[nr].druck||""}" ${zu?"disabled":""}><span>bar</span></div>
-        <label class="tmchip"><input type="checkbox" data-astm="${t.id}|${nr}" ${m[nr].tm?"checked":""} ${zu?"disabled":""}>Totmannwarner eingesammelt</label></div></div>`).join("");
-      const platz=TRUPPGROESSE-ml.length;
-      const wahl=zu?"":platz>0?(frei.length?`<div class="astzeit" style="margin-top:10px">Noch ${platz} ${platz===1?"Mitglied":"Mitglieder"} wählen:</div><div class="asfrei">${frei.map(nr=>`<button type="button" data-asadd="${t.id}|${nr}">+ ${esc(asName(nr))}</button>`).join("")}</div>`
-        :`<div class="asfehl">Keine freien Atemschutzträger. Träger in der Mannschaftsliste über „Atemschutz“ auswählen (${platz} ${platz===1?"fehlt":"fehlen"} noch).</div>`):"";
-      const fehlt=[]; if(ml.length<TRUPPGROESSE)fehlt.push((TRUPPGROESSE-ml.length)+" Mitglied"+(TRUPPGROESSE-ml.length>1?"er":"")); 
-      const od=ml.filter(nr=>!(+m[nr].druck>0)).length, ot=ml.filter(nr=>!m[nr].tm).length; if(od)fehlt.push(od+"× Startdruck"); if(ot)fehlt.push(ot+"× Totmannwarner");
-      return `<div class="astrupp"><div class="astkopf">${titel}</div>${auftrag}${zeilen}${wahl}
-        ${zu?"":`<div class="astakt"><button type="button" class="btn btn-as" data-asstart="${t.id}" ${truppBereit(t)?"":"disabled"}>▶ Timer starten</button><button type="button" class="btn btn-grau" data-asdel="${t.id}">Trupp verwerfen</button></div>${fehlt.length?`<div class="asfehl">Fehlt noch: ${fehlt.join(", ")}</div>`:""}`}</div>`;
+  const kn=nr=>NAMEN[nr]?kurzName(NAMEN[nr]):asName(nr);
+  // laufender Trupp: kompakte Kachel, mehrere nebeneinander
+  const aktivKarte=t=>{ const m=t.mitglieder||{};
+    return `<div class="astrupp aktiv"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="astimer" data-timer="${t.start}">${dauerText(Date.now()-new Date(t.start))}</span></div>
+      <div class="astzeit">ab ${uhr(t.start)}${t.auftrag?" · "+esc(t.auftrag):""}</div>
+      <div class="astl">${truppMitgl(t).map(nr=>`<div><span>${esc(kn(nr))}</span><span>${m[nr].druck||"–"} bar</span></div>`).join("")}</div>
+      ${zu?"":`<button type="button" class="btn btn-rot" data-asende="${t.id}">■ Zurück</button>`}</div>`; };
+  // Trupp in Vorbereitung: Schritt 1 Mitglieder wählen, erst danach Schritt 2 Druck + Totmannwarner
+  const vorbKarte=t=>{ const m=t.mitglieder||{}, ml=truppMitgl(t), voll=ml.length>=TRUPPGROESSE;
+    if(!voll){
+      return `<div class="astrupp vorb"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="sub">Mitglieder wählen · ${ml.length}/${TRUPPGROESSE}</span></div>
+        ${zu?"":`<div class="aswahl">${ml.map(nr=>`<button type="button" class="drin" data-asrm="${t.id}|${nr}">✓ ${esc(kn(nr))}</button>`).join("")}${frei.map(nr=>`<button type="button" class="frei" data-asadd="${t.id}|${nr}">${esc(kn(nr))}</button>`).join("")}</div>
+        ${frei.length?"":`<div class="asfehl">Keine freien Atemschutzträger mehr – im Einsatz bei der Mannschaft über „Atemschutz“ auswählen.</div>`}
+        <button type="button" class="linkklein" data-asdel="${t.id}">Trupp verwerfen</button>`}</div>`;
     }
-    const mzeilen=ml.map(nr=>`<div class="astm"><div class="n">${esc(asName(nr))}<small>Startdruck ${m[nr].druck||"–"} bar</small></div></div>`).join("");
-    if(st==="aktiv") return `<div class="astrupp aktiv"><div class="astkopf">${titel}</div><div class="astimer" data-timer="${t.start}">${dauerText(Date.now()-new Date(t.start))}</div><div class="astzeit">Start ${uhr(t.start)} Uhr</div>${auftrag}${mzeilen}
-      ${zu?"":`<div class="astakt"><button type="button" class="btn btn-rot" data-asende="${t.id}">■ Trupp zurück – Timer stoppen</button></div>`}</div>`;
-    return `<div class="astrupp beendet"><div class="astkopf">${titel}<span class="astzeit">${uhr(t.start)}–${uhr(t.ende)} Uhr · ${dauerText(new Date(t.ende)-new Date(t.start))} min</span></div>${auftrag}${mzeilen}</div>`;
-  };
-  const gruppe=(titel,liste)=>liste.length?`<h2>${titel} (${liste.length})</h2>`+liste.map(karte).join(""):"";
+    const od=ml.filter(nr=>!(+m[nr].druck>0)).length, ot=ml.filter(nr=>!m[nr].tm).length, fehlt=[]; if(od)fehlt.push(od+"× Startdruck"); if(ot)fehlt.push(ot+"× Totmannwarner");
+    return `<div class="astrupp vorb"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="sub">Startdruck + Totmannwarner</span></div>
+      ${ml.map(nr=>`<div class="astm"><div class="n">${esc(kn(nr))}</div>
+        <div class="druck ${+m[nr].druck>0?"":"fehlt"}"><input type="number" inputmode="numeric" min="0" max="400" placeholder="–" data-asd="${t.id}|${nr}" value="${m[nr].druck||""}" ${zu?"disabled":""}><span>bar</span></div>
+        <label class="tmchip"><input type="checkbox" data-astm="${t.id}|${nr}" ${m[nr].tm?"checked":""} ${zu?"disabled":""}>Totmann</label>
+        ${zu?"<span></span>":`<button type="button" class="x" data-asrm="${t.id}|${nr}">×</button>`}</div>`).join("")}
+      ${zu?"":`<div class="astakt"><input type="text" data-ast="${t.id}" value="${esc(t.auftrag||"")}" placeholder="Auftrag (optional)" autocomplete="off"><button type="button" class="btn btn-as" data-asstart="${t.id}" ${truppBereit(t)?"":"disabled"}>▶ Start</button></div>
+      ${fehlt.length?`<div class="asfehl">Fehlt noch: ${fehlt.join(", ")}</div>`:""}<button type="button" class="linkklein" data-asdel="${t.id}">Trupp verwerfen</button>`}</div>`; };
+  const endZeile=t=>{ const m=t.mitglieder||{}; return `<div class="asend"><b>Trupp ${t.nr||"?"}</b> · ${uhr(t.start)}–${uhr(t.ende)} (${dauerText(new Date(t.ende)-new Date(t.start))}) · ${truppMitgl(t).map(nr=>esc(kn(nr))+" "+(m[nr].druck||"–")).join(", ")}${t.auftrag?" · "+esc(t.auftrag):""}</div>`; };
   const akt=l.filter(t=>truppStatus(t)==="aktiv"), vor=l.filter(t=>truppStatus(t)==="vorb"), end=l.filter(t=>truppStatus(t)==="beendet").reverse();
   $("asInhalt").innerHTML=(l.length?"":`<div class="leer">Noch kein Trupp angelegt.<br>${asListe(e).length?"Mit „+ Trupp“ unten einen Trupp zusammenstellen.":"Zuerst im Einsatz bei der Mannschaft über „Atemschutz“ die Atemschutzträger auswählen."}</div>`)
-    +gruppe("Im Einsatz",akt)+gruppe("In Vorbereitung",vor)+gruppe("Beendet",end)
-    +`<div class="hinweis" style="margin-top:14px">Verfügbare Atemschutzträger: ${frei.length?esc(frei.map(asName).join(", ")):"–"}</div>`;
+    +(akt.length?`<h2>Im Einsatz (${akt.length})</h2><div class="asgrid">${akt.map(aktivKarte).join("")}</div>`:"")
+    +(vor.length?`<h2>In Vorbereitung (${vor.length})</h2>${vor.map(vorbKarte).join("")}`:"")
+    +(end.length?`<h2>Beendet (${end.length})</h2>${end.map(endZeile).join("")}`:"")
+    +`<div class="hinweis" style="margin-top:12px">Frei: ${frei.length?esc(frei.map(kn).join(", ")):"–"}</div>`;
 }
 setInterval(()=>{ document.querySelectorAll(".astimer[data-timer]").forEach(el=>{ el.textContent=dauerText(Date.now()-new Date(el.dataset.timer)); }); },1000);
 function asTruppNeu(){
