@@ -296,6 +296,11 @@
   .neuff input{flex:1;font-size:18px;padding:12px;border:2px solid var(--rand);border-radius:10px;min-width:0}
   .zusammen{font-size:15px;color:#4b5563;margin-top:8px}
   .suche{width:100%;font-size:18px;padding:12px;border:2px solid var(--rand);border-radius:10px;margin-bottom:10px}
+  .suche:focus{outline:none;border-color:var(--rot)}
+  .suchzeile{display:flex;gap:8px;align-items:flex-start}
+  .suchzeile .suche{flex:1;min-width:0}
+  .sortbtn{flex:none;height:50px;padding:0 12px;border:2px solid var(--rand);border-radius:10px;background:#fff;font:inherit;font-size:14px;font-weight:700;color:#374151;white-space:nowrap}
+  .sortbtn.an{background:var(--rot);border-color:var(--rot);color:#fff}
   .leiste{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:2px solid var(--rand);padding:12px calc(24px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));display:flex;gap:10px;align-items:center;box-shadow:0 -4px 16px rgba(0,0,0,.08);flex-wrap:wrap}
   .leiste .anz{font-weight:700;font-size:17px;flex:1}
   .leiste{flex-wrap:nowrap!important}
@@ -407,7 +412,11 @@
         <div class="chips" id="zuteilChips"></div>
         <div class="zh" id="zuteilHinweis" style="display:none"></div>
       </div>
-      <input class="suche" id="suche" type="search" placeholder="Name suchen …" autocomplete="off">
+      <div class="suchzeile">
+        <input class="suche" id="suche" type="search" placeholder="Name oder Nr. tippen …" autocomplete="off" enterkeyhint="done">
+        <button type="button" class="sortbtn" id="sortBtn" onclick="sortWechseln()">A–Z</button>
+      </div>
+      <div class="hinweis" id="suchHinweis" style="display:none;margin:-4px 0 8px"></div>
       <div class="personen" id="mannschaft"></div>
       <h3 class="klapp sub" data-ziel="reserve">Reserve <span id="anzRes" style="font-weight:400;color:#6b7280"></span></h3>
       <div class="zusfassung" id="zf_reserve" style="margin-left:0"></div>
@@ -647,6 +656,7 @@ function mitgliederSetzen(liste){
   Object.keys(NAMEN).forEach(k=>delete NAMEN[k]); MANNSCHAFT.concat(RESERVE).forEach(([n,name])=>NAMEN[n]=name);
   $("mannschaft").innerHTML=MANNSCHAFT.map(p=>personHtml(p,"m")).join("");
   $("reserve").innerHTML=RESERVE.map(p=>personHtml(p,"r")).join("");
+  if(typeof sortAnwenden==="function")sortAnwenden();
 }
 
 let ersteFuellung=true;
@@ -892,7 +902,7 @@ function oeffne(id){
   $("einsatzView").style.display="";$("leisteEinsatz").style.display="";
   asOffen=false; $("asView").style.display="none"; $("leisteAS").style.display="none";
   $("suche").value="";document.querySelectorAll(".person").forEach(p=>p.style.display="");
-  ersteFuellung=true; zuteilFz=null; $("scroller").scrollTop=0;
+  ersteFuellung=true; zuteilFz=null; $("scroller").scrollTop=0; sortAnwenden();
   aktuell=lokalerEinsatz(id); if(aktuell)fuelleFormular(aktuell);  // sofort aus dem Zwischenspeicher, Server-Stand folgt
   pollen();
 }
@@ -1047,7 +1057,7 @@ document.addEventListener("change",ev=>{
       if((aktuell.as||{})[i.dataset.nr])pp.as={[i.dataset.nr]:null};
       const frei=rollenFrei(aktuell,i.dataset.nr); if(Object.keys(frei).length)pp.fzRollen=frei;
     }
-    schreibe(pp);
+    schreibe(pp); sucheLeeren();
     const kopie={...aktuell,[i.dataset.gruppe]:{...(aktuell[i.dataset.gruppe]||{}),[i.dataset.nr]:i.checked}};
     zaehlen(kopie);
   }
@@ -1378,6 +1388,7 @@ document.addEventListener("click",ev=>{
   zuteilFz=zuteilFz===b.dataset.zfz?null:b.dataset.zfz; zeichneZuteil(aktuell);
 });
 function zuteilTipp(p){ // Tipp auf eine Person bei gewähltem Fahrzeug
+  setTimeout(sucheLeeren,0);
   const inp=p.querySelector("input"), nr=inp.dataset.nr, g=inp.dataset.gruppe, e=aktuell;
   if(zuteilFz===AS){ schreibe((e.as||{})[nr]&&inp.checked?{as:{[nr]:null}}:{[g]:{[nr]:true},as:{[nr]:true}}); return; }
   const patch={}, frei=rollenFrei(e,nr);
@@ -1692,11 +1703,39 @@ document.addEventListener("click",ev=>{
   if(zuteilFz&&aktuell&&aktuell.status!=="abgeschlossen"){ ev.preventDefault();ev.stopPropagation(); zuteilTipp(p); }
 },true);
 
-$("suche").addEventListener("input",e=>{
-  const q=e.target.value.toLowerCase().trim();
-  document.querySelectorAll("#mannschaft .person, #reserve .person").forEach(p=>p.style.display=(!q||p.dataset.name.includes(q))?"":"none");
+// ---------- Mitglieder schnell finden: Suchfilter + Sortierung „Häufigste zuerst“ ----------
+function sucheAnwenden(){
+  const q=$("suche").value.toLowerCase().trim(), teile=q.split(/\s+/).filter(Boolean);
+  let n=0;
+  document.querySelectorAll("#mannschaft .person, #reserve .person").forEach(p=>{
+    const nr=p.querySelector("input").dataset.nr, name=p.dataset.name, woerter=name.split(/[\s-]+/);
+    // jedes getippte Wort muss am Anfang eines Namensteils stehen (oder die Nummer treffen)
+    const initialen=woerter.map(w=>w[0]||"").join("");   // „af“ findet AICHINGER Fabian
+    const passt=!teile.length||teile.every(t=>woerter.some(w=>w.startsWith(t))||nr.startsWith(t))||(teile.length===1&&q.length>=2&&initialen.startsWith(q));
+    p.style.display=passt?"":"none"; if(passt)n++;
+  });
   if(q){sektion("secMann",true);sektion("reserve",true)}
+  const h=$("suchHinweis"); h.style.display=q?"":"none";
+  if(q)h.textContent=n===0?"Kein Treffer":n===1?"1 Treffer – Enter oder Antippen wählt aus":n+" Treffer";
+}
+$("suche").addEventListener("input",sucheAnwenden);
+$("suche").addEventListener("keydown",ev=>{   // Enter wählt den einzigen bzw. ersten Treffer
+  if(ev.key!=="Enter")return; ev.preventDefault();
+  const treffer=[...document.querySelectorAll("#mannschaft .person, #reserve .person")].filter(p=>p.style.display!=="none"&&getComputedStyle(p).display!=="none");
+  if($("suche").value.trim()&&treffer.length)treffer.sort((a,b)=>(+a.style.order||0)-(+b.style.order||0))[0].querySelector(".name").click();
 });
+function sucheLeeren(){ // nach einer Auswahl: Filter weg, Cursor bleibt im Suchfeld für den nächsten Namen
+  if(!$("suche").value)return;
+  $("suche").value=""; sucheAnwenden(); $("suche").focus();
+}
+let sortHaeufig=false; try{ sortHaeufig=localStorage.getItem("ffa-sort")==="h"; }catch(e){}
+function sortAnwenden(){
+  const zahl={};
+  if(sortHaeufig) letzteListe.forEach(e=>["m","r"].forEach(g=>Object.keys(e[g]||{}).forEach(nr=>{ if(e[g][nr])zahl[nr]=(zahl[nr]||0)+1; })));
+  document.querySelectorAll("#mannschaft .person, #reserve .person").forEach(p=>{ p.style.order=sortHaeufig?-(zahl[p.querySelector("input").dataset.nr]||0):""; });
+  $("sortBtn").textContent=sortHaeufig?"Häufigste":"A–Z"; $("sortBtn").classList.toggle("an",sortHaeufig);
+}
+function sortWechseln(){ sortHaeufig=!sortHaeufig; try{localStorage.setItem("ffa-sort",sortHaeufig?"h":"a")}catch(e){} sortAnwenden(); }
 
 function statusWechseln(){
   if(!aktuell)return;
