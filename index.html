@@ -294,6 +294,23 @@
   .fftab input:focus{outline:none;border-color:var(--rot)}
   .fftab input:placeholder-shown{font-weight:400;color:#9ca3af}
   .fftab tfoot td{font-weight:700;border-bottom:none;color:#374151}
+  .fftab tr.hatdet td{border-bottom:none;padding-bottom:2px}
+  .fftab td.zahl{font-size:20px;font-weight:700}
+  .fftab tr.ffdet td{padding:2px 6px 10px;font-weight:400}
+  .fffz{display:flex;flex-wrap:wrap;gap:6px}
+  .fffz button{border:2px solid var(--rand);background:#fff;border-radius:10px;padding:7px 10px;font-size:15px;font-weight:700;color:var(--text);font-family:inherit}
+  .fffz button span{font-weight:600;color:#6b7280;margin-left:4px}
+  .fffz button.neu{border-style:dashed;color:#6b7280;font-weight:600}
+  .wahl{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:6px;margin:6px 0 10px}
+  .wahl.eng{grid-template-columns:repeat(9,1fr)}
+  .wahl button{border:2px solid var(--rand);background:#fff;border-radius:10px;padding:10px 2px;font-size:16px;font-weight:700;color:var(--text);font-family:inherit}
+  .wahl button.an{background:var(--rot);border-color:var(--rot);color:#fff}
+  .ffbes{display:flex;align-items:center;gap:10px;margin:4px 0 12px}
+  .ffbes .gross{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
+  .ffbes .sub{color:#6b7280;font-size:15px}
+  #ffFzTyp{width:100%;font-size:17px;padding:11px 12px;border:2px solid var(--rand);border-radius:10px;font-family:inherit;margin-bottom:10px}
+  .ffakt{display:flex;gap:10px;justify-content:flex-end}
+  .ffakt .btn{height:48px;padding:0 18px;font-size:16px}
   .neuff{display:flex;gap:8px;margin-top:10px}
   .neuff input{flex:1;font-size:18px;padding:12px;border:2px solid var(--rand);border-radius:10px;min-width:0}
   .zusammen{font-size:15px;color:#4b5563;margin-top:8px}
@@ -625,6 +642,9 @@
   </div>
 </div>
 
+<div id="ffFzDlg" class="dialog sheet" onclick="if(event.target===this)ffFzZu()">
+  <div class="box" id="ffFzBox"></div>
+</div>
 <div id="asTruppDlg" class="dialog sheet" onclick="if(event.target===this)asDlgZu()">
   <div class="box" id="asTruppBox"></div>
 </div>
@@ -1120,7 +1140,7 @@ function zusammenfassung(ziel,e){
     case "secFz": return (e.fz||[]).join(", ");
     case "secMann": { const m=namenListe(e.m,MANNSCHAFT).map(x=>kurzName(x.replace(/^\d+\s+/,""))); return m.length?(e.el&&NAMEN[e.el]?"EL "+kurzName(NAMEN[e.el])+" · ":"")+liste(m,5):""; }
     case "reserve": { const r=namenListe(e.r,RESERVE).map(x=>kurzName(x.replace(/^\d+\s+/,""))); return liste(r,5); }
-    case "secFF": { const ffs=e.ffs||{},akt=ffListe(e).filter(n=>ffs[n]&&ffs[n].aktiv); return liste(akt.map(n=>n+((+ffs[n].fz||+ffs[n].mann)?" ("+(ffs[n].fz||0)+" Fzg/"+(ffs[n].mann||0)+")":"")),3); }
+    case "secFF": { const ffs=e.ffs||{},akt=ffListe(e).filter(n=>ffs[n]&&ffs[n].aktiv); return liste(akt.map(n=>n+(ffFzText(ffs[n])?" ("+ffFzText(ffs[n])+")":(+ffs[n].fz||+ffs[n].mann)?" ("+(ffs[n].fz||0)+" Fzg/"+(ffs[n].mann||0)+")":"")),3); }
     case "secKr": { const k=e.kraefte||{};const z=[];RETTUNG.forEach(([key])=>{const v=+tief(k,"rettung."+key)||0;if(v)z.push(v+"× "+key)});if(+k.polizei)z.push("Polizei "+k.polizei);Object.keys(k.stellen||{}).filter(x=>k.stellen[x]).forEach(x=>z.push(STELLEN_KURZ[x]||x));if(k.sonst)z.push(k.sonst);return liste(z,6); }
     case "secUf": return liste(ufListe(e).map(f=>f.kennzeichen||f.marke||"Fahrzeug"),4);
     case "secPers": return liste(persListe(e).map(f=>(f.name||"Person")+(f.rolle?" ("+f.rolle.replace(/\/.*$/,"")+")":"")),3);
@@ -1183,13 +1203,77 @@ function zeichneFF(e){
   const fz=akt.reduce((a,n)=>a+(+ffs[n].fz||0),0), mann=akt.reduce((a,n)=>a+(+ffs[n].mann||0),0);
   const aktivEl=document.activeElement, fokusKey=aktivEl&&aktivEl.dataset&&aktivEl.dataset.ffnum;
   if(!fokusKey){
+    const zu=e.status==="abgeschlossen";
     $("ffZeilen").innerHTML=akt.length?`<table class="fftab"><thead><tr><th>Feuerwehr</th><th class="z">Fahrzeuge</th><th class="z">Mannschaft</th></tr></thead><tbody>`+
-      akt.map(n=>`<tr><td>${esc(n)}</td><td class="z"><input type="number" inputmode="numeric" min="0" placeholder="–" data-ffnum="${esc(n)}|fz" value="${ffs[n].fz||""}"></td><td class="z"><input type="number" inputmode="numeric" min="0" placeholder="–" data-ffnum="${esc(n)}|mann" value="${ffs[n].mann||""}"></td></tr>`).join("")+
+      akt.map(n=>{ const l=ffFzListe(ffs[n]), det=l.length>0;
+        return `<tr class="hatdet"><td>${esc(n)}</td>`+(det
+          ?`<td class="z zahl">${ffs[n].fz||0}</td><td class="z zahl">${ffs[n].mann||0}</td>`
+          :`<td class="z"><input type="number" inputmode="numeric" min="0" placeholder="–" data-ffnum="${esc(n)}|fz" value="${ffs[n].fz||""}"></td><td class="z"><input type="number" inputmode="numeric" min="0" placeholder="–" data-ffnum="${esc(n)}|mann" value="${ffs[n].mann||""}"></td>`)+`</tr>
+        <tr class="ffdet"><td colspan="3"><div class="fffz">${l.map(f=>`<button type="button" data-fffz="${esc(n)}|${f.id}">${esc(f.typ)}<span>${esc(f.bes)}</span></button>`).join("")}${zu?"":`<button type="button" class="neu" data-fffz="${esc(n)}|">+ Fahrzeug</button>`}</div></td></tr>`; }).join("")+
       `</tbody><tfoot><tr><td>Gesamt (${akt.length} FF)</td><td class="z">${fz}</td><td class="z">${mann}</td></tr></tfoot></table>`:"";
   }
   $("anzFF").textContent=akt.length?`(${akt.length})`:"";
   $("ffSumme").textContent="";
 }
+// Einzelne Fahrzeuge einer Fremdfeuerwehr: ffs[n].fzg{id:{typ,bes:"1:8",t}} – Summen fz/mann werden daraus berechnet
+const FF_FZTYPEN=["HLF1","HLF2","HLF3","TLF","RLF","LF","KLF","KDO","MTF","VF","LAST","WLF","DLK"];
+function ffFzListe(f){ return Object.entries((f&&f.fzg)||{}).filter(([,v])=>v).map(([id,v])=>({id,typ:v.typ||"?",bes:v.bes||"",t:v.t||""})).sort((a,b)=>a.t<b.t?-1:a.t>b.t?1:0); }
+function besMann(bes){ return String(bes||"").split(":").reduce((a,x)=>a+(parseInt(x)||0),0); }
+function ffFzText(f){ return ffFzListe(f).map(x=>x.typ+(x.bes?" "+x.bes:"")).join(", "); }
+let ffDlg=null;
+function ffFzZu(){ ffDlg=null; $("ffFzDlg").style.display="none"; }
+function ffFzAuf(n,id){
+  const v=id&&(((aktuell.ffs||{})[n]||{}).fzg||{})[id];
+  const [a,b]=v?String(v.bes||"1:0").split(":").map(x=>parseInt(x)||0):[1,null];
+  ffDlg={n,id:id||null,typ:v?v.typ:"",kdt:a,mann:b};
+  ffFzZeichnen(); $("ffFzDlg").style.display="block";
+}
+function ffFzZeichnen(){
+  const d=ffDlg; if(!d)return;
+  const frei=d.typ&&!FF_FZTYPEN.includes(d.typ), ok=d.typ&&d.mann!=null;
+  $("ffFzBox").innerHTML=`<div class="shkopf"><div><div class="shtitel">${d.id?"Fahrzeug ändern":"Fahrzeug eintragen"}</div><div class="shsub">FF ${esc(d.n)}</div></div>
+      <button type="button" class="shzu" onclick="ffFzZu()">×</button></div>
+    <div class="shgruppe" style="position:static">Taktische Bezeichnung</div>
+    <div class="wahl">${FF_FZTYPEN.map(x=>`<button type="button" data-fftyp="${x}" class="${d.typ===x?"an":""}">${x}</button>`).join("")}</div>
+    <input id="ffFzTyp" type="text" placeholder="andere Bezeichnung …" autocomplete="off" autocapitalize="characters" value="${frei?esc(d.typ):""}">
+    <div class="shgruppe" style="position:static">Besatzung</div>
+    <div class="ffbes"><div class="wahl" style="grid-template-columns:repeat(2,52px);margin:0">${[1,0].map(x=>`<button type="button" data-ffkdt="${x}" class="${d.kdt===x?"an":""}">${x}</button>`).join("")}</div>
+      <span class="gross">${d.kdt}:${d.mann==null?"–":d.mann}</span><span class="sub">${d.mann==null?"Mannschaft wählen":"= "+(d.kdt+d.mann)+" Mann"}</span></div>
+    <div class="wahl eng">${[0,1,2,3,4,5,6,7,8].map(x=>`<button type="button" data-ffmann="${x}" class="${d.mann===x?"an":""}">${x}</button>`).join("")}</div>
+    <div class="ffakt">${d.id?`<button type="button" class="btn btn-grau" id="ffFzWeg">Entfernen</button>`:""}<button type="button" class="btn btn-rot" id="ffFzOk" ${ok?"":"disabled style=\"opacity:.45\""}>${d.id?"Speichern":"Eintragen"}</button></div>`;
+}
+function ffFzSpeichern(weg){
+  const d=ffDlg; if(!d||!aktuell||aktuell.status==="abgeschlossen")return;
+  const alt=(aktuell.ffs||{})[d.n]||{}, fzg=Object.assign({},alt.fzg||{}), id=d.id||"z"+Date.now().toString(36), tbId="a:ffs:"+d.n+":f:"+id;
+  const patch={ffs:{[d.n]:{fzg:{}}},tagebuch:{}};
+  if(weg){ delete fzg[id]; patch.ffs[d.n].fzg[id]=null; patch.tagebuch[tbId]=null; }
+  else{
+    if(!d.typ||d.mann==null)return;
+    const jetzt=new Date().toISOString(), bes=d.kdt+":"+d.mann, v={typ:d.typ,bes,t:(fzg[id]&&fzg[id].t)||jetzt};
+    fzg[id]=v; patch.ffs[d.n].fzg[id]=v;
+    patch.tagebuch[tbId]={t:v.t,text:"FF "+d.n+": "+d.typ+" ("+bes+") eingetroffen",auto:true};
+  }
+  const l=Object.values(fzg).filter(Boolean), fz=l.length, mann=l.reduce((a,x)=>a+besMann(x.bes),0);
+  Object.assign(patch.ffs[d.n],{fz,mann,gemeldet:fz||mann?fz+"|"+mann:""});
+  schreibe(patch); ffFzZu();
+}
+document.addEventListener("click",ev=>{
+  const o=ev.target.closest("[data-fffz]");
+  if(o&&aktuell){ const i=o.dataset.fffz.lastIndexOf("|"), id=o.dataset.fffz.slice(i+1); if(aktuell.status==="abgeschlossen")return; ffFzAuf(o.dataset.fffz.slice(0,i),id); return; }
+  if(!ffDlg||!ev.target.closest("#ffFzDlg"))return;
+  const b=ev.target.closest("button"); if(!b)return;
+  if(b.dataset.fftyp){ ffDlg.typ=b.dataset.fftyp; ffFzZeichnen(); }
+  else if(b.dataset.ffkdt){ ffDlg.kdt=+b.dataset.ffkdt; ffFzZeichnen(); }
+  else if(b.dataset.ffmann){ ffDlg.mann=+b.dataset.ffmann; ffFzZeichnen(); }
+  else if(b.id==="ffFzOk")ffFzSpeichern(false);
+  else if(b.id==="ffFzWeg")ffFzSpeichern(true);
+});
+document.addEventListener("input",ev=>{
+  if(ev.target.id!=="ffFzTyp"||!ffDlg)return;
+  ffDlg.typ=ev.target.value.trim().toUpperCase().replace(/[.\/|]/g,"-");
+  document.querySelectorAll("#ffFzBox [data-fftyp]").forEach(x=>x.classList.toggle("an",x.dataset.fftyp===ffDlg.typ));
+  const ok=$("ffFzOk"), fertig=ffDlg.typ&&ffDlg.mann!=null; ok.disabled=!fertig; ok.style.opacity=fertig?"":".45";
+});
 function ffHinzu(){
   const n=$("ffNeu").value.trim().replace(/[.\/]/g,"-"); if(!n||!aktuell)return;
   $("ffNeu").value="";
@@ -1830,7 +1914,7 @@ function textErzeugen(e){
   t+="MANNSCHAFT ("+m.length+"):\n"+(m.join("\n")||"–")+"\n\nRESERVE ("+r.length+"):\n"+(r.join("\n")||"–")+"\n\n";
   t+="Gesamt: "+(m.length+r.length)+" Mitglieder\n";
   const ffs=e.ffs||{}, akt=ffListe(e).filter(n=>ffs[n]&&ffs[n].aktiv);
-  if(akt.length){ t+="\nWEITERE FEUERWEHREN ("+akt.length+"):\n"+akt.map(n=>n+" – "+(ffs[n].fz||0)+" Fzg., "+(ffs[n].mann||0)+" Mann").join("\n")+"\n"; }
+  if(akt.length){ t+="\nWEITERE FEUERWEHREN ("+akt.length+"):\n"+akt.map(n=>n+" – "+(ffs[n].fz||0)+" Fzg., "+(ffs[n].mann||0)+" Mann"+(ffFzText(ffs[n])?" ("+ffFzText(ffs[n])+")":"")).join("\n")+"\n"; }
   const k=e.kraefte||{}; const kz=[];
   RETTUNG.forEach(([key,l])=>{const v=+tief(k,"rettung."+key)||0; if(v)kz.push(v+"× "+key+" ("+l+")")});
   if(+k.polizei)kz.push("Polizei: "+k.polizei+" Streife"+(k.polizei>1?"n":""));
@@ -1895,7 +1979,7 @@ async function pdfErzeugen(btn,einsatz){
       }
     }
     const ffs=e.ffs||{},akt=ffListe(e).filter(n=>ffs[n]&&ffs[n].aktiv);
-    if(akt.length){H("Weitere Feuerwehren ("+akt.length+")");akt.forEach(n=>KV(n,(ffs[n].fz||0)+" Fahrzeuge, "+(ffs[n].mann||0)+" Mann"));
+    if(akt.length){H("Weitere Feuerwehren ("+akt.length+")");akt.forEach(n=>KV(n,(ffs[n].fz||0)+" Fahrzeuge, "+(ffs[n].mann||0)+" Mann"+(ffFzText(ffs[n])?" – "+ffFzText(ffs[n]):"")));
       KV("Gesamt",akt.reduce((a,n)=>a+(+ffs[n].fz||0),0)+" Fahrzeuge, "+akt.reduce((a,n)=>a+(+ffs[n].mann||0),0)+" Mann")}
     const k=e.kraefte||{};const kz=[];
     RETTUNG.forEach(([key,l])=>{const v=+tief(k,"rettung."+key)||0;if(v)kz.push(v+"× "+key+" ("+l+")")});
