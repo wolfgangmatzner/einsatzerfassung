@@ -184,8 +184,10 @@
   .asfehl{font-size:13px;color:#9a3412;margin-top:6px}
   .dialog.sheet{padding:0;display:none;align-items:flex-end;justify-content:center}
   .dialog.sheet[style*="block"]{display:flex!important}
-  .dialog.sheet .box{margin:0;width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));max-height:88vh;display:flex;flex-direction:column}
-  @media(min-width:700px){.dialog.sheet{align-items:center}.dialog.sheet .box{border-radius:18px}}
+  .dialog.sheet .box{margin:0 12px calc(12px + env(safe-area-inset-bottom));width:calc(100% - 24px);max-width:440px;border-radius:18px;padding:14px;max-height:84vh;display:flex;flex-direction:column;overflow-x:hidden}
+  .dialog.sheet .box>*{min-width:0;max-width:100%}
+  .shkopf>div:first-child{min-width:0}
+  @media(min-width:700px){.dialog.sheet{align-items:center}}
   .shkopf{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
   .shtitel{font-weight:800;font-size:19px}
   .shsub{font-size:13px;color:#6b7280;margin-top:2px}
@@ -197,6 +199,10 @@
   .pwahl .name{font-weight:600;font-size:17px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .pwahl .nr{font-size:13px;color:#9ca3af;font-variant-numeric:tabular-nums}
   .pwahl .plus{width:32px;height:32px;border-radius:50%;background:#ea580c;color:#fff;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+  .gastform{display:grid;grid-template-columns:1fr 1fr auto;gap:8px}
+  .gastform input{min-width:0;height:46px;font-size:16px;padding:0 10px;border:2px solid var(--rand);border-radius:10px;font-family:inherit}
+  .gastform input:focus{outline:none;border-color:#ea580c}
+  .gastform .btn{height:46px;width:46px;padding:0;font-size:22px}
   .fmeld{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #eef0f3;font-size:16px;align-items:baseline}
   .fmeld .z{font-family:ui-monospace,monospace;font-size:14px;color:#9a3412;font-weight:700;flex:none;font-variant-numeric:tabular-nums}
   .fmeld .t{flex:1;min-width:0;word-break:break-word}
@@ -575,6 +581,9 @@
     <div class="shkopf"><div><div class="shtitel" id="asMehrTitel"></div><div class="shsub">Wird automatisch als anwesend und Atemschutzträger eingetragen</div></div><button type="button" class="shzu" onclick="document.getElementById('asMehr').style.display='none'">×</button></div>
     <input class="suche" id="asMehrSuche" type="search" placeholder="Name suchen …" autocomplete="off" style="margin:10px 0 4px">
     <div id="asMehrListe" class="shliste"></div>
+    <div class="shgruppe" style="position:static;padding-top:10px">Mitglied einer anderen Feuerwehr</div>
+    <div class="gastform"><input id="gastName" type="text" placeholder="Name" autocomplete="off"><input id="gastFF" type="text" placeholder="Feuerwehr" autocomplete="off" list="ffVorschlag"><button type="button" class="btn btn-as" id="gastOk">+</button></div>
+    <datalist id="ffVorschlag"></datalist>
   </div>
 </div>
 
@@ -1379,7 +1388,10 @@ const nennVon=x=>+(x&&x.geraet)===200?200:300;
 const pad2=n=>String(n).padStart(2,"0");
 function dauerText(ms){ ms=Math.max(0,ms); const sek=Math.floor(ms/1000), h=Math.floor(sek/3600), m=Math.floor(sek%3600/60), s2=sek%60; return (h?h+":"+pad2(m):m)+":"+pad2(s2); }
 const uhr=iso=>{ const d=new Date(iso); return pad2(d.getHours())+":"+pad2(d.getMinutes()); };
-const asName=nr=>NAMEN[nr]||("Nr. "+nr);
+// Fremde Atemschutzträger (andere Feuerwehren): gaeste{id:{name,ff}}, IDs beginnen mit "g"
+const gast=nr=>(aktuell&&(aktuell.gaeste||{})[nr])||null;
+const asName=nr=>NAMEN[nr]||(gast(nr)?gast(nr).name+(gast(nr).ff?" (FF "+gast(nr).ff+")":""):("Nr. "+nr));
+function gaesteFrei(e,gebunden){ const g=e.gaeste||{}; return Object.keys(g).filter(k=>g[k]&&!gebunden.has(k)); }
 function zeigeAS(an){
   if(!aktuell)return;
   asOffen=!!an; asDlgZu();
@@ -1397,9 +1409,9 @@ function zeichneAS(e){
   $("kopf").innerHTML='Atemschutzüberwachung<small>'+esc([e.einsatz||kurz(e.art)||wort(e),ortText(e)].filter(Boolean).join(" · "))+'</small>';
   const ae=document.activeElement; if(ae&&ae.dataset&&(ae.dataset.asd||ae.dataset.ast))return;   // nicht neu zeichnen, während getippt wird
   if(ae&&ae.id==="funkText"){ asDlgZeichnen(true); return; }
-  const zu=e.status==="abgeschlossen", l=asTrupps(e), gebunden=asGebunden(e), frei=asListe(e).filter(nr=>!gebunden.has(nr));
+  const zu=e.status==="abgeschlossen", l=asTrupps(e), gebunden=asGebunden(e), frei=asListe(e).filter(nr=>!gebunden.has(nr)).concat(gaesteFrei(e,gebunden));
   $("asNeuBtn").style.display=zu?"none":"";
-  const kn=nr=>NAMEN[nr]?kurzName(NAMEN[nr]):asName(nr);
+  const kn=nr=>NAMEN[nr]?kurzName(NAMEN[nr]):gast(nr)?gast(nr).name+(gast(nr).ff?" · "+gast(nr).ff:""):asName(nr);
   // laufender Trupp: kompakte Kachel, mehrere nebeneinander
   const aktivKarte=t=>{ const m=t.mitglieder||{};
     const fm=funkListe(t), lm=fm[fm.length-1];
@@ -1486,6 +1498,18 @@ function asMehrZeichnen(){
   $("asMehrListe").innerHTML=(grp("Anwesend, noch kein Atemschutz",da)+grp("Noch nicht anwesend",weg)+grp("Reserve",res))||'<div class="leer">Kein passendes Mitglied</div>';
 }
 $("asMehrSuche").addEventListener("input",asMehrZeichnen);
+$("ffVorschlag").innerHTML=FEUERWEHREN.map(f=>`<option value="${f}">`).join("");
+function gastAnlegen(){
+  const name=$("gastName").value.trim(), ff=$("gastFF").value.trim(), e=aktuell, t=e&&(e.asTrupps||{})[asMehrTid];
+  if(!name){ $("gastName").focus(); return; }
+  if(!t||e.status==="abgeschlossen"||truppMitgl(t).length>=TRUPPGROESSE)return;
+  const gid="g"+Date.now().toString(36), pos=truppMitgl(t).reduce((mx,n)=>Math.max(mx,t.mitglieder[n].pos||0),0)+1;
+  schreibe({gaeste:{[gid]:{name,ff}},asTrupps:{[asMehrTid]:{mitglieder:{[gid]:{pos,druck:"",tm:false}}}}});
+  $("gastName").value="";   // Feuerwehr bleibt stehen – meist kommen mehrere von derselben
+  asMehrZeichnen(); if($("asMehr").style.display!=="none")$("gastName").focus();
+}
+$("gastOk").addEventListener("click",gastAnlegen);
+["gastName","gastFF"].forEach(id=>$(id).addEventListener("keydown",ev=>{ if(ev.key==="Enter"){ ev.preventDefault(); gastAnlegen(); } }));
 document.addEventListener("click",ev=>{
   if(!aktuell||aktuell.status==="abgeschlossen")return;
   const o=ev.target.closest("[data-asmehr]");
