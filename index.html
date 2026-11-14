@@ -148,6 +148,7 @@
   .person.ist-el{border-color:var(--rot);background:#fee2e2}
   .person.ist-el .el{display:inline-block}
   .person.ist-el:has(input:checked){background:#fee2e2}
+  .gz{font-weight:400;color:#6b7280}
   h2.klapp{cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px}
   h3.klapp{cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;font-size:15px;margin:18px 0 6px;text-transform:uppercase;letter-spacing:.5px;color:#4b5563;border-bottom:1px solid var(--rand);padding-bottom:4px}
   h3.klapp::after{content:"▸";margin-left:auto;transition:transform .15s}
@@ -221,9 +222,11 @@
 
   <!-- ÜBERSICHT -->
   <section id="uebersicht">
-    <h2>Aktive Einsätze</h2>
+    <h2 class="klapp offen" data-gruppe="listeAktiv">Aktive Einsätze <span class="gz" id="gz_listeAktiv"></span></h2>
     <div id="listeAktiv"><div class="leer">Lade …</div></div>
-    <h2>Abgeschlossene Einsätze</h2>
+    <h2 class="klapp offen" data-gruppe="listeUebung">Übungen <span class="gz" id="gz_listeUebung"></span></h2>
+    <div id="listeUebung"></div>
+    <h2 class="klapp offen" data-gruppe="listeAlt">Abgeschlossene Einsätze <span class="gz" id="gz_listeAlt"></span></h2>
     <div id="listeAlt"></div>
     <div class="hinweis" style="text-align:center;margin-top:24px" id="versionInfo"></div>
   </section>
@@ -654,8 +657,12 @@ async function pollen(){
 
 function zeichneUebersicht(alle){
   const sortKey=e=>(e.datum||"")+" "+(e.ausfahrt||"")+" "+(e.erstellt||"");
-  const aktiv=alle.filter(e=>e.status!=="abgeschlossen").sort((a,b)=>sortKey(b).localeCompare(sortKey(a)));
-  const alt=alle.filter(e=>e.status==="abgeschlossen").sort((a,b)=>sortKey(b).localeCompare(sortKey(a)));
+  const absteigend=(a,b)=>sortKey(b).localeCompare(sortKey(a));
+  const istUebung=e=>e.art==="Übung";
+  const aktiv=alle.filter(e=>!istUebung(e)&&e.status!=="abgeschlossen").sort(absteigend);
+  const alt=alle.filter(e=>!istUebung(e)&&e.status==="abgeschlossen").sort(absteigend);
+  // Übungen: laufende zuerst, dann abgeschlossene
+  const ueb=alle.filter(istUebung).sort((a,b)=>((a.status==="abgeschlossen")-(b.status==="abgeschlossen"))||absteigend(a,b));
   const karte=e=>{
     const n=anzahl(e), aktivE=e.status!=="abgeschlossen";
     const ffN=Object.values(e.ffs||{}).filter(f=>f&&f.aktiv).length;
@@ -677,6 +684,11 @@ function zeichneUebersicht(alle){
   };
   $("listeAktiv").innerHTML=aktiv.length?aktiv.map(karte).join(""):'<div class="leer">Kein aktiver Einsatz</div>';
   $("listeAlt").innerHTML=alt.length?alt.map(karte).join(""):'<div class="leer">Noch keine abgeschlossenen Einsätze</div>';
+  $("listeUebung").innerHTML=ueb.length?ueb.map(karte).join(""):'<div class="leer">Keine Übungen</div>';
+  const uebAktiv=ueb.filter(e=>e.status!=="abgeschlossen").length;
+  $("gz_listeAktiv").textContent="("+aktiv.length+")";
+  $("gz_listeAlt").textContent="("+alt.length+")";
+  $("gz_listeUebung").textContent="("+ueb.length+(uebAktiv?", "+uebAktiv+" aktiv":"")+")";
 }
 function ortText(e){const g=e.ueberoertlich?(e.gemeinde||"überörtlich"):"Auersthal";return [e.ort,g].filter(Boolean).join(", ")}
 function wetterText(e){const w=(e.wetter||[]).join(", ");const t=(e.temp!==""&&e.temp!=null)?e.temp+" °C":"";return [w,t].filter(Boolean).join(", ")}
@@ -868,6 +880,20 @@ function standardOffen(z,e){
   return false;
 }
 function klappZustand(){try{return JSON.parse(localStorage.getItem("ffa-klapp-"+aktuellId)||"null")}catch(e){return null}}
+// Gruppen in der Übersicht ein-/ausklappen (pro Gerät gemerkt)
+function gruppenZustand(){try{return JSON.parse(localStorage.getItem("ffa-gruppen")||"{}")}catch(e){return {}}}
+function gruppeSetzen(id,offen){
+  $(id).style.display=offen?"":"none";
+  document.querySelector(`h2[data-gruppe="${id}"]`).classList.toggle("offen",offen);
+}
+document.querySelectorAll("h2[data-gruppe]").forEach(h=>{
+  const id=h.dataset.gruppe, z=gruppenZustand();
+  if(z[id]===false)gruppeSetzen(id,false);
+  h.addEventListener("click",()=>{
+    const offen=$(id).style.display==="none"; gruppeSetzen(id,offen);
+    try{const st=gruppenZustand();st[id]=offen;localStorage.setItem("ffa-gruppen",JSON.stringify(st))}catch(e){}
+  });
+});
 function zurMannschaft(){
   sektion("secMann",true,true);
   const h=document.querySelector('h2[data-ziel="secMann"]'), sc=$("scroller");
