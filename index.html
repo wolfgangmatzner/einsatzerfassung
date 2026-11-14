@@ -148,6 +148,7 @@
   .asprot .fmeld.ende .tn{background:#e5e7eb;color:#374151}
   .astkopf{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
   .astkopf b{font-size:17px;white-space:nowrap}
+  .astkopf .astimer{white-space:nowrap;flex:none}
   .astkopf .sub{font-size:13px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .astimer{font-family:ui-monospace,monospace;font-size:30px;font-weight:800;color:#9a3412;font-variant-numeric:tabular-nums;line-height:1.1}
   .astzeit{font-size:12.5px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1447,6 +1448,7 @@ function asGebunden(e){ const s=new Set(); asTrupps(e).filter(t=>truppStatus(t)!
 function druckKlasse(v,nenn){ v=+v; if(!(v>0))return ""; const p=v/(+nenn===200?200:300); return p>=0.9?"gut":p>=0.85?"gelb":p>=0.75?"orange":"schlecht"; }
 const nennVon=x=>+(x&&x.geraet)===200?200:300;
 const pad2=n=>String(n).padStart(2,"0");
+function timerText(ms){ ms=Math.max(0,ms); const sek=Math.floor(ms/1000), min=Math.floor(sek/60); return min<100 ? min+":"+pad2(sek%60) : Math.floor(min/60)+":"+pad2(min%60)+" h"; }
 function dauerText(ms){ ms=Math.max(0,ms); const sek=Math.floor(ms/1000), h=Math.floor(sek/3600), m=Math.floor(sek%3600/60), s2=sek%60; return (h?h+":"+pad2(m):m)+":"+pad2(s2); }
 const uhr=iso=>{ const d=new Date(iso); return pad2(d.getHours())+":"+pad2(d.getMinutes()); };
 // Fremde Atemschutzträger (andere Feuerwehren): gaeste{id:{name,ff}}, IDs beginnen mit "g"
@@ -1485,7 +1487,7 @@ function zeichneAS(e){
   // laufender Trupp: kompakte Kachel, mehrere nebeneinander
   const aktivKarte=t=>{ const m=t.mitglieder||{};
     const fm=funkListe(t), lm=fm[fm.length-1];
-    return `<div class="astrupp aktiv" data-astile="${t.id}"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="astimer" data-timer="${t.start}">${dauerText(Date.now()-new Date(t.start))}</span></div>
+    return `<div class="astrupp aktiv" data-astile="${t.id}"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="astimer" data-timer="${t.start}">${timerText(Date.now()-new Date(t.start))}</span></div>
       <div class="astzeit">ab ${uhr(t.start)}${t.auftrag?" · "+esc(t.auftrag):""}</div>
       <div class="astl">${truppMitgl(t).map(nr=>`<div><span>${esc(kn(nr))}</span><span class="dw ${druckKlasse(m[nr].druck,nennVon(m[nr]))}">${m[nr].druck||"–"} bar${nennVon(m[nr])===200?" (200er)":""}</span></div>`).join("")}</div>
       <div class="astfunk">${lm?uhrS(lm.t).slice(0,5)+" · "+esc(lm.text)+(fm.length>1?" (+"+(fm.length-1)+")":""):"Antippen für Meldung"}</div>
@@ -1507,7 +1509,7 @@ function zeichneAS(e){
       ${fehlt.length?`<div class="asfehl">Fehlt noch: ${fehlt.join(", ")}</div>`:""}<button type="button" class="linkklein" data-asdel="${t.id}">Trupp verwerfen</button>`}</div>`; };
   // beendeter Trupp: gleiche Kachel wie laufende, aber grau
   const endKarte=t=>{ const m=t.mitglieder||{}, fm=funkListe(t), lm=fm[fm.length-1];
-    return `<div class="astrupp ende" data-astile="${t.id}"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="astimer">${dauerText(new Date(t.ende)-new Date(t.start))}</span></div>
+    return `<div class="astrupp ende" data-astile="${t.id}"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="astimer">${timerText(new Date(t.ende)-new Date(t.start))}</span></div>
       <div class="astzeit">${uhr(t.start)}–${uhr(t.ende)}${t.auftrag?" · "+esc(t.auftrag):""}</div>
       <div class="astl">${truppMitgl(t).map(nr=>`<div><span>${esc(kn(nr))}</span><span>${m[nr].druck||"–"} bar${nennVon(m[nr])===200?" (200er)":""}</span></div>`).join("")}</div>
       <div class="astfunk">${lm?uhrS(lm.t).slice(0,5)+" · "+esc(lm.text)+(fm.length>1?" (+"+(fm.length-1)+")":""):"keine Meldungen"}</div></div>`; };
@@ -1534,7 +1536,7 @@ function asDlgZeichnen(nurListe){
   const st=truppStatus(t), m=t.mitglieder||{}, zu=e.status==="abgeschlossen", fm=funkListe(t);
   const liste=fm.length?fm.slice().reverse().map(x=>`<div class="fmeld"><span class="z">${uhrS(x.t)}</span><span class="t">${esc(x.text)}</span>${zu?"":`<button type="button" class="x" data-funkweg="${x.id}">×</button>`}</div>`).join(""):'<div class="leer" style="padding:14px">Noch keine Meldung vom Trupp</div>';
   if(nurListe&&$("funkListe")){ $("funkListe").innerHTML=liste; return; }
-  $("asTruppBox").innerHTML=`<div class="shkopf"><div><div class="shtitel">Trupp ${t.nr||""} ${st==="aktiv"?`· <span class="astimer" style="font-size:22px" data-timer="${t.start}">${dauerText(Date.now()-new Date(t.start))}</span>`:""}</div>
+  $("asTruppBox").innerHTML=`<div class="shkopf"><div><div class="shtitel">Trupp ${t.nr||""} ${st==="aktiv"?`· <span class="astimer" style="font-size:22px" data-timer="${t.start}">${timerText(Date.now()-new Date(t.start))}</span>`:""}</div>
       <div class="shsub">${st==="aktiv"?"ab "+uhr(t.start):uhr(t.start)+"–"+uhr(t.ende)+" ("+dauerText(new Date(t.ende)-new Date(t.start))+")"} · ${truppMitgl(t).map(nr=>esc(NAMEN[nr]?kurzName(NAMEN[nr]):asName(nr))+` <span class="dw ${druckKlasse(m[nr].druck,nennVon(m[nr]))}">${m[nr].druck||"–"}${nennVon(m[nr])===200?"/200":""}</span>`).join(", ")}${t.auftrag?" · "+esc(t.auftrag):""}</div></div>
       <button type="button" class="shzu" onclick="asDlgZu()">×</button></div>
     ${zu?"":`<div class="fschnell">${FUNK_SCHNELL.map(x=>`<button type="button" data-funkschnell="${esc(x)}">${esc(x)}</button>`).join("")}</div>
@@ -1655,7 +1657,7 @@ document.addEventListener("click",ev=>{
   schreibe({[g]:{[nr]:true},as:{[nr]:true},asTrupps:{[tid]:{mitglieder:{[nr]:{pos,druck:"",tm:false}}}}});
   asMehrZeichnen();
 });
-setInterval(()=>{ document.querySelectorAll(".astimer[data-timer]").forEach(el=>{ el.textContent=dauerText(Date.now()-new Date(el.dataset.timer)); }); },1000);
+setInterval(()=>{ document.querySelectorAll(".astimer[data-timer]").forEach(el=>{ el.textContent=timerText(Date.now()-new Date(el.dataset.timer)); }); },1000);
 function asTruppNeu(){
   if(!aktuell||aktuell.status==="abgeschlossen")return;
   const l=asTrupps(aktuell), id="t"+Date.now().toString(36);
