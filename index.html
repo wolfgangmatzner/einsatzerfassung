@@ -140,7 +140,7 @@
   .asprot{margin-bottom:4px}
   .asprot .fmeld{font-size:15px;padding:6px 0}
   #tbListe .fmeld.tb .t{font-weight:600}
-  #tbEingabe .fschnell{margin:10px 0 8px}
+  #tbEingabe .fschnell{margin:4px 0 8px}
   .asprot .fmeld .tn{flex:none;font-size:12px;font-weight:800;background:#ffedd5;color:#9a3412;border-radius:5px;padding:1px 6px}
   .asprot .fmeld.start .t,.asprot .fmeld.ende .t{color:#6b7280}
   .asprot .fmeld.start .tn{background:#dcfce7;color:#166534}
@@ -511,12 +511,12 @@
     <h2 class="klapp" data-ziel="secTb"><span id="wTb">Einsatztagebuch</span> <span id="anzTb" style="font-weight:400;color:#6b7280"></span></h2>
     <div class="zusfassung" id="zf_secTb"></div>
     <div id="secTb" style="display:none">
-      <div class="asprot" id="tbListe"></div>
       <div id="tbEingabe">
         <div class="fschnell" id="tbSchnell"></div>
         <div class="feingabe"><input id="tbText" type="text" placeholder="Eintrag …" autocomplete="off" enterkeyhint="send"><button type="button" class="btn btn-rot" id="tbOk">Eintragen</button></div>
-        <div class="hinweis">Jeder Eintrag wird mit der genauen Uhrzeit gespeichert. Meldungen der Atemschutztrupps erscheinen hier automatisch.</div>
       </div>
+      <div class="asprot" id="tbListe" style="margin-top:10px"></div>
+      <div class="hinweis">Neueste Einträge stehen oben. Meldungen der Atemschutztrupps erscheinen hier automatisch.</div>
     </div>
 
     <h2 class="klapp" data-ziel="secMass">Lage &amp; Maßnahmen</h2>
@@ -1552,7 +1552,7 @@ function zeichneTb(e){
   const l=tbListe(e), zu=e.status==="abgeschlossen";
   $("anzTb").textContent=l.length?"("+l.length+")":"";
   $("tbEingabe").style.display=zu?"none":"";
-  setzeHtml($("tbListe"),l.length?l.map(x=>`<div class="fmeld ${x.art}"><span class="z">${uhrS(x.t)}</span>${x.art==="tb"?"":`<span class="tn">Trupp ${x.nr||"?"}</span>`}<span class="t">${esc(x.text)}</span>${x.art==="tb"&&!zu?`<button type="button" class="x" data-tbweg="${x.id}">×</button>`:""}</div>`).join(""):'<div class="leer" style="padding:10px">Noch kein Eintrag</div>');
+  setzeHtml($("tbListe"),l.length?l.slice().reverse().map(x=>`<div class="fmeld ${x.art}"><span class="z">${uhrS(x.t)}</span>${x.art==="tb"?"":`<span class="tn">Trupp ${x.nr||"?"}</span>`}<span class="t">${esc(x.text)}</span>${x.art==="tb"&&!zu?`<button type="button" class="x" data-tbweg="${x.id}">×</button>`:""}</div>`).join(""):'<div class="leer" style="padding:10px">Noch kein Eintrag</div>');
 }
 function tbEintragen(text){
   text=(text||"").trim(); if(!text||!aktuell||aktuell.status==="abgeschlossen")return;
