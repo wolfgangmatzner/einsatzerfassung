@@ -144,6 +144,16 @@
   .person .name{font-weight:600}
   .person:has(input:checked){background:#dcfce7;border-color:var(--gruen)}
   .person{-webkit-touch-callout:none;-webkit-user-select:none;position:relative}
+  .person .fzb{margin-left:auto;font-size:12px;font-weight:700;padding:3px 7px;border-radius:6px;background:#e0e7ff;color:#3730a3;flex:none;white-space:nowrap}
+  .person .fzb:empty{display:none}
+  .person .fzb:not(:empty)+.el{margin-left:6px}
+  .person.im-fz{outline:3px solid #6366f1;outline-offset:-3px}
+  .zuteil{margin:8px 0 10px}
+  .zuteil .zt{font-size:13px;color:#6b7280;font-weight:600;margin-bottom:6px}
+  .zuteil .chips{gap:8px}
+  .zuteil .chip{padding:8px 12px;font-size:15px;border-radius:10px}
+  .zuteil .chip.an{background:#4f46e5;border-color:#4f46e5;color:#fff}
+  .zuteil .zh{font-size:14px;color:#3730a3;background:#eef2ff;border-radius:8px;padding:8px 10px;margin-top:8px}
   .person .el{display:none;margin-left:auto;background:var(--rot);color:#fff;font-size:13px;font-weight:800;padding:3px 8px;border-radius:6px;flex:none}
   .person.ist-el{border-color:var(--rot);background:#fee2e2}
   .person.ist-el .el{display:inline-block}
@@ -281,6 +291,11 @@
     <div class="zusfassung" id="zf_secMann"></div>
     <div id="secMann">
       <div class="elinfo" id="elInfo">Einsatzleiter: – <span style="color:#6b7280">(Name lang gedrückt halten, um ihn als Einsatzleiter zu setzen)</span></div>
+      <div class="zuteil" id="zuteil" style="display:none">
+        <div class="zt">Fahrzeug-Zuteilung (optional) – Fahrzeug antippen, dann die Mitfahrer</div>
+        <div class="chips" id="zuteilChips"></div>
+        <div class="zh" id="zuteilHinweis" style="display:none"></div>
+      </div>
       <input class="suche" id="suche" type="search" placeholder="Name suchen …" autocomplete="off">
       <div class="personen" id="mannschaft"></div>
       <h3 class="klapp sub" data-ziel="reserve">Reserve <span id="anzRes" style="font-weight:400;color:#6b7280"></span></h3>
@@ -558,7 +573,7 @@ sb&&sb.auth.onAuthStateChange((ev)=>{ if(ev==="SIGNED_OUT"){rolle=null;zeigeLogi
 
 // ---------- Aufbau ----------
 function personHtml([nr,name],gruppe){
-  return `<label class="person" data-name="${name.toLowerCase()}"><input type="checkbox" data-gruppe="${gruppe}" data-nr="${nr}"><span class="nr">${nr}</span><span class="name">${name}</span><span class="el">EL</span></label>`;
+  return `<label class="person" data-name="${name.toLowerCase()}"><input type="checkbox" data-gruppe="${gruppe}" data-nr="${nr}"><span class="nr">${nr}</span><span class="name">${name}</span><span class="fzb"></span><span class="el">EL</span></label>`;
 }
 const ARTBEISPIELE={Brand:"z. B. Wohnhausbrand, Fahrzeugbrand, Flurbrand",Technisch:"z. B. Verkehrsunfall, Sturmschaden, Türöffnung",Schadstoff:"z. B. Ölspur, Gasgeruch, Gefahrgutaustritt",Brandsicherheitswache:"z. B. Veranstaltung, Festzelt, Konzert",Fehlalarm:"z. B. Brandmeldeanlage, Täuschungsalarm","Übung":"z. B. Atemschutzübung, Technische Übung, Branddienstübung"};
 const ARTKURZ={Brandsicherheitswache:"BSW"};
@@ -723,7 +738,7 @@ function oeffne(id){
   $("einsatzView").style.display="";$("leisteEinsatz").style.display="";
   
   $("suche").value="";document.querySelectorAll(".person").forEach(p=>p.style.display="");
-  ersteFuellung=true; $("scroller").scrollTop=0;
+  ersteFuellung=true; zuteilFz=null; $("scroller").scrollTop=0;
   aktuell=lokalerEinsatz(id); if(aktuell)fuelleFormular(aktuell);  // sofort aus dem Zwischenspeicher, Server-Stand folgt
   pollen();
 }
@@ -761,7 +776,7 @@ function fuelleFormular(e){
   document.querySelectorAll('input[data-gruppe="r"]').forEach(i=>i.checked=!!(e.r||{})[i.dataset.nr]);
   document.querySelectorAll(".person").forEach(p=>p.classList.toggle("ist-el",!!e.el&&p.querySelector("input").dataset.nr===String(e.el)));
   $("elInfo").innerHTML=wortLeiter(e)+": <b>"+(e.el&&NAMEN[e.el]?esc(e.el+" "+NAMEN[e.el]):"–")+'</b> <span style="color:#6b7280">(Name lang gedrückt halten, um ihn als '+wortLeiter(e)+' zu setzen)</span>';
-  zeichneFF(e); zeichneKr(e); zeichneUf(e); zeichnePers(e); zeichneDoku(e);
+  zeichneZuteil(e); zeichneFF(e); zeichneKr(e); zeichneUf(e); zeichnePers(e); zeichneDoku(e);
   if(ersteFuellung){
     ersteFuellung=false;
     const gem=klappZustand();
@@ -856,9 +871,20 @@ document.addEventListener("change",ev=>{
   if(i.dataset.stelle){ schreibe({kraefte:{stellen:{[i.dataset.stelle]:i.checked}}}); return; }
   if(i.dataset.fz){
     const fz=FAHRZEUGE.filter(f=>document.querySelector(`input[data-fz="${f}"]`).checked);
-    schreibe({fz});
+    const patch={fz}, weg=i.dataset.fz;
+    if(!i.checked){ // Fahrzeug abgewählt: Zuteilungen dazu auflösen
+      const zt=aktuell.zuteilung||{}, nrs=Object.keys(zt).filter(n=>zt[n]===weg);
+      if(nrs.length){patch.zuteilung={};nrs.forEach(n=>patch.zuteilung[n]=null)}
+      if((aktuell.fzRollen||{})[weg])patch.fzRollen={[weg]:null};
+    }
+    schreibe(patch);
   }else if(i.dataset.gruppe){
-    schreibe({[i.dataset.gruppe]:{[i.dataset.nr]:i.checked}});
+    const pp={[i.dataset.gruppe]:{[i.dataset.nr]:i.checked}};
+    if(!i.checked){ // abgemeldet: Zuteilung und Funktion lösen
+      if((aktuell.zuteilung||{})[i.dataset.nr])pp.zuteilung={[i.dataset.nr]:null};
+      const frei=rollenFrei(aktuell,i.dataset.nr); if(Object.keys(frei).length)pp.fzRollen=frei;
+    }
+    schreibe(pp);
     const kopie={...aktuell,[i.dataset.gruppe]:{...(aktuell[i.dataset.gruppe]||{}),[i.dataset.nr]:i.checked}};
     zaehlen(kopie);
   }
@@ -1150,6 +1176,54 @@ function zeichneKr(e){
 }
 $("krSonst").addEventListener("input",()=>{clearTimeout(textTimer.krSonst);textTimer.krSonst=setTimeout(()=>{if(aktuell&&((aktuell.kraefte||{}).sonst||"")!==$("krSonst").value)schreibe({kraefte:{sonst:$("krSonst").value}})},500)});
 
+// ---------- Fahrzeug-Zuteilung (optional) ----------
+// Daten: zuteilung{nr:"HLF3"}, fzRollen{HLF3:{ma:nr,gk:nr}}; zuteilFz = gerade gewähltes Fahrzeug (nur Anzeige-Zustand)
+let zuteilFz=null;
+function rolleVon(e,nr){ const fz=(e.zuteilung||{})[nr]; if(!fz)return ""; const r=(e.fzRollen||{})[fz]||{}; return String(r.ma)===String(nr)?"MA":String(r.gk)===String(nr)?"GK":""; }
+function rollenFrei(e,nr){ // Patch, der alle Funktionen dieser Person löscht
+  const p={}; Object.keys(e.fzRollen||{}).forEach(fz=>{ const r=e.fzRollen[fz]||{}; ["ma","gk"].forEach(k=>{ if(String(r[k])===String(nr)){ (p[fz]=p[fz]||{})[k]=""; } }); });
+  return p;
+}
+function zeichneZuteil(e){
+  const fz=(e.fz||[]), zt=e.zuteilung||{};
+  if(zuteilFz&&!fz.includes(zuteilFz))zuteilFz=null;
+  $("zuteil").style.display=fz.length?"":"none";
+  const anwesend=nr=>!!((e.m||{})[nr]||(e.r||{})[nr]);
+  $("zuteilChips").innerHTML=fz.map(f=>{ const n=Object.keys(zt).filter(nr=>zt[nr]===f&&anwesend(nr)).length; return `<button type="button" class="chip ${zuteilFz===f?"an":""}" data-zfz="${f}">${f}${n?" · "+n:""}</button>`; }).join("");
+  const h=$("zuteilHinweis"); h.style.display=zuteilFz?"":"none";
+  if(zuteilFz)h.innerHTML="<b>"+esc(zuteilFz)+"</b> gewählt: Mitglieder antippen = zuteilen / wieder lösen. Lang drücken = Maschinist (MA), nochmal lang = Gruppenkommandant (GK). Fahrzeug nochmal antippen = fertig.";
+  document.querySelectorAll(".person").forEach(p=>{
+    const nr=p.querySelector("input").dataset.nr, f=anwesend(nr)&&fz.includes(zt[nr])?zt[nr]:"";
+    const ro=f?rolleVon(e,nr):"";
+    p.querySelector(".fzb").textContent=f?(f+(ro?" · "+ro:"")):"";
+    p.classList.toggle("im-fz",!!zuteilFz&&f===zuteilFz);
+  });
+}
+document.addEventListener("click",ev=>{
+  const b=ev.target.closest("[data-zfz]"); if(!b||!aktuell||aktuell.status==="abgeschlossen")return;
+  zuteilFz=zuteilFz===b.dataset.zfz?null:b.dataset.zfz; zeichneZuteil(aktuell);
+});
+function zuteilTipp(p){ // Tipp auf eine Person bei gewähltem Fahrzeug
+  const inp=p.querySelector("input"), nr=inp.dataset.nr, g=inp.dataset.gruppe, e=aktuell;
+  const patch={}, frei=rollenFrei(e,nr);
+  if((e.zuteilung||{})[nr]===zuteilFz&&inp.checked){ patch.zuteilung={[nr]:null}; }
+  else { patch[g]={[nr]:true}; patch.zuteilung={[nr]:zuteilFz}; }
+  if(Object.keys(frei).length)patch.fzRollen=frei;
+  schreibe(patch);
+}
+function zuteilLang(p){ // Longpress bei gewähltem Fahrzeug: – → MA → GK → –
+  const inp=p.querySelector("input"), nr=inp.dataset.nr, g=inp.dataset.gruppe, e=aktuell;
+  const imFz=(e.zuteilung||{})[nr]===zuteilFz&&inp.checked, r=(e.fzRollen||{})[zuteilFz]||{};
+  const patch={};
+  if(!imFz){ patch[g]={[nr]:true}; patch.zuteilung={[nr]:zuteilFz}; const frei=rollenFrei(e,nr); if(Object.keys(frei).length)patch.fzRollen=frei; }
+  patch.fzRollen=patch.fzRollen||{};
+  const ziel=patch.fzRollen[zuteilFz]=patch.fzRollen[zuteilFz]||{};
+  if(imFz&&String(r.ma)===nr){ ziel.ma=""; ziel.gk=nr; }
+  else if(imFz&&String(r.gk)===nr){ ziel.gk=""; }
+  else { ziel.ma=nr; }
+  schreibe(patch);
+}
+
 // Longpress auf eine Person = Einsatzleiter setzen / entfernen
 let lpTimer=null, lpAusgeloest=false;
 function lpStart(ev){
@@ -1159,6 +1233,7 @@ function lpStart(ev){
     lpAusgeloest=true;
     const inp=p.querySelector("input"), nr=inp.dataset.nr, g=inp.dataset.gruppe;
     if(navigator.vibrate)try{navigator.vibrate(30)}catch(e){}
+    if(zuteilFz){ zuteilLang(p); return; }
     if(String(aktuell.el)===nr){ schreibe({el:""}); }
     else { const patch={el:nr}; if(!inp.checked){patch[g]={[nr]:true}} schreibe(patch); }
   },550);
@@ -1184,7 +1259,11 @@ document.addEventListener("pointerdown",ev=>{
 ["pointerup","pointercancel"].forEach(t=>document.addEventListener(t,()=>clearTimeout(kpTimer)));
 document.addEventListener("scroll",()=>clearTimeout(kpTimer),true);
 document.addEventListener("click",ev=>{ if(kpAusgeloest){ kpAusgeloest=false; if(ev.target.closest(".karte")){ev.preventDefault();ev.stopPropagation();} } },true);
-document.addEventListener("click",ev=>{ if(lpAusgeloest&&ev.target.closest(".person")){ev.preventDefault();ev.stopPropagation();lpAusgeloest=false;} },true);
+document.addEventListener("click",ev=>{
+  const p=ev.target.closest(".person"); if(!p)return;
+  if(lpAusgeloest){ev.preventDefault();ev.stopPropagation();lpAusgeloest=false;return}
+  if(zuteilFz&&aktuell&&aktuell.status!=="abgeschlossen"){ ev.preventDefault();ev.stopPropagation(); zuteilTipp(p); }
+},true);
 
 $("suche").addEventListener("input",e=>{
   const q=e.target.value.toLowerCase().trim();
@@ -1307,6 +1386,19 @@ async function pdfErzeugen(btn,einsatz){
     H("Mannschaft ("+(m.length+r.length)+" Mitglieder)");
     if(m.length)spalten(m,2);else P("–");
     if(r.length){y+=2;doc.setFont("helvetica","bold");doc.setFontSize(10.5);check(6);doc.text("Reserve ("+r.length+")",L,y);y+=5.5;spalten(r,2)}
+    { // Fahrzeugbesatzungen (nur wenn zugeteilt wurde)
+      const zt=e.zuteilung||{}, da=nr=>!!((e.m||{})[nr]||(e.r||{})[nr]);
+      const bes=(e.fz||[]).map(f=>[f,Object.keys(zt).filter(nr=>zt[nr]===f&&da(nr)&&NAMEN[nr])]).filter(([,l])=>l.length);
+      if(bes.length){
+        H("Fahrzeugbesatzung");
+        const rang=(f,nr)=>{const ro=rolleVon(e,nr);return ro==="GK"?0:ro==="MA"?1:2};
+        bes.forEach(([f,l])=>{ l.sort((a,b)=>rang(f,a)-rang(f,b)||NAMEN[a].localeCompare(NAMEN[b],"de"));
+          KV(f+" ("+l.length+")",l.map(nr=>NAMEN[nr]+(rolleVon(e,nr)?" ("+rolleVon(e,nr)+")":"")).join(", ")); });
+        const zug=new Set(bes.flatMap(([,l])=>l)), ohne=Object.keys(NAMEN).filter(nr=>da(nr)&&!zug.has(nr));
+        if(ohne.length)KV("Ohne Fahrzeug ("+ohne.length+")",ohne.map(nr=>NAMEN[nr]).join(", "));
+        doc.setFontSize(9);doc.setTextColor(110,110,110);check(5);doc.text("MA = Maschinist, GK = Gruppenkommandant",L,y);y+=5;doc.setTextColor(20,20,20);
+      }
+    }
     const ffs=e.ffs||{},akt=ffListe(e).filter(n=>ffs[n]&&ffs[n].aktiv);
     if(akt.length){H("Weitere Feuerwehren ("+akt.length+")");akt.forEach(n=>KV(n,(ffs[n].fz||0)+" Fahrzeuge, "+(ffs[n].mann||0)+" Mann"));
       KV("Gesamt",akt.reduce((a,n)=>a+(+ffs[n].fz||0),0)+" Fahrzeuge, "+akt.reduce((a,n)=>a+(+ffs[n].mann||0),0)+" Mann")}
