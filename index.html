@@ -1618,7 +1618,7 @@ function zuteilTipp(p){ // Tipp auf eine Person bei gewähltem Fahrzeug
   if(Object.keys(frei).length)patch.fzRollen=frei;
   schreibe(patch);
 }
-function zuteilLang(p){ // Longpress bei gewähltem Fahrzeug: – → MA → GK → –
+function zuteilLang(p){ // Longpress bei gewähltem Fahrzeug: – → MA → GK → – (besetzte Funktionen werden übersprungen)
   if(zuteilFz===AS)return;
   const inp=p.querySelector("input"), nr=inp.dataset.nr, g=inp.dataset.gruppe, e=aktuell;
   const imFz=(e.zuteilung||{})[nr]===zuteilFz&&inp.checked, r=(e.fzRollen||{})[zuteilFz]||{};
@@ -1626,9 +1626,13 @@ function zuteilLang(p){ // Longpress bei gewähltem Fahrzeug: – → MA → GK 
   if(!imFz){ patch[g]={[nr]:true}; patch.zuteilung={[nr]:zuteilFz}; const frei=rollenFrei(e,nr); if(Object.keys(frei).length)patch.fzRollen=frei; }
   patch.fzRollen=patch.fzRollen||{};
   const ziel=patch.fzRollen[zuteilFz]=patch.fzRollen[zuteilFz]||{};
-  if(imFz&&String(r.ma)===nr){ ziel.ma=""; ziel.gk=nr; }
+  // Eine bereits von jemand anderem besetzte Funktion wird übersprungen, damit z. B. der GK gesetzt werden kann, ohne den MA zu verdrängen
+  const maBesetzt=!!r.ma&&String(r.ma)!==nr, gkBesetzt=!!r.gk&&String(r.gk)!==nr;
+  if(imFz&&String(r.ma)===nr){ ziel.ma=""; if(!gkBesetzt)ziel.gk=nr; }
   else if(imFz&&String(r.gk)===nr){ ziel.gk=""; }
-  else { ziel.ma=nr; }
+  else if(!maBesetzt){ ziel.ma=nr; }
+  else if(!gkBesetzt){ ziel.gk=nr; }
+  else { setStatus("warn","MA und GK im "+zuteilFz+" sind schon vergeben – zuerst dort lange drücken, um die Funktion zu lösen."); setTimeout(()=>setStatus("",""),4000); if(imFz)return; }
   schreibe(patch);
 }
 
