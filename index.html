@@ -1034,7 +1034,7 @@ document.addEventListener("change",ev=>{
   if(i.dataset.gem){ const u=i.dataset.gem==="ueber"; $("gemeinde").style.display=u?"":"none"; const gv=$("gemeinde").value; if(u&&gv==="Auersthal")$("gemeinde").value=""; schreibe({ueberoertlich:u, gemeinde:u?($("gemeinde").value||""):"Auersthal"}); if(u)setTimeout(()=>$("gemeinde").focus(),100); return; }
   if(i.dataset.wetter){ const w=WETTER.filter(x=>document.querySelector(`input[data-wetter="${x}"]`).checked); schreibe({wetter:w}); return; }
   if(i.type!=="checkbox")return;
-  if(i.dataset.ff){ const n=i.dataset.ff; const alt=(aktuell.ffs||{})[n]||{}; schreibe(Object.assign({ffs:{[n]:{aktiv:i.checked,fz:alt.fz||0,mann:alt.mann||0,extra:!!alt.extra}}},tbAuto("a:ff:"+n,"FF "+n+" eingetroffen",i.checked),i.checked?{}:{tagebuch:{["a:ff:"+n]:null,["a:ffs:"+n]:null}})); return; }
+  if(i.dataset.ff){ const n=i.dataset.ff; const alt=(aktuell.ffs||{})[n]||{}; schreibe(Object.assign({ffs:{[n]:{aktiv:i.checked,fz:alt.fz||0,mann:alt.mann||0,extra:!!alt.extra}}},tbAuto("a:ff:"+n,"FF "+n+" eingetroffen",i.checked),i.checked?{}:{ffs:{[n]:{aktiv:false,fz:alt.fz||0,mann:alt.mann||0,extra:!!alt.extra,gemeldet:""}},tagebuch:Object.fromEntries(Object.keys(aktuell.tagebuch||{}).filter(k=>k==="a:ff:"+n||k.startsWith("a:ffs:"+n+":")||k==="a:ffs:"+n).map(k=>[k,null]))})); return; }
   if(i.dataset.stelle){ schreibe(Object.assign({kraefte:{stellen:{[i.dataset.stelle]:i.checked}}},tbAuto("a:st:"+i.dataset.stelle,i.dataset.stelle+" eingetroffen",i.checked))); return; }
   if(i.dataset.fz){
     const fz=FAHRZEUGE.filter(f=>document.querySelector(`input[data-fz="${f}"]`).checked);
@@ -1198,16 +1198,30 @@ document.addEventListener("input",ev=>{
   const i=ev.target; if(!i.dataset||!i.dataset.ffnum||!aktuell)return;
   const [n,feld]=i.dataset.ffnum.split("|"); const v=Math.max(0,parseInt(i.value)||0);
   clearTimeout(textTimer[i.dataset.ffnum]);
-  textTimer[i.dataset.ffnum]=setTimeout(()=>{
-    const alt=(aktuell.ffs||{})[n]||{}; if(alt[feld]===v)return;
-    // Stärkemeldung der Feuerwehr auch ins Tagebuch (ein Eintrag je Feuerwehr, wird bei Korrektur aktualisiert)
-    const st={fz:+alt.fz||0,mann:+alt.mann||0}; st[feld]=v;
-    const id="a:ffs:"+n, gibt=!!(aktuell.tagebuch||{})[id];
-    const eintrag=(st.fz||st.mann)?Object.assign({text:"FF "+n+": "+st.fz+" Fahrzeug"+(st.fz===1?"":"e")+", "+st.mann+" Mann",auto:true},gibt?{}:{t:new Date().toISOString()}):null;
-    schreibe({ffs:{[n]:{[feld]:v}},tagebuch:{[id]:eintrag}});
-  },900);
+  textTimer[i.dataset.ffnum]=setTimeout(()=>{ if(((aktuell.ffs||{})[n]||{})[feld]!==v) schreibe({ffs:{[n]:{[feld]:v}}}); },900);
 });
-document.addEventListener("focusout",ev=>{ const i=ev.target; if(i.dataset&&i.dataset.ffnum&&aktuell) setTimeout(()=>zeichneFF(aktuell),50); });
+// Beim Verlassen der Zeile einer Feuerwehr: Werte sichern und – wenn sich der Stand geändert hat –
+// eine neue „Mannschaftsmeldung“ mit der aktuellen Uhrzeit ins Tagebuch schreiben
+document.addEventListener("focusout",ev=>{
+  const i=ev.target; if(!i.dataset||!i.dataset.ffnum||!aktuell)return;
+  const n=i.dataset.ffnum.split("|")[0], st={fz:0,mann:0};
+  document.querySelectorAll("[data-ffnum]").forEach(x=>{ const [nn,f]=x.dataset.ffnum.split("|"); if(nn===n){ st[f]=Math.max(0,parseInt(x.value)||0); clearTimeout(textTimer[x.dataset.ffnum]); } });
+  setTimeout(()=>{
+    if(!aktuell)return;
+    const alt=(aktuell.ffs||{})[n]||{}; if(!alt.aktiv)return;
+    const ae=document.activeElement, nochInZeile=!!(ae&&ae.dataset&&ae.dataset.ffnum&&ae.dataset.ffnum.split("|")[0]===n);
+    const patch={ffs:{[n]:{}}};
+    if((+alt.fz||0)!==st.fz)patch.ffs[n].fz=st.fz;
+    if((+alt.mann||0)!==st.mann)patch.ffs[n].mann=st.mann;
+    const stand=st.fz+"|"+st.mann;
+    if(!nochInZeile&&(st.fz||st.mann)&&alt.gemeldet!==stand){
+      patch.ffs[n].gemeldet=stand;
+      patch.tagebuch={["a:ffs:"+n+":"+Date.now().toString(36)]:{t:new Date().toISOString(),text:"Mannschaftsmeldung FF "+n+": "+st.fz+" Fahrzeug"+(st.fz===1?"":"e")+", "+st.mann+" Mann",auto:true}};
+    }
+    if(Object.keys(patch.ffs[n]).length)schreibe(patch);
+    if(!nochInZeile)zeichneFF(aktuell);
+  },60);
+});
 $("ffNeu").addEventListener("keydown",ev=>{if(ev.key==="Enter"){ev.preventDefault();ffHinzu()}});
 
 // Foto-Kachel (generisch): key = "art|id|typ"
