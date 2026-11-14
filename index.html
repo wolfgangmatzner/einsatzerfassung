@@ -139,6 +139,8 @@
   .astrupp.ende b{color:#374151}
   .asprot{margin-bottom:4px}
   .asprot .fmeld{font-size:15px;padding:6px 0}
+  #tbListe .fmeld.tb .t{font-weight:600}
+  #tbEingabe .fschnell{margin:10px 0 8px}
   .asprot .fmeld .tn{flex:none;font-size:12px;font-weight:800;background:#ffedd5;color:#9a3412;border-radius:5px;padding:1px 6px}
   .asprot .fmeld.start .t,.asprot .fmeld.ende .t{color:#6b7280}
   .asprot .fmeld.start .tn{background:#dcfce7;color:#166534}
@@ -504,6 +506,17 @@
     <div id="secDoku" style="display:none">
       <div class="fotos" id="dokuListe"></div>
       <div class="hinweis">Antippen zum Vergrößern · Bildtext optional</div>
+    </div>
+
+    <h2 class="klapp" data-ziel="secTb"><span id="wTb">Einsatztagebuch</span> <span id="anzTb" style="font-weight:400;color:#6b7280"></span></h2>
+    <div class="zusfassung" id="zf_secTb"></div>
+    <div id="secTb" style="display:none">
+      <div class="asprot" id="tbListe"></div>
+      <div id="tbEingabe">
+        <div class="fschnell" id="tbSchnell"></div>
+        <div class="feingabe"><input id="tbText" type="text" placeholder="Eintrag …" autocomplete="off" enterkeyhint="send"><button type="button" class="btn btn-rot" id="tbOk">Eintragen</button></div>
+        <div class="hinweis">Jeder Eintrag wird mit der genauen Uhrzeit gespeichert. Meldungen der Atemschutztrupps erscheinen hier automatisch.</div>
+      </div>
     </div>
 
     <h2 class="klapp" data-ziel="secMass">Lage &amp; Maßnahmen</h2>
@@ -912,13 +925,13 @@ function fuelleFormular(e){
 
   document.body.dataset.art=e.art||"";
   $("einsatz").placeholder=ARTBEISPIELE[e.art]||"Bezeichnung des Einsatzes";
-  $("wEinsatz").textContent=wort(e); $("wOrt").textContent=stamm(e)+"ort"; $("wBeginn").textContent="Lage bei "+stamm(e)+"beginn"; $("wStelle").textContent=stamm(e)+"stelle übergeben an";
+  $("wEinsatz").textContent=wort(e); $("wTb").textContent=stamm(e)+"tagebuch"; $("wOrt").textContent=stamm(e)+"ort"; $("wBeginn").textContent="Lage bei "+stamm(e)+"beginn"; $("wStelle").textContent=stamm(e)+"stelle übergeben an";
   $("btnLoeschen").textContent=wort(e)+" löschen";
   document.querySelectorAll('input[data-gruppe="m"]').forEach(i=>i.checked=!!(e.m||{})[i.dataset.nr]);
   document.querySelectorAll('input[data-gruppe="r"]').forEach(i=>i.checked=!!(e.r||{})[i.dataset.nr]);
   document.querySelectorAll(".person").forEach(p=>p.classList.toggle("ist-el",!!e.el&&p.querySelector("input").dataset.nr===String(e.el)));
   $("elInfo").innerHTML=wortLeiter(e)+": <b>"+(e.el&&NAMEN[e.el]?esc(e.el+" "+NAMEN[e.el]):"–")+'</b> <span style="color:#6b7280">(Name lang gedrückt halten, um ihn als '+wortLeiter(e)+' zu setzen)</span>';
-  zeichneZuteil(e); zeichneFF(e); zeichneKr(e); zeichneUf(e); zeichnePers(e); zeichneDoku(e);
+  zeichneZuteil(e); zeichneFF(e); zeichneKr(e); zeichneUf(e); zeichnePers(e); zeichneDoku(e); zeichneTb(e);
   if(ersteFuellung){
     ersteFuellung=false;
     const gem=klappZustand();
@@ -1041,7 +1054,7 @@ document.addEventListener("change",ev=>{
 });
 
 // Ein-/Ausklappen
-const ALLE_SEKTIONEN=["secEinsatz","secFz","secMann","reserve","secFF","secKr","secAS","secSchaden","secMat","secWetter","secUf","secPers","secDoku","secMass"];
+const ALLE_SEKTIONEN=["secEinsatz","secFz","secMann","reserve","secFF","secKr","secAS","secSchaden","secMat","secWetter","secUf","secPers","secDoku","secTb","secMass"];
 function sektion(ziel,offen,merken){
   const h=document.querySelector(`[data-ziel="${ziel}"]`), el=$(ziel);
   if(typeof offen!=="boolean"){offen=el.style.display==="none";merken=true}
@@ -1061,7 +1074,7 @@ function standardOffen(z,e){
     case "secUf": return ufListe(e).length>0;
     case "secPers": return persListe(e).length>0;
     case "secDoku": return dokuListe(e).length>0;
-    case "secAS": case "secSchaden": case "secMat": case "secMass": return !!zusammenfassung(z,e);
+    case "secAS": case "secSchaden": case "secMat": case "secMass": case "secTb": return !!zusammenfassung(z,e);
   }
   return false;
 }
@@ -1103,6 +1116,7 @@ function zusammenfassung(ziel,e){
     case "secAS": { const a=asZahlen(e);const z=[];const tr=asListe(e);const lauf=asTrupps(e).filter(t=>truppStatus(t)==="aktiv").length;if(lauf)z.push(lauf+" Trupp"+(lauf>1?"s":"")+" im Einsatz");const fertig=asTrupps(e).filter(t=>truppStatus(t)==="beendet").length;if(fertig)z.push(fertig+" Trupp"+(fertig>1?"s":"")+" beendet");if(tr.length)z.push("AS: "+(tr.length<=4?tr.map(nr=>kurzName(NAMEN[nr])).join(", "):tr.length+" Träger gewählt"));if(+a.trupps)z.push(a.trupps+" Trupp"+(a.trupps>1?"s":""));if(+a.traeger)z.push(a.traeger+" Träger");if(+a.geraete)z.push(a.geraete+" Geräte");return z.join(", "); }
     case "secSchaden": { const a=e.schaden||{};const z=[];[["gerettet","gerettet"],["geborgen","geborgen"],["verletzt","verletzt"],["tot","tot"],["tiere","Tiere"]].forEach(([k,l])=>{if(+a[k])z.push(a[k]+" "+l)});return z.join(", "); }
     case "secMat": { const m=e.material||{};const z=[];if(+m.oel)z.push(m.oel+" kg Ölbindemittel");if(+m.schaum)z.push(m.schaum+" l Schaummittel");if(+m.wasser)z.push(m.wasser+" l Löschwasser");if(m.sonst)z.push(m.sonst);return z.join(", "); }
+    case "secTb": { const l=tbListe(e), x=l[l.length-1]; return x?l.length+" Einträge · zuletzt "+uhrS(x.t).slice(0,5)+" "+(x.art==="tb"?"":"Trupp "+(x.nr||"?")+": ")+x.text.slice(0,50):""; }
     case "secMass": { const z=[];const t=(e.lage||e.massnahmen||"").trim().split("\n")[0];if(t)z.push(t.slice(0,70)+(t.length>70?" …":""));if(e.uebergabe)z.push("Übergabe: "+e.uebergabe);if(e.brandwache)z.push("Brandwache");if(e.kostenpflichtig)z.push("kostenpflichtig");return z.join(" · "); }
   }
   return "";
@@ -1434,7 +1448,7 @@ function zeichneAS(e){
   if(ae&&ae.id==="funkText"){ asDlgZeichnen(true); return; }
   const zu=e.status==="abgeschlossen", l=asTrupps(e), gebunden=asGebunden(e), frei=asListe(e).filter(nr=>!gebunden.has(nr)).concat(gaesteFrei(e,gebunden));
   $("asNeuBtn").style.display=zu?"none":"";
-  const kn=nr=>NAMEN[nr]?kurzName(NAMEN[nr]):gast(nr)?gast(nr).name+(gast(nr).ff?" · "+gast(nr).ff:""):asName(nr);
+  const kn=knAS;
   // laufender Trupp: kompakte Kachel, mehrere nebeneinander
   const aktivKarte=t=>{ const m=t.mitglieder||{};
     const fm=funkListe(t), lm=fm[fm.length-1];
@@ -1465,12 +1479,7 @@ function zeichneAS(e){
       <div class="astl">${truppMitgl(t).map(nr=>`<div><span>${esc(kn(nr))}</span><span>${m[nr].druck||"–"} bar${nennVon(m[nr])===200?" (200er)":""}</span></div>`).join("")}</div>
       <div class="astfunk">${lm?uhrS(lm.t).slice(0,5)+" · "+esc(lm.text)+(fm.length>1?" (+"+(fm.length-1)+")":""):"keine Meldungen"}</div></div>`; };
   // Protokoll: Start, Meldungen und Ende aller Trupps in zeitlicher Reihenfolge
-  const prot=[];
-  l.filter(t=>t.start).forEach(t=>{ const m=t.mitglieder||{};
-    prot.push({t:t.start,nr:t.nr,art:"start",text:"Start · "+truppMitgl(t).map(nr=>kn(nr)+" "+(m[nr].druck||"–")).join(", ")+(t.auftrag?" · "+t.auftrag:"")});
-    funkListe(t).forEach(x=>prot.push({t:x.t,nr:t.nr,art:"m",text:x.text}));
-    if(t.ende)prot.push({t:t.ende,nr:t.nr,art:"ende",text:"Ende · Dauer "+dauerText(new Date(t.ende)-new Date(t.start))}); });
-  prot.sort((a,b)=>(a.t||"").localeCompare(b.t||""));
+  const prot=asProtokoll(e);
   const protHtml=prot.map(x=>`<div class="fmeld ${x.art}"><span class="z">${uhrS(x.t)}</span><span class="tn">T${x.nr||"?"}</span><span class="t">${esc(x.text)}</span></div>`).join("");
   const akt=l.filter(t=>truppStatus(t)==="aktiv"), vor=l.filter(t=>truppStatus(t)==="vorb"), end=l.filter(t=>truppStatus(t)==="beendet").reverse();
   $("asInhalt").innerHTML=(l.length?"":`<div class="leer">Noch kein Trupp angelegt.<br>${asListe(e).length?"Mit „+ Trupp“ unten einen Trupp zusammenstellen.":"Zuerst im Einsatz bei der Mannschaft über „Atemschutz“ die Atemschutzträger auswählen."}</div>`)
@@ -1518,6 +1527,44 @@ document.addEventListener("click",ev=>{
   asDlgTid=k.dataset.astile; asDlgZeichnen(); $("asTruppDlg").style.display="block";
 });
 document.addEventListener("keydown",ev=>{ if(ev.key==="Enter"&&ev.target.id==="funkText"){ ev.preventDefault(); funkEintragen(ev.target.value); ev.target.value=""; } });
+
+// Kurzname eines Atemschutzträgers (eigenes Mitglied oder Gast)
+function knAS(nr){ return NAMEN[nr]?kurzName(NAMEN[nr]):gast(nr)?gast(nr).name+(gast(nr).ff?" · "+gast(nr).ff:""):asName(nr); }
+// Start, Meldungen und Ende aller Trupps in zeitlicher Reihenfolge
+function asProtokoll(e){
+  const prot=[];
+  asTrupps(e).filter(t=>t.start).forEach(t=>{ const m=t.mitglieder||{};
+    prot.push({t:t.start,nr:t.nr,art:"start",text:"Start · "+truppMitgl(t).map(nr=>knAS(nr)+" "+(m[nr].druck||"–")).join(", ")+(t.auftrag?" · "+t.auftrag:"")});
+    funkListe(t).forEach(x=>prot.push({t:x.t,nr:t.nr,art:"m",text:x.text}));
+    if(t.ende)prot.push({t:t.ende,nr:t.nr,art:"ende",text:"Ende · Dauer "+dauerText(new Date(t.ende)-new Date(t.start))}); });
+  return prot.sort((a,b)=>(a.t||"").localeCompare(b.t||""));
+}
+
+// ---------- Einsatztagebuch: tagebuch{id:{t,text}} + Trupp-Protokoll, chronologisch ----------
+const TB_SCHNELL=["Eintreffen am Einsatzort","Lage erkundet","Menschenrettung","Brand unter Kontrolle","Brand aus","Einrücken"];
+$("tbSchnell").innerHTML=TB_SCHNELL.map(x=>`<button type="button" data-tbschnell="${x}">${x}</button>`).join("");
+function tbListe(e){
+  const tb=e.tagebuch||{};
+  const eigene=Object.keys(tb).filter(k=>tb[k]).map(k=>({id:k,t:tb[k].t,text:tb[k].text,art:"tb"}));
+  return eigene.concat(asProtokoll(e)).sort((a,b)=>(a.t||"").localeCompare(b.t||""));
+}
+function zeichneTb(e){
+  const l=tbListe(e), zu=e.status==="abgeschlossen";
+  $("anzTb").textContent=l.length?"("+l.length+")":"";
+  $("tbEingabe").style.display=zu?"none":"";
+  setzeHtml($("tbListe"),l.length?l.map(x=>`<div class="fmeld ${x.art}"><span class="z">${uhrS(x.t)}</span>${x.art==="tb"?"":`<span class="tn">Trupp ${x.nr||"?"}</span>`}<span class="t">${esc(x.text)}</span>${x.art==="tb"&&!zu?`<button type="button" class="x" data-tbweg="${x.id}">×</button>`:""}</div>`).join(""):'<div class="leer" style="padding:10px">Noch kein Eintrag</div>');
+}
+function tbEintragen(text){
+  text=(text||"").trim(); if(!text||!aktuell||aktuell.status==="abgeschlossen")return;
+  schreibe({tagebuch:{["e"+Date.now().toString(36)]:{t:new Date().toISOString(),text}}});
+}
+document.addEventListener("click",ev=>{
+  if(!aktuell||!ev.target.closest("#secTb"))return;
+  const q=ev.target.closest("[data-tbschnell]"); if(q){ tbEintragen(q.dataset.tbschnell); return; }
+  if(ev.target.closest("#tbOk")){ const i=$("tbText"); tbEintragen(i.value); i.value=""; i.focus(); return; }
+  const w=ev.target.closest("[data-tbweg]"); if(w){ const id=w.dataset.tbweg; frage("Diesen Tagebuch-Eintrag löschen?",()=>schreibe({tagebuch:{[id]:null}}),"Löschen"); }
+});
+document.addEventListener("keydown",ev=>{ if(ev.key==="Enter"&&ev.target.id==="tbText"){ ev.preventDefault(); tbEintragen(ev.target.value); ev.target.value=""; } });
 
 // Protokoll ein-/ausklappen (pro Gerät gemerkt)
 let asProtOffen=true; try{ asProtOffen=localStorage.getItem("ffa-asprot")!=="0"; }catch(e){}
@@ -1787,6 +1834,7 @@ async function pdfErzeugen(btn,einsatz){
     if(uf.length){H("Unfallfahrzeuge ("+uf.length+")");uf.forEach((f,i)=>{doc.setFont("helvetica","bold");doc.setFontSize(10.5);check(6);doc.text("Fahrzeug "+(i+1),L,y);y+=5.5;KV("Kennzeichen",f.kennzeichen);KV("Marke / Type",f.marke);KV("Lenker/in",f.lenker);KV("Anmerkung",f.anm);y+=2})}
     const pers=persListe(e);
     if(pers.length){H("Beteiligte / Geschädigte ("+pers.length+")");pers.forEach((f,i)=>{doc.setFont("helvetica","bold");doc.setFontSize(10.5);check(6);doc.text("Person "+(i+1)+(f.rolle?" – "+f.rolle:""),L,y);y+=5.5;KV("Name",f.name);KV("Adresse / Telefon",f.kontakt);KV("Anmerkung",f.anm);y+=2})}
+    { const tbl=tbListe(e); if(tbl.length){ H(stamm(e)+"tagebuch"); tbl.forEach(x=>{ doc.setFont("helvetica","normal"); doc.setFontSize(10); const ln=doc.splitTextToSize((x.art==="tb"?"":"Trupp "+(x.nr||"?")+": ")+x.text,R-L-24); check(ln.length*4.8+1); doc.setFont("helvetica","bold"); doc.text(uhrS(x.t),L,y); doc.setFont("helvetica","normal"); doc.text(ln,L+24,y); y+=ln.length*4.8+1; }); } }
     if(zusammenfassung("secMass",e)){H("Lage und Maßnahmen");
       if((e.lage||"").trim()){doc.setFont("helvetica","bold");doc.setFontSize(10.5);check(6);doc.text("Lage beim Eintreffen",L,y);y+=5.5;P(e.lage.trim());y+=2}
       if((e.massnahmen||"").trim()){doc.setFont("helvetica","bold");doc.setFontSize(10.5);check(6);doc.text("Gesetzte Maßnahmen",L,y);y+=5.5;P(e.massnahmen.trim());y+=2}
