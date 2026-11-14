@@ -25,6 +25,8 @@ Schreiben immer als Patch über RPC `einsatz_patch` (tiefes Merge, `null` lösch
 - Sektionen: `sektion(ziel, offen, merken)`, `ALLE_SEKTIONEN`, `zusammenfassung()`, `standardOffen()`; Klappzustand pro Einsatz in localStorage `ffa-klapp-<id>`
 - Auto-Update: `BUILD`, `updatePruefen()`, `updateAnwenden()`
 - Rollen: `rolle` = "user" | "admin" (aus JWT app_metadata.rolle)
+- Fußleisten: Symbolleiste `.leiste .tab` (Übersicht: Suche `ueSuche()`/`ueFilter`, Statistik `statZeichnen()` aus `letzteListe`, Optionen `einstOeffnen()`, neue Übung, neuer Einsatz; Einsatz: Übersicht/Mannschaft/Tagebuch/Atemschutz/PDF, in der Atemschutzüberwachung Klasse `asmodus`)
+- Mitgliederpflege ohne Admin-Anmeldung: `api("admin_login",{pw})` öffnet eine zweite, nicht gespeicherte Supabase-Sitzung `sbAdmin` nur für `mitglieder_speichern`; `adminZu()` meldet sie wieder ab
 
 Einsatzarten: Brand, Technisch, Schadstoff, Brandsicherheitswache (Kurz: BSW), Fehlalarm, Übung (früher „Sonstiges“).
 

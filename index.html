@@ -333,6 +333,31 @@
   .leiste .tab .lbl{font-size:11.5px;font-weight:600;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
   .leiste .tab.as{color:#c2410c}
   .leiste .tab.pdf{color:var(--rot)}
+  .leiste .tab.ueb{color:#6d28d9}
+  .leiste .tab.an{background:var(--grau)}
+  #suchZeile{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+  #suchZeile input{flex:1;min-width:0;font-size:18px;padding:12px;border:2px solid var(--rand);border-radius:10px;font-family:inherit;-webkit-appearance:none}
+  #uebersicht.sucht>div[id^="liste"]{display:block!important}
+  #uebersicht.sucht>div[id^="liste"].leerg,#uebersicht.sucht>h2.leerg{display:none!important}
+  .einstz{display:block;width:100%;text-align:left;background:none;border:none;border-top:1px solid #e5e7eb;padding:16px 4px;font-size:18px;font-weight:600;color:var(--text);font-family:inherit}
+  .einstz small{display:block;font-size:13px;font-weight:400;color:#6b7280;margin-top:2px}
+  .einstz small:empty{display:none}
+  .statkopf{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .statjahre{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+  .statjahre button{border:2px solid var(--rand);background:#fff;border-radius:10px;padding:8px 14px;font-size:16px;font-weight:700;font-family:inherit;color:var(--text)}
+  .statjahre button.an{background:var(--text);border-color:var(--text);color:#fff}
+  .statkz{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:6px}
+  @media(min-width:600px){.statkz{grid-template-columns:repeat(4,1fr)}}
+  .statkz div{background:var(--grau);border-radius:12px;padding:10px 12px}
+  .statkz b{display:block;font-size:26px;font-variant-numeric:tabular-nums}
+  .statkz span{font-size:13px;color:#6b7280}
+  .stattab{width:100%;border-collapse:collapse;font-size:15px}
+  .stattab th{font-size:12px;color:#6b7280;font-weight:600;text-align:right;padding:4px 6px;border-bottom:2px solid var(--rand)}
+  .stattab th:first-child,.stattab td:first-child{text-align:left}
+  .stattab td{padding:7px 6px;border-bottom:1px solid #eef0f3;text-align:right;font-variant-numeric:tabular-nums}
+  .stattab td:first-child{font-weight:600}
+  .stattab .balken{display:block;height:6px;border-radius:3px;margin-top:4px;min-width:3px}
+  #statBox h3{margin:18px 0 6px;font-size:16px}
   .leiste .tab.neu{display:none}
   .leiste.asmodus .tab.neu{display:flex}
   .leiste.asmodus .tab.pdf{display:none}
@@ -382,6 +407,8 @@
 
   <!-- ÜBERSICHT -->
   <section id="uebersicht">
+    <div id="suchZeile" style="display:none"><input id="ueSuchFeld" type="text" placeholder="Stichwort, Ort, Datum, Art …" autocomplete="off" enterkeyhint="search"><button type="button" class="shzu" onclick="ueSuche(false)">×</button></div>
+    <div class="leer" id="suchLeer" style="display:none">Kein Treffer</div>
     <h2 class="klapp offen" data-gruppe="listeAktiv">Aktive Einsätze <span class="gz" id="gz_listeAktiv"></span></h2>
     <div id="listeAktiv"><div class="leer">Lade …</div></div>
     <h2 class="klapp offen" data-gruppe="listeUebung">Aktive Übungen <span class="gz" id="gz_listeUebung"></span></h2>
@@ -599,9 +626,11 @@
 </div>
 
 <div class="leiste" id="leisteUebersicht">
-  <button class="tab" onclick="logout()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4H6a1 1 0 00-1 1v14a1 1 0 001 1h4"/><path d="M15 8l4 4-4 4"/><path d="M19 12H10"/></svg><span class="lbl">Abmelden</span></button>
-  <button class="tab" id="adminBtn" style="display:none" onclick="adminOeffnen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6 1.2 0 2.3.3 3.3.7"/><path d="M18 13.5v6M15 16.5h6"/></svg><span class="lbl">Mitglieder</span></button>
-  <button class="tab pdf" onclick="neuerEinsatz()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span class="lbl">Neu</span></button>
+  <button class="tab" id="suchTab" onclick="ueSuche()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><span class="lbl">Suche</span></button>
+  <button class="tab" onclick="statOeffnen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16"/><path d="M7 20v-6M12 20V6M17 20v-9"/></svg><span class="lbl">Statistik</span></button>
+  <button class="tab" onclick="einstOeffnen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/></svg><span class="lbl">Optionen</span></button>
+  <button class="tab ueb" onclick="neuerEinsatz('Übung')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span class="lbl">Übung</span></button>
+  <button class="tab pdf" onclick="neuerEinsatz()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span class="lbl">Einsatz</span></button>
 </div>
 <div class="leiste" id="leisteEinsatz" style="display:none">
   <button class="tab" onclick="asOffen?zeigeAS(false):zeigeUebersicht()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span class="lbl" id="lblZurueck">Übersicht</span></button>
@@ -612,7 +641,22 @@
   <button class="tab pdf" id="pdfBtn" onclick="pdfErzeugen(this.querySelector('.lbl'))"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 001 1h12a1 1 0 001-1v-7"/></svg><span class="lbl">PDF teilen</span></button>
 </div>
 
-<div id="adminView" class="dialog" onclick="if(event.target===this)this.style.display='none'">
+<div id="einstDlg" class="dialog sheet" onclick="if(event.target===this)einstZu()">
+  <div class="box">
+    <div class="shkopf"><div><div class="shtitel">Einstellungen</div><div class="shsub" id="einstInfo"></div></div><button type="button" class="shzu" onclick="einstZu()">×</button></div>
+    <button type="button" class="einstz" onclick="einstMitglieder()">Mitgliederliste bearbeiten<small id="einstMHinweis"></small></button>
+    <div id="einstPw" style="display:none">
+      <div class="feingabe"><input id="adminPw" type="password" placeholder="Admin-Passwort" autocomplete="off" enterkeyhint="go"><button type="button" class="btn btn-rot" id="adminPwOk" onclick="einstFreischalten()">Öffnen</button></div>
+      <div class="hinweis" id="adminPwFehler" style="color:var(--rot)"></div>
+    </div>
+    <button type="button" class="einstz" onclick="einstZu();updatePruefen(true)">Nach neuer Version suchen</button>
+    <button type="button" class="einstz" onclick="einstZu();logout()">Abmelden</button>
+  </div>
+</div>
+<div id="statDlg" class="dialog" onclick="if(event.target===this)this.style.display='none'">
+  <div class="box" id="statBox"></div>
+</div>
+<div id="adminView" class="dialog" onclick="if(event.target===this)adminZu()">
   <div class="box">
     <h3 style="margin-top:0">Mitgliederliste</h3>
     <div class="hinweis" style="margin-bottom:8px">Nr., Name, Gruppe. Änderungen gelten sofort auf allen Tablets; angehakte Namen in alten Einsätzen bleiben über die Nr. erhalten.</div>
@@ -628,7 +672,7 @@
       <button class="btn btn-grau btn-klein" style="margin-top:6px" onclick="adminImport()">Einlesen</button>
     </div>
     <h3>Passwörter</h3>
-    <div class="hinweis">Passwörter werden in <code>config.php</code> am Webserver geändert.</div>
+    <div class="hinweis">Tablet- und Admin-Passwort werden im Supabase-Dashboard unter Authentication → Users geändert.</div>
   </div>
 </div>
 
@@ -702,6 +746,7 @@ const SB_URL="https://zukookhfrgmffottgrng.supabase.co";
 const SB_KEY="sb_publishable_BxYd15JCZpqIsENFxTZm1g_2OvYm3YO";
 const KONTEN={tablet:"tablet@einsatz.feuerwehr-auersthal.at",admin:"admin@einsatz.feuerwehr-auersthal.at"};
 const sb=window.supabase?window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}}):null;
+let sbAdmin=null;   // zweite, nicht gespeicherte Admin-Sitzung nur für die Mitgliederpflege
 function sbFehler(e){ const msg=(e&&(e.message||e.error_description||e.code))||"Fehler"; throw {code:e&&e.code||"sb",message:msg}; }
 function rolleAus(session){ return session&&session.user ? ((session.user.app_metadata||{}).rolle==="admin"?"admin":"user") : null; }
 async function mitgliederLaden(){ const {data,error}=await sb.from("mitglieder").select("nr,name,gruppe").order("name"); if(error)sbFehler(error); return data; }
@@ -744,7 +789,11 @@ async function api(a,body,opts={}){
       const {error}=await sb.storage.from("fotos").upload(pfad,blob,{contentType:"image/jpeg",upsert:false}); if(error)sbFehler(error); return {ok:true,id:pfad}; }
     case "fotoweg": { await sb.storage.from("fotos").remove([body.id]); return {ok:true}; }
     case "mitglieder": return {ok:true,mitglieder:await mitgliederLaden()};
-    case "mitglieder_speichern": { const {error}=await sb.rpc("mitglieder_setzen",{p_liste:body.mitglieder}); if(error)sbFehler(error); return {ok:true,mitglieder:await mitgliederLaden()}; }
+    case "admin_login": { const c=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false,storageKey:"ffa-admin-tmp"}});
+      const {data,error}=await c.auth.signInWithPassword({email:KONTEN.admin,password:body.pw}); if(error)throw {code:"falsch",message:error.message};
+      if(rolleAus(data.session)!=="admin"){ throw {code:"falsch",message:"kein Admin"}; } sbAdmin=c; return {ok:true}; }
+    case "admin_logout": { if(sbAdmin){ const c=sbAdmin; sbAdmin=null; try{await c.auth.signOut({scope:"local"})}catch(e){} } return {ok:true}; }
+    case "mitglieder_speichern": { const {error}=await (sbAdmin||sb).rpc("mitglieder_setzen",{p_liste:body.mitglieder}); if(error)sbFehler(error); return {ok:true,mitglieder:await mitgliederLaden()}; }
   }
   throw {code:"unbekannt",message:"Unbekannte Aktion "+a};
 }
@@ -804,7 +853,6 @@ async function start(){
     if(!me.rolle){zeigeLogin();return}
     rolle=me.rolle; mitgliederSetzen(me.mitglieder||[]);
     cache.rolle=rolle; if((me.mitglieder||[]).length)cache.mitglieder=me.mitglieder; cacheSpeichern();
-    $("adminBtn").style.display=rolle==="admin"?"":"none";
     $("loginView").style.display="none";
     if(letzteListe.length||warteschlange.length)zeichneUebersicht(mitQueue(letzteListe));
     let wiederOeffnen=null; try{wiederOeffnen=sessionStorage.getItem("ffa-offen");sessionStorage.removeItem("ffa-offen")}catch(e){}
@@ -830,7 +878,6 @@ async function login(ev){
     const r=await api("login",{pw:$("pw").value,konto});
     $("pw").value=""; rolle=r.rolle; mitgliederSetzen(r.mitglieder||[]);
     cache.rolle=rolle; cache.mitglieder=r.mitglieder||[]; cacheSpeichern();
-    $("adminBtn").style.display=rolle==="admin"?"":"none";
     $("loginView").style.display="none"; realtimeStarten(); pollen(); qAbarbeiten();
   }catch(e){ $("loginFehler").textContent=e.code==="falsch"?"Passwort falsch ("+(e.message||"")+")":"Fehler: "+(e.message||e.code||e); }
   finally{ clearTimeout(zeit); btn.disabled=false; btn.textContent="Anmelden"; }
@@ -875,7 +922,22 @@ async function pollen(){
   pollTimer=setTimeout(pollen, online?20000:8000);
 }
 
+let ueFilter="";
+function ueTreffer(e){
+  if(!ueFilter)return true;
+  const heu=[e.einsatz,e.art,kurz(e.art||""),ortText(e),datumDE(e.datum),e.datum,(e.fz||[]).join(" "),e.el&&NAMEN[e.el],Object.keys(e.ffs||{}).filter(n=>e.ffs[n]&&e.ffs[n].aktiv).join(" "),e.lage,e.massnahmen,e.bemerkung].filter(Boolean).join(" ").toLowerCase();
+  return ueFilter.split(/\s+/).every(w=>heu.includes(w));
+}
+function ueSuche(an){
+  const z=$("suchZeile"); if(an==null)an=z.style.display==="none";
+  z.style.display=an?"":"none"; $("suchTab").classList.toggle("an",an);
+  if(an){ $("scroller").scrollTop=0; $("ueSuchFeld").focus(); } else { $("ueSuchFeld").value=""; ueFiltern(); }
+}
+function ueFiltern(){ ueFilter=$("ueSuchFeld").value.trim().toLowerCase(); $("uebersicht").classList.toggle("sucht",!!ueFilter); zeichneUebersicht(mitQueue(letzteListe)); }
+$("ueSuchFeld").addEventListener("input",ueFiltern);
+$("ueSuchFeld").addEventListener("keydown",ev=>{if(ev.key==="Enter")ev.target.blur()});
 function zeichneUebersicht(alle){
+  if(ueFilter)alle=alle.filter(ueTreffer);
   const sortKey=e=>(e.datum||"")+" "+(e.ausfahrt||"")+" "+(e.erstellt||"");
   const absteigend=(a,b)=>sortKey(b).localeCompare(sortKey(a));
   const istUebung=e=>e.art==="Übung";
@@ -906,6 +968,8 @@ function zeichneUebersicht(alle){
   $("listeAlt").innerHTML=alt.length?alt.map(karte).join(""):'<div class="leer">Noch keine abgeschlossenen Einsätze</div>';
   $("listeUebung").innerHTML=ueb.length?ueb.map(karte).join(""):'<div class="leer">Keine aktive Übung</div>';
   $("listeUebungAlt").innerHTML=uebAlt.length?uebAlt.map(karte).join(""):'<div class="leer">Noch keine abgeschlossenen Übungen</div>';
+  [["listeAktiv",aktiv],["listeAlt",alt],["listeUebung",ueb],["listeUebungAlt",uebAlt]].forEach(([id,l])=>{ const leer=!!ueFilter&&!l.length; $(id).classList.toggle("leerg",leer); document.querySelector(`h2[data-gruppe="${id}"]`).classList.toggle("leerg",leer); });
+  $("suchLeer").style.display=ueFilter&&!alle.length?"":"none";
   $("gz_listeAktiv").textContent="("+aktiv.length+")";
   $("gz_listeAlt").textContent="("+alt.length+")";
   $("gz_listeUebung").textContent="("+ueb.length+")";
@@ -921,10 +985,10 @@ function kraefteBadges(e){
 }
 function anzahl(e){return Object.values(e.m||{}).filter(Boolean).length+Object.values(e.r||{}).filter(Boolean).length}
 
-function neuerEinsatz(){
+function neuerEinsatz(art){
   const now=new Date().toISOString();
   const id=neueUuid();
-  warteschlange.push({typ:"neu",id,data:{einsatz:"",ort:"",gemeinde:"Auersthal",ueberoertlich:false,wetter:[],temp:"",datum:heute(),ausfahrt:uhrzeit(),rueckkehr:"",rueckkehrDatum:"",fz:[],m:{},r:{},bemerkung:"",el:"",art:"",ffs:{},kraefte:{},unfallfz:{},personen:{},fotos:{},atemschutz:{},schaden:{},material:{},lage:"",massnahmen:"",uebergabe:"",brandwache:false,kostenpflichtig:false,status:"aktiv",erstellt:now,geaendert:now}});
+  warteschlange.push({typ:"neu",id,data:{einsatz:"",ort:"",gemeinde:"Auersthal",ueberoertlich:false,wetter:[],temp:"",datum:heute(),ausfahrt:uhrzeit(),rueckkehr:"",rueckkehrDatum:"",fz:[],m:{},r:{},bemerkung:"",el:"",art:art||"",ffs:{},kraefte:{},unfallfz:{},personen:{},fotos:{},atemschutz:{},schaden:{},material:{},lage:"",massnahmen:"",uebergabe:"",brandwache:false,kostenpflichtig:false,status:"aktiv",erstellt:now,geaendert:now}});
   qSpeichern(); syncAnzeige();
   oeffne(id); qAbarbeiten();
   setTimeout(()=>$("einsatz").focus(),200);
@@ -2059,6 +2123,58 @@ async function pdfErzeugen(btn,einsatz){
 }
 // ---------- Admin: Mitglieder ----------
 let adminMitglieder=[];
+function adminZu(){ $("adminView").style.display="none"; api("admin_logout",{}).catch(()=>{}); }
+function einstZu(){ $("einstDlg").style.display="none"; $("einstPw").style.display="none"; $("adminPw").value=""; $("adminPwFehler").textContent=""; }
+function einstOeffnen(){
+  $("einstInfo").textContent=(rolle==="admin"?"Angemeldet als Admin":"Angemeldet als Tablet")+(BUILD.startsWith("__")?"":" · Version "+BUILD);
+  $("einstMHinweis").textContent=rolle==="admin"?"":"Admin-Passwort erforderlich";
+  $("einstDlg").style.display="block";
+}
+function einstMitglieder(){
+  if(rolle==="admin"){ einstZu(); adminOeffnen(); return; }
+  $("einstPw").style.display=""; $("adminPw").focus();
+}
+async function einstFreischalten(){
+  const pw=$("adminPw").value; if(!pw)return; const b=$("adminPwOk"); b.disabled=true; $("adminPwFehler").textContent="";
+  try{ await api("admin_login",{pw}); einstZu(); await adminOeffnen(); }
+  catch(e){ $("adminPwFehler").textContent=e&&e.code==="falsch"?"Passwort stimmt nicht.":"Keine Verbindung – bitte später noch einmal."; }
+  finally{ b.disabled=false; }
+}
+$("adminPw").addEventListener("keydown",ev=>{if(ev.key==="Enter"){ev.preventDefault();einstFreischalten()}});
+
+// ---------- Statistik (aus der geladenen Einsatzliste, nichts wird gespeichert) ----------
+let statJahr=null;
+function einsatzMinuten(e){
+  if(!e.datum||!e.ausfahrt||!e.rueckkehr)return null;
+  const a=new Date(e.datum+"T"+e.ausfahrt), b=new Date((e.rueckkehrDatum||e.datum)+"T"+e.rueckkehr); if(isNaN(a)||isNaN(b))return null;
+  let min=(b-a)/60000; if(min<0&&!e.rueckkehrDatum)min+=1440; return min<0?null:min;
+}
+function stdText(min){ return (Math.round(min/6)/10).toLocaleString("de-AT",{minimumFractionDigits:1,maximumFractionDigits:1}); }
+function statOeffnen(){ statJahr=null; statZeichnen(); $("statDlg").style.display="block"; }
+function statZeichnen(){
+  const alle=mitQueue(letzteListe).filter(e=>e.datum), jahre=[...new Set(alle.map(e=>e.datum.slice(0,4)))].sort().reverse();
+  if(!statJahr||!jahre.includes(statJahr))statJahr=jahre[0]||String(new Date().getFullYear());
+  const l=alle.filter(e=>e.datum.slice(0,4)===statJahr), eins=l.filter(e=>e.art!=="Übung"), ueb=l.filter(e=>e.art==="Übung");
+  let minE=0, mannE=0, ohne=0; const arten={}, mitgl={};
+  l.forEach(e=>{ const min=einsatzMinuten(e), u=e.art==="Übung", nrs=Object.keys(e.m||{}).filter(k=>e.m[k]).concat(Object.keys(e.r||{}).filter(k=>e.r[k]));
+    if(min==null)ohne++;
+    if(!u){ minE+=min||0; mannE+=(min||0)*nrs.length; }
+    const a=arten[e.art||"Ohne Art"]||(arten[e.art||"Ohne Art"]={n:0,min:0}); a.n++; a.min+=min||0;
+    nrs.forEach(nr=>{ const m=mitgl[nr]||(mitgl[nr]={e:0,u:0,min:0}); u?m.u++:m.e++; m.min+=min||0; }); });
+  const artZ=Object.entries(arten).sort((x,y)=>y[1].n-x[1].n), maxA=Math.max(1,...artZ.map(x=>x[1].n));
+  const mZ=Object.entries(mitgl).sort((x,y)=>(y[1].e+y[1].u)-(x[1].e+x[1].u)||(NAMEN[x[0]]||"").localeCompare(NAMEN[y[0]]||"","de"));
+  $("statBox").innerHTML=`<div class="statkopf"><h3 style="margin:0;font-size:20px">Statistik</h3><button type="button" class="shzu" onclick="$('statDlg').style.display='none'">×</button></div>
+    <div class="statjahre">${jahre.map(j=>`<button type="button" data-statjahr="${j}" class="${j===statJahr?"an":""}">${j}</button>`).join("")}</div>
+    ${l.length?`<div class="statkz"><div><b>${eins.length}</b><span>Einsätze</span></div><div><b>${ueb.length}</b><span>Übungen</span></div><div><b>${stdText(minE)}</b><span>Einsatzstunden</span></div><div><b>${stdText(mannE)}</b><span>Mannstunden (Einsätze)</span></div></div>
+    <h3>Nach Art</h3>
+    <table class="stattab"><thead><tr><th>Art</th><th>Anzahl</th><th>Stunden</th></tr></thead><tbody>${artZ.map(([a,v])=>`<tr><td>${esc(a)}<span class="balken" style="width:${Math.round(v.n/maxA*100)}%;background:${ARTFARBEN[a]||"#9ca3af"}"></span></td><td>${v.n}</td><td>${stdText(v.min)}</td></tr>`).join("")}</tbody></table>
+    <h3>Beteiligung der Mitglieder</h3>
+    ${mZ.length?`<table class="stattab"><thead><tr><th>Mitglied</th><th>Einsätze</th><th>Übungen</th><th>Stunden</th></tr></thead><tbody>${mZ.map(([nr,v])=>`<tr><td>${esc(NAMEN[nr]||"Nr. "+nr)}</td><td>${v.e}</td><td>${v.u}</td><td>${stdText(v.min)}</td></tr>`).join("")}</tbody></table>`:'<div class="leer">Keine Mitglieder erfasst</div>'}
+    <div class="hinweis" style="margin-top:12px">Stunden = Ausfahrt bis Rückkehr. Mannstunden = Dauer × anwesende Mitglieder (Mannschaft und Reserve).${ohne?" "+ohne+" Eintr"+(ohne===1?"ag":"äge")+" ohne Rückkehrzeit zähl"+(ohne===1?"t":"en")+" mit 0 Stunden.":""}</div>`
+    :'<div class="leer">Noch keine Einsätze erfasst</div>'}`;
+}
+document.addEventListener("click",ev=>{ const b=ev.target.closest("[data-statjahr]"); if(b){ statJahr=b.dataset.statjahr; statZeichnen(); } });
+
 async function adminOeffnen(){
   try{const r=await api("mitglieder");adminMitglieder=r.mitglieder;}catch(e){setStatus("warn","Laden fehlgeschlagen");return}
   adminZeichnen(); $("adminView").style.display="block";
@@ -2085,7 +2201,7 @@ async function adminSpeichern(btn){
   const liste=adminMitglieder.filter(m=>m.nr&&m.name.trim());
   const nrs=liste.map(m=>m.nr); if(new Set(nrs).size!==nrs.length){setStatus("warn","Doppelte Nummern in der Liste.");return}
   btn.disabled=true;
-  try{const r=await api("mitglieder_speichern",{mitglieder:liste});mitgliederSetzen(r.mitglieder);if(aktuell)fuelleFormular(aktuell);$("adminView").style.display="none";setStatus("ok","Mitgliederliste gespeichert.");setTimeout(()=>setStatus("",""),3000)}
+  try{const r=await api("mitglieder_speichern",{mitglieder:liste});mitgliederSetzen(r.mitglieder);if(aktuell)fuelleFormular(aktuell);adminZu();setStatus("ok","Mitgliederliste gespeichert.");setTimeout(()=>setStatus("",""),3000)}
   catch(e){setStatus("warn","Speichern fehlgeschlagen ("+(e.message||e.code)+")")}finally{btn.disabled=false}
 }
 
@@ -2099,13 +2215,14 @@ function updateAnwenden(){
   try{ if(sessionStorage.getItem("ffa-reload")===neueVersion)return; sessionStorage.setItem("ffa-reload",neueVersion); if(aktuellId)sessionStorage.setItem("ffa-offen",aktuellId); if(asOffen)sessionStorage.setItem("ffa-as","1"); }catch(e){}
   location.reload();
 }
-async function updatePruefen(){
+async function updatePruefen(manuell){
+  const melde=t=>{ if(manuell===true){ setStatus("ok",t); setTimeout(()=>setStatus("",""),3000); } };
   if(BUILD.startsWith("__")||!location.protocol.startsWith("http"))return;
   try{
-    const r=await fetch("version.txt?t="+Date.now(),{cache:"no-store"}); if(!r.ok)return;
+    const r=await fetch("version.txt?t="+Date.now(),{cache:"no-store"}); if(!r.ok)return melde("Versionsprüfung nicht möglich.");
     const v=(await r.text()).trim();
-    if(v&&v!==BUILD){ neueVersion=v; updateAnwenden(); }
-  }catch(e){}
+    if(v&&v!==BUILD){ neueVersion=v; melde("Neue Version wird geladen …"); updateAnwenden(); } else melde("Die aktuelle Version ist installiert.");
+  }catch(e){ melde("Keine Verbindung – Versionsprüfung nicht möglich."); }
 }
 $("versionInfo").textContent=BUILD.startsWith("__")?"":"Version "+BUILD;
 setTimeout(updatePruefen,8000);
