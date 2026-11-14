@@ -1023,8 +1023,8 @@ document.addEventListener("change",ev=>{
   if(i.dataset.gem){ const u=i.dataset.gem==="ueber"; $("gemeinde").style.display=u?"":"none"; const gv=$("gemeinde").value; if(u&&gv==="Auersthal")$("gemeinde").value=""; schreibe({ueberoertlich:u, gemeinde:u?($("gemeinde").value||""):"Auersthal"}); if(u)setTimeout(()=>$("gemeinde").focus(),100); return; }
   if(i.dataset.wetter){ const w=WETTER.filter(x=>document.querySelector(`input[data-wetter="${x}"]`).checked); schreibe({wetter:w}); return; }
   if(i.type!=="checkbox")return;
-  if(i.dataset.ff){ const n=i.dataset.ff; const alt=(aktuell.ffs||{})[n]||{}; schreibe({ffs:{[n]:{aktiv:i.checked,fz:alt.fz||0,mann:alt.mann||0,extra:!!alt.extra}}}); return; }
-  if(i.dataset.stelle){ schreibe({kraefte:{stellen:{[i.dataset.stelle]:i.checked}}}); return; }
+  if(i.dataset.ff){ const n=i.dataset.ff; const alt=(aktuell.ffs||{})[n]||{}; schreibe(Object.assign({ffs:{[n]:{aktiv:i.checked,fz:alt.fz||0,mann:alt.mann||0,extra:!!alt.extra}}},tbAuto("a:ff:"+n,"FF "+n+" eingetroffen",i.checked))); return; }
+  if(i.dataset.stelle){ schreibe(Object.assign({kraefte:{stellen:{[i.dataset.stelle]:i.checked}}},tbAuto("a:st:"+i.dataset.stelle,i.dataset.stelle+" eingetroffen",i.checked))); return; }
   if(i.dataset.fz){
     const fz=FAHRZEUGE.filter(f=>document.querySelector(`input[data-fz="${f}"]`).checked);
     const patch={fz}, weg=i.dataset.fz;
@@ -1159,7 +1159,7 @@ document.addEventListener("click",ev=>{
   if(neu===alt)return;
   stepperWert(key,neu);
   if(key.startsWith("ff.")){ const [,name,feld]=key.split("."); schreibe({ffs:{[name]:{[feld]:neu}}}); }
-  else schreibe(patchAus(key,neu));
+  else schreibe(Object.assign(patchAus(key,neu),tbAutoZaehler(key,alt,neu)));
 });
 
 // Weitere Feuerwehren
@@ -1181,7 +1181,7 @@ function zeichneFF(e){
 function ffHinzu(){
   const n=$("ffNeu").value.trim().replace(/[.\/]/g,"-"); if(!n||!aktuell)return;
   $("ffNeu").value="";
-  schreibe({ffs:{[n]:{aktiv:true,extra:true,fz:0,mann:0}}});
+  schreibe(Object.assign({ffs:{[n]:{aktiv:true,extra:true,fz:0,mann:0}}},tbAuto("a:ff:"+n,"FF "+n+" eingetroffen",true)));
 }
 document.addEventListener("input",ev=>{
   const i=ev.target; if(!i.dataset||!i.dataset.ffnum||!aktuell)return;
@@ -1480,7 +1480,7 @@ function zeichneAS(e){
       <div class="astfunk">${lm?uhrS(lm.t).slice(0,5)+" · "+esc(lm.text)+(fm.length>1?" (+"+(fm.length-1)+")":""):"keine Meldungen"}</div></div>`; };
   // Protokoll: Start, Meldungen und Ende aller Trupps in zeitlicher Reihenfolge
   const prot=asProtokoll(e);
-  const protHtml=prot.map(x=>`<div class="fmeld ${x.art}"><span class="z">${uhrS(x.t)}</span><span class="tn">T${x.nr||"?"}</span><span class="t">${esc(x.text)}</span></div>`).join("");
+  const protHtml=prot.slice().reverse().map(x=>`<div class="fmeld ${x.art}"><span class="z">${uhrS(x.t)}</span><span class="tn">T${x.nr||"?"}</span><span class="t">${esc(x.text)}</span></div>`).join("");
   const akt=l.filter(t=>truppStatus(t)==="aktiv"), vor=l.filter(t=>truppStatus(t)==="vorb"), end=l.filter(t=>truppStatus(t)==="beendet").reverse();
   $("asInhalt").innerHTML=(l.length?"":`<div class="leer">Noch kein Trupp angelegt.<br>${asListe(e).length?"Mit „+ Trupp“ unten einen Trupp zusammenstellen.":"Zuerst im Einsatz bei der Mannschaft über „Atemschutz“ die Atemschutzträger auswählen."}</div>`)
     +(akt.length?`<h2>Im Einsatz (${akt.length})</h2><div class="asgrid">${akt.map(aktivKarte).join("")}</div>`:"")
@@ -1499,7 +1499,7 @@ function asDlgZu(){ asDlgTid=null; $("asTruppDlg").style.display="none"; }
 function asDlgZeichnen(nurListe){
   const e=aktuell, t=e&&asDlgTid&&(e.asTrupps||{})[asDlgTid]; if(!t){ asDlgZu(); return; }
   const st=truppStatus(t), m=t.mitglieder||{}, zu=e.status==="abgeschlossen", fm=funkListe(t);
-  const liste=fm.length?fm.map(x=>`<div class="fmeld"><span class="z">${uhrS(x.t)}</span><span class="t">${esc(x.text)}</span>${zu?"":`<button type="button" class="x" data-funkweg="${x.id}">×</button>`}</div>`).join(""):'<div class="leer" style="padding:14px">Noch keine Meldung vom Trupp</div>';
+  const liste=fm.length?fm.slice().reverse().map(x=>`<div class="fmeld"><span class="z">${uhrS(x.t)}</span><span class="t">${esc(x.text)}</span>${zu?"":`<button type="button" class="x" data-funkweg="${x.id}">×</button>`}</div>`).join(""):'<div class="leer" style="padding:14px">Noch keine Meldung vom Trupp</div>';
   if(nurListe&&$("funkListe")){ $("funkListe").innerHTML=liste; return; }
   $("asTruppBox").innerHTML=`<div class="shkopf"><div><div class="shtitel">Trupp ${t.nr||""} ${st==="aktiv"?`· <span class="astimer" style="font-size:22px" data-timer="${t.start}">${dauerText(Date.now()-new Date(t.start))}</span>`:""}</div>
       <div class="shsub">${st==="aktiv"?"ab "+uhr(t.start):uhr(t.start)+"–"+uhr(t.ende)+" ("+dauerText(new Date(t.ende)-new Date(t.start))+")"} · ${truppMitgl(t).map(nr=>esc(NAMEN[nr]?kurzName(NAMEN[nr]):asName(nr))+` <span class="dw ${druckKlasse(m[nr].druck,nennVon(m[nr]))}">${m[nr].druck||"–"}${nennVon(m[nr])===200?"/200":""}</span>`).join(", ")}${t.auftrag?" · "+esc(t.auftrag):""}</div></div>
@@ -1512,7 +1512,7 @@ function asDlgZeichnen(nurListe){
 function funkEintragen(text){
   text=(text||"").trim(); if(!text||!aktuell||!asDlgTid||aktuell.status==="abgeschlossen")return;
   schreibe({asTrupps:{[asDlgTid]:{meldungen:{["f"+Date.now().toString(36)]:{t:new Date().toISOString(),text}}}}});
-  const l=$("funkListe"); if(l)l.scrollTop=l.scrollHeight;
+  const l=$("funkListe"); if(l)l.scrollTop=0;
 }
 document.addEventListener("click",ev=>{
   if(!aktuell)return;
@@ -1543,6 +1543,15 @@ function asProtokoll(e){
 // ---------- Einsatztagebuch: tagebuch{id:{t,text}} + Trupp-Protokoll, chronologisch ----------
 const TB_SCHNELL=["Eintreffen am Einsatzort","Lage erkundet","Menschenrettung","Brand unter Kontrolle","Brand aus","Einrücken"];
 $("tbSchnell").innerHTML=TB_SCHNELL.map(x=>`<button type="button" data-tbschnell="${x}">${x}</button>`).join("");
+// Automatische Einträge „… eingetroffen“ beim Anwählen weiterer Feuerwehren / Kräfte.
+// Feste IDs (a:<art>:<name>[:n]), damit das Abwählen den Eintrag wieder entfernt.
+const RETT_NAME={NAH:"Notarzthubschrauber",NEF:"Notarztfahrzeug",RTW:"Rettungsfahrzeug",Arzt:"Arzt",FR:"First Responder"};
+function tbAuto(id,text,an){ return {tagebuch:{[id]:an?{t:new Date().toISOString(),text,auto:true}:null}}; }
+function tbAutoZaehler(key,alt,neu){ // Zähler erhöht → Eintrag für die n-te Einheit, verringert → dessen Eintrag wieder weg
+  let name=null; if(key==="kraefte.polizei")name="Polizei"; else if(key.startsWith("kraefte.rettung."))name=RETT_NAME[key.split(".")[2]]||key.split(".")[2];
+  if(!name)return {};
+  return neu>alt?tbAuto("a:"+key+":"+neu,(neu>1?neu+". ":"")+name+" eingetroffen",true):tbAuto("a:"+key+":"+alt,"",false);
+}
 function tbListe(e){
   const tb=e.tagebuch||{};
   const eigene=Object.keys(tb).filter(k=>tb[k]).map(k=>({id:k,t:tb[k].t,text:tb[k].text,art:"tb"}));
