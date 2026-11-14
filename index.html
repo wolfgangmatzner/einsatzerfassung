@@ -175,7 +175,8 @@
   .tmchip{display:inline-flex;align-items:center;gap:5px;border:2px solid #fca5a5;border-radius:10px;padding:0 8px;height:44px;font-weight:700;font-size:13px;cursor:pointer;user-select:none;background:#fff;white-space:nowrap}
   .tmchip input{display:none}
   .tmchip:has(input:checked){background:#dcfce7;border-color:var(--gruen);color:#166534}
-  .tmchip:has(input:checked)::before{content:"✓";font-weight:800}
+  .tmchip::before{content:"✓";font-weight:800;visibility:hidden}
+  .tmchip:has(input:checked)::before{visibility:visible}
   .astakt{display:flex;gap:8px;margin-top:10px;align-items:center}
   .astakt .btn{height:44px;padding:0 14px;font-size:15px}
   .astakt input{flex:1;min-width:0;height:44px;font-size:15px;padding:0 10px;border:2px solid var(--rand);border-radius:10px;font-family:inherit}
@@ -1419,7 +1420,7 @@ function zeichneAS(e){
       <div class="astzeit">ab ${uhr(t.start)}${t.auftrag?" · "+esc(t.auftrag):""}</div>
       <div class="astl">${truppMitgl(t).map(nr=>`<div><span>${esc(kn(nr))}</span><span class="dw ${druckKlasse(m[nr].druck,nennVon(m[nr]))}">${m[nr].druck||"–"} bar${nennVon(m[nr])===200?" (200er)":""}</span></div>`).join("")}</div>
       <div class="astfunk">${lm?uhrS(lm.t).slice(0,5)+" · "+esc(lm.text)+(fm.length>1?" (+"+(fm.length-1)+")":""):"Antippen für Meldung"}</div>
-      ${zu?"":`<button type="button" class="btn btn-rot" data-asende="${t.id}">■ Zurück</button>`}</div>`; };
+      ${zu?"":`<button type="button" class="btn btn-rot" data-asende="${t.id}">■ Trupp Ende</button>`}</div>`; };
   // Trupp in Vorbereitung: Schritt 1 Mitglieder wählen, erst danach Schritt 2 Druck + Totmannwarner
   const vorbKarte=t=>{ const m=t.mitglieder||{}, ml=truppMitgl(t), voll=ml.length>=TRUPPGROESSE;
     if(!voll){
@@ -1540,7 +1541,7 @@ document.addEventListener("click",ev=>{
     schreibe({asTrupps:{[tid]:{mitglieder:{[nr]:{pos,druck:"",tm:false}}}}}); }
   else if(d.asrm){ const [tid,nr]=d.asrm.split("|"); schreibe({asTrupps:{[tid]:{mitglieder:{[nr]:null}}}}); }
   else if(d.asstart){ const t=T[d.asstart]; if(!t||!truppBereit(t)||t.start)return; schreibe({asTrupps:{[d.asstart]:{start:new Date().toISOString()}}}); }
-  else if(d.asende){ const t=T[d.asende]; if(!t)return; frage("Trupp "+(t.nr||"")+" ist zurück? Der Timer wird gestoppt und der Trupp als beendet eingetragen.",()=>schreibe({asTrupps:{[d.asende]:{ende:new Date().toISOString()}}}),"Trupp beenden"); }
+  else if(d.asende){ const t=T[d.asende]; if(!t)return; frage("Trupp "+(t.nr||"")+" beenden? Der Timer wird gestoppt und der Trupp als beendet eingetragen.",()=>schreibe({asTrupps:{[d.asende]:{ende:new Date().toISOString()}}}),"Trupp beenden"); }
   else if(d.asdel){ const t=T[d.asdel]; if(!t)return; const weg=()=>schreibe({asTrupps:{[d.asdel]:null}}); if(truppMitgl(t).length)frage("Trupp "+(t.nr||"")+" verwerfen? Die Eingaben dieses Trupps gehen verloren.",weg,"Verwerfen"); else weg(); }
 });
 document.addEventListener("change",ev=>{ const i=ev.target; if(!i.dataset||!i.dataset.astm||!aktuell)return; const [tid,nr]=i.dataset.astm.split("|"); schreibe({asTrupps:{[tid]:{mitglieder:{[nr]:{tm:i.checked}}}}}); });
