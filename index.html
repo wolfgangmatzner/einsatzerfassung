@@ -872,10 +872,16 @@ document.addEventListener("change",ev=>{
   if(i.dataset.fz){
     const fz=FAHRZEUGE.filter(f=>document.querySelector(`input[data-fz="${f}"]`).checked);
     const patch={fz}, weg=i.dataset.fz;
-    if(!i.checked){ // Fahrzeug abgewählt: Zuteilungen dazu auflösen
-      const zt=aktuell.zuteilung||{}, nrs=Object.keys(zt).filter(n=>zt[n]===weg);
-      if(nrs.length){patch.zuteilung={};nrs.forEach(n=>patch.zuteilung[n]=null)}
+    if(!i.checked){ // Fahrzeug abgewählt: Zuteilungen dazu auflösen – vorher nachfragen
+      const zt=aktuell.zuteilung||{}, nrs=Object.keys(zt).filter(n=>zt[n]===weg&&((aktuell.m||{})[n]||(aktuell.r||{})[n]));
+      const alle=Object.keys(zt).filter(n=>zt[n]===weg);
+      if(alle.length){patch.zuteilung={};alle.forEach(n=>patch.zuteilung[n]=null)}
       if((aktuell.fzRollen||{})[weg])patch.fzRollen={[weg]:null};
+      if(nrs.length){
+        i.checked=true;   // erst nach Bestätigung abwählen
+        frage(weg+" abwählen? Dem Fahrzeug "+(nrs.length===1?"ist 1 Mitglied":"sind "+nrs.length+" Mitglieder")+" zugeteilt – die Zuteilung (samt MA/GK) geht dabei verloren. Die Mitglieder bleiben angehakt.",()=>schreibe(patch),"Abwählen");
+        return;
+      }
     }
     schreibe(patch);
   }else if(i.dataset.gruppe){
