@@ -1209,8 +1209,8 @@ function zeichneZuteil(e){
   $("zuteilChips").innerHTML=fz.map(f=>{ const n=Object.keys(zt).filter(nr=>zt[nr]===f&&istDa(e,nr)).length; return `<button type="button" class="chip ${zuteilFz===f?"an":""}" data-zfz="${f}">${f}${n?" · "+n:""}</button>`; }).join("")
     +`<button type="button" class="chip as ${zuteilFz===AS?"an":""}" data-zfz="${AS}">Atemschutz${nAs?" · "+nAs:""}</button>`;
   const h=$("zuteilHinweis"); h.style.display=zuteilFz?"":"none"; h.classList.toggle("as",zuteilFz===AS);
-  if(zuteilFz===AS)h.innerHTML="<b>Atemschutz</b> gewählt: Mitglieder antippen = Atemschutzträger / wieder lösen (unabhängig vom Fahrzeug). „Atemschutz“ nochmal antippen = fertig.";
-  else if(zuteilFz)h.innerHTML="<b>"+esc(zuteilFz)+"</b> gewählt: Mitglieder antippen = zuteilen / wieder lösen. Lang drücken = Maschinist (MA), nochmal lang = Gruppenkommandant (GK). Fahrzeug nochmal antippen = fertig.";
+  if(zuteilFz===AS)h.innerHTML="<b>Atemschutz</b> gewählt: Namen antippen = Atemschutzträger / wieder lösen (unabhängig vom Fahrzeug). Haken vorne antippen = Mitglied ganz abmelden. „Atemschutz“ nochmal antippen = fertig.";
+  else if(zuteilFz)h.innerHTML="<b>"+esc(zuteilFz)+"</b> gewählt: Namen antippen = zuteilen / wieder lösen. Haken vorne antippen = Mitglied ganz abmelden. Lang drücken = Maschinist (MA), nochmal lang = Gruppenkommandant (GK). Fahrzeug nochmal antippen = fertig.";
   document.querySelectorAll(".person").forEach(p=>{
     const nr=p.querySelector("input").dataset.nr, da=istDa(e,nr), f=da&&fz.includes(zt[nr])?zt[nr]:"";
     const ro=f?rolleVon(e,nr):"", istAs=da&&!!as[nr];
@@ -1287,6 +1287,7 @@ document.addEventListener("click",ev=>{ if(kpAusgeloest){ kpAusgeloest=false; if
 document.addEventListener("click",ev=>{
   const p=ev.target.closest(".person"); if(!p)return;
   if(lpAusgeloest){ev.preventDefault();ev.stopPropagation();lpAusgeloest=false;return}
+  if(ev.target.matches('input[type="checkbox"]'))return;   // Tipp direkt auf den Haken: immer an-/abmelden, auch im Zuteil-Modus
   if(zuteilFz&&aktuell&&aktuell.status!=="abgeschlossen"){ ev.preventDefault();ev.stopPropagation(); zuteilTipp(p); }
 },true);
 
