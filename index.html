@@ -460,9 +460,9 @@
       <div id="polizei"></div>
       <div style="font-weight:700;margin:16px 0 6px">Sonstige Stellen</div>
       <div class="chips raster2" id="stellen"></div>
-      <label class="feld" style="margin-top:12px">Weitere Kräfte / Anmerkung
-        <input id="krSonst" type="text" placeholder="z. B. Tierarzt, Bestatter …" autocomplete="off">
-      </label>
+      <div style="font-weight:700;margin:16px 0 0">Weitere Kräfte</div>
+      <div class="neuff" style="margin-top:6px"><input id="krSonst" type="text" placeholder="z. B. Tierarzt, Bestatter …" autocomplete="off" enterkeyhint="done"><button class="btn btn-grau btn-klein" onclick="krHinzu()">Hinzufügen</button></div>
+      <div id="krListe"></div>
     </div>
 
     <h2 class="klapp" data-ziel="secAS">Atemschutz</h2>
@@ -1141,7 +1141,7 @@ function zusammenfassung(ziel,e){
     case "secMann": { const m=namenListe(e.m,MANNSCHAFT).map(x=>kurzName(x.replace(/^\d+\s+/,""))); return m.length?(e.el&&NAMEN[e.el]?"EL "+kurzName(NAMEN[e.el])+" · ":"")+liste(m,5):""; }
     case "reserve": { const r=namenListe(e.r,RESERVE).map(x=>kurzName(x.replace(/^\d+\s+/,""))); return liste(r,5); }
     case "secFF": { const ffs=e.ffs||{},akt=ffListe(e).filter(n=>ffs[n]&&ffs[n].aktiv); return liste(akt.map(n=>n+(ffFzText(ffs[n])?" ("+ffFzText(ffs[n])+")":(+ffs[n].fz||+ffs[n].mann)?" ("+(ffs[n].fz||0)+" Fzg/"+(ffs[n].mann||0)+")":"")),3); }
-    case "secKr": { const k=e.kraefte||{};const z=[];RETTUNG.forEach(([key])=>{const v=+tief(k,"rettung."+key)||0;if(v)z.push(v+"× "+key)});if(+k.polizei)z.push("Polizei "+k.polizei);Object.keys(k.stellen||{}).filter(x=>k.stellen[x]).forEach(x=>z.push(STELLEN_KURZ[x]||x));if(k.sonst)z.push(k.sonst);return liste(z,6); }
+    case "secKr": { const k=e.kraefte||{};const z=[];RETTUNG.forEach(([key])=>{const v=+tief(k,"rettung."+key)||0;if(v)z.push(v+"× "+key)});if(+k.polizei)z.push("Polizei "+k.polizei);Object.keys(k.stellen||{}).filter(x=>k.stellen[x]).forEach(x=>z.push(STELLEN_KURZ[x]||x));krWeitere(e).forEach(x=>z.push(x.text));return liste(z,6); }
     case "secUf": return liste(ufListe(e).map(f=>f.kennzeichen||f.marke||"Fahrzeug"),4);
     case "secPers": return liste(persListe(e).map(f=>(f.name||"Person")+(f.rolle?" ("+f.rolle.replace(/\/.*$/,"")+")":"")),3);
     case "secDoku": { const n=dokuListe(e).length; return n?n+" Foto"+(n>1?"s":""):""; }
@@ -1451,11 +1451,24 @@ function zeichneKr(e){
   ["lage","massnahmen","uebergabe"].forEach(k=>{if(document.activeElement!==$(k))$(k).value=e[k]||""});
   document.querySelectorAll("input[data-flag]").forEach(i=>i.checked=!!e[i.dataset.flag]);
   document.querySelectorAll("input[data-stelle]").forEach(i=>i.checked=!!(k.stellen||{})[i.dataset.stelle]);
-  if(document.activeElement!==$("krSonst"))$("krSonst").value=k.sonst||"";
-  const n=RETTUNG.reduce((a,[key])=>a+(+tief(k,"rettung."+key)||0),0)+(+k.polizei||0)+Object.values(k.stellen||{}).filter(Boolean).length+(k.sonst?1:0);
+  const kw=krWeitere(e), zu=e.status==="abgeschlossen";
+  $("krListe").innerHTML=kw.map(x=>`<div class="fmeld"><span class="z">${x.t?uhr(x.t):"–"}</span><span class="t" style="font-weight:600">${esc(x.text)}</span>${zu?"":`<button type="button" class="x" data-krweg="${esc(x.id)}">×</button>`}</div>`).join("");
+  const n=RETTUNG.reduce((a,[key])=>a+(+tief(k,"rettung."+key)||0),0)+(+k.polizei||0)+Object.values(k.stellen||{}).filter(Boolean).length+kw.length;
   $("anzKr").textContent=n?`(${n})`:"";
 }
-$("krSonst").addEventListener("input",()=>{clearTimeout(textTimer.krSonst);textTimer.krSonst=setTimeout(()=>{if(aktuell&&((aktuell.kraefte||{}).sonst||"")!==$("krSonst").value)schreibe({kraefte:{sonst:$("krSonst").value}})},500)});
+// Frei eingetragene weitere Kräfte: kraefte.weitere{id:{text,t}} (+ Altfeld kraefte.sonst als ein Eintrag), je ein Tagebucheintrag „… eingetroffen“
+function krWeitere(e){ const k=(e&&e.kraefte)||{}; return (k.sonst?[{id:"sonst",text:k.sonst,t:""}]:[]).concat(Object.entries(k.weitere||{}).filter(([,v])=>v&&v.text).map(([id,v])=>({id,text:v.text,t:v.t||""})).sort((x,y)=>x.t<y.t?-1:x.t>y.t?1:0)); }
+function krHinzu(){
+  const text=$("krSonst").value.trim(); if(!text||!aktuell||aktuell.status==="abgeschlossen")return;
+  $("krSonst").value=""; const id="k"+Date.now().toString(36), t=new Date().toISOString();
+  schreibe({kraefte:{weitere:{[id]:{text,t}}},tagebuch:{["a:kw:"+id]:{t,text:text+" eingetroffen",auto:true}}});
+}
+$("krSonst").addEventListener("keydown",ev=>{if(ev.key==="Enter"){ev.preventDefault();krHinzu()}});
+document.addEventListener("click",ev=>{
+  const b=ev.target.closest("[data-krweg]"); if(!b||!aktuell||aktuell.status==="abgeschlossen")return;
+  const id=b.dataset.krweg;
+  schreibe(id==="sonst"?{kraefte:{sonst:""}}:{kraefte:{weitere:{[id]:null}},tagebuch:{["a:kw:"+id]:null}});
+});
 
 // ---------- Fahrzeug-Zuteilung (optional) ----------
 // Daten: zuteilung{nr:"HLF3"}, fzRollen{HLF3:{ma:nr,gk:nr}}; zuteilFz = gerade gewähltes Fahrzeug (nur Anzeige-Zustand)
@@ -1919,7 +1932,7 @@ function textErzeugen(e){
   RETTUNG.forEach(([key,l])=>{const v=+tief(k,"rettung."+key)||0; if(v)kz.push(v+"× "+key+" ("+l+")")});
   if(+k.polizei)kz.push("Polizei: "+k.polizei+" Streife"+(k.polizei>1?"n":""));
   Object.keys(k.stellen||{}).filter(x=>k.stellen[x]).forEach(x=>kz.push(x));
-  if(k.sonst)kz.push(k.sonst);
+  krWeitere(e).forEach(x=>kz.push(x.text));
   if(kz.length) t+="\nWEITERE KRÄFTE:\n"+kz.join("\n")+"\n";
   const uf=ufListe(e);
   if(uf.length){ t+="\nUNFALLFAHRZEUGE ("+uf.length+"):\n"+uf.map((f,i)=>"Fahrzeug "+(i+1)+": "+[f.kennzeichen,f.marke].filter(Boolean).join(" – ")+(f.lenker?" | Lenker/in: "+f.lenker:"")+(f.anm?" | "+f.anm:"")+" | Fotos: "+(Object.values(f.fotos||{}).filter(Boolean).length)+" (in der Einsatzerfassung)").join("\n")+"\n"; }
@@ -1985,7 +1998,7 @@ async function pdfErzeugen(btn,einsatz){
     RETTUNG.forEach(([key,l])=>{const v=+tief(k,"rettung."+key)||0;if(v)kz.push(v+"× "+key+" ("+l+")")});
     if(+k.polizei)kz.push("Polizei: "+k.polizei+" Streife"+(k.polizei>1?"n":""));
     Object.keys(k.stellen||{}).filter(x=>k.stellen[x]).forEach(x=>kz.push(x));
-    if(k.sonst)kz.push(k.sonst);
+    krWeitere(e).forEach(x=>kz.push(x.text));
     if(kz.length){H("Weitere Kräfte");kz.forEach(z=>P("• "+z))}
     if(zusammenfassung("secAS",e)){H("Atemschutz");const a=asZahlen(e);const tr=asListe(e);if(tr.length)KV("Atemschutzträger ("+tr.length+")",tr.map(nr=>NAMEN[nr]).join(", "));
       asTrupps(e).filter(t=>t.start).forEach(t=>{ const mm=t.mitglieder||{}; KV("Trupp "+(t.nr||""),truppMitgl(t).map(nr=>asName(nr)+" ("+(mm[nr].druck||"–")+" bar"+(nennVon(mm[nr])===200?", 200er":"")+")").join(", ")+" · "+uhr(t.start)+"–"+(t.ende?uhr(t.ende)+" Uhr ("+Math.round((new Date(t.ende)-new Date(t.start))/60000)+" min)":"läuft")+(t.auftrag?" · "+t.auftrag:"")); funkListe(t).forEach(x=>{ check(6); doc.setFont("helvetica","normal"); doc.setFontSize(10); const ln=doc.splitTextToSize(uhrS(x.t)+"  "+x.text,R-L-50); doc.text(ln,L+50,y); y+=ln.length*4.8; }); y+=1; });KV("Trupps",a.trupps);KV("Träger",a.traeger);KV("Geräte",a.geraete)}
