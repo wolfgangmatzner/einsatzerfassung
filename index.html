@@ -140,6 +140,7 @@
   .asprot{margin-bottom:4px}
   .asprot .fmeld{font-size:15px;padding:6px 0}
   #tbListe .fmeld.tb .t{font-weight:600}
+  #tbListe .fmeld.sys .t{font-weight:600;color:#1d4ed8}
   #tbEingabe .fschnell{margin:4px 0 8px}
   .asprot .fmeld .tn{flex:none;font-size:12px;font-weight:800;background:#ffedd5;color:#9a3412;border-radius:5px;padding:1px 6px}
   .asprot .fmeld.start .t,.asprot .fmeld.ende .t{color:#6b7280}
@@ -1126,7 +1127,7 @@ function zusammenfassung(ziel,e){
     case "secAS": { const a=asZahlen(e);const z=[];const tr=asListe(e);const lauf=asTrupps(e).filter(t=>truppStatus(t)==="aktiv").length;if(lauf)z.push(lauf+" Trupp"+(lauf>1?"s":"")+" im Einsatz");const fertig=asTrupps(e).filter(t=>truppStatus(t)==="beendet").length;if(fertig)z.push(fertig+" Trupp"+(fertig>1?"s":"")+" beendet");if(tr.length)z.push("AS: "+(tr.length<=4?tr.map(nr=>kurzName(NAMEN[nr])).join(", "):tr.length+" Träger gewählt"));if(+a.trupps)z.push(a.trupps+" Trupp"+(a.trupps>1?"s":""));if(+a.traeger)z.push(a.traeger+" Träger");if(+a.geraete)z.push(a.geraete+" Geräte");return z.join(", "); }
     case "secSchaden": { const a=e.schaden||{};const z=[];[["gerettet","gerettet"],["geborgen","geborgen"],["verletzt","verletzt"],["tot","tot"],["tiere","Tiere"]].forEach(([k,l])=>{if(+a[k])z.push(a[k]+" "+l)});return z.join(", "); }
     case "secMat": { const m=e.material||{};const z=[];if(+m.oel)z.push(m.oel+" kg Ölbindemittel");if(+m.schaum)z.push(m.schaum+" l Schaummittel");if(+m.wasser)z.push(m.wasser+" l Löschwasser");if(m.sonst)z.push(m.sonst);return z.join(", "); }
-    case "secTb": { const l=tbListe(e), x=l[l.length-1]; return x?l.length+" Einträge · zuletzt "+uhrS(x.t).slice(0,5)+" "+(x.art==="tb"?"":"Trupp "+(x.nr||"?")+": ")+x.text.slice(0,50):""; }
+    case "secTb": { const l=tbListe(e), x=l[l.length-1]; return x?l.length+" Einträge · zuletzt "+uhrS(x.t).slice(0,5)+" "+(x.nr==null?"":"Trupp "+x.nr+": ")+x.text.slice(0,50):""; }
     case "secMass": { const z=[];const t=(e.lage||e.massnahmen||"").trim().split("\n")[0];if(t)z.push(t.slice(0,70)+(t.length>70?" …":""));if(e.uebergabe)z.push("Übergabe: "+e.uebergabe);if(e.brandwache)z.push("Brandwache");if(e.kostenpflichtig)z.push("kostenpflichtig");return z.join(" · "); }
   }
   return "";
@@ -1566,13 +1567,18 @@ function tbAutoZaehler(key,alt,neu){ // Zähler erhöht → Eintrag für die n-t
 function tbListe(e){
   const tb=e.tagebuch||{};
   const eigene=Object.keys(tb).filter(k=>tb[k]).map(k=>({id:k,t:tb[k].t,text:tb[k].text,art:"tb"}));
-  return eigene.concat(asProtokoll(e)).sort((a,b)=>(a.t||"").localeCompare(b.t||""));
+  // Ausfahrt und Rückkehr kommen direkt aus den Zeitfeldern des Einsatzes (immer aktuell, daher nicht löschbar)
+  const zeit=(datum,uhrzeit)=>{ if(!datum||!uhrzeit)return null; const d=new Date(datum+"T"+uhrzeit+":00"); return isNaN(d)?null:d.toISOString(); };
+  const sys=[]; const ta=zeit(e.datum,e.ausfahrt), tr=zeit(e.rueckkehrDatum||e.datum,e.rueckkehr);
+  if(ta)sys.push({t:ta,text:"Ausfahrt"+((e.fz||[]).length?" · "+e.fz.join(", "):""),art:"sys"});
+  if(tr)sys.push({t:tr,text:"Rückkehr",art:"sys"});
+  return eigene.concat(sys,asProtokoll(e)).sort((a,b)=>(a.t||"").localeCompare(b.t||""));
 }
 function zeichneTb(e){
   const l=tbListe(e), zu=e.status==="abgeschlossen";
   $("anzTb").textContent=l.length?"("+l.length+")":"";
   $("tbEingabe").style.display=zu?"none":"";
-  setzeHtml($("tbListe"),l.length?l.slice().reverse().map(x=>`<div class="fmeld ${x.art}"><span class="z">${uhrS(x.t)}</span>${x.art==="tb"?"":`<span class="tn">Trupp ${x.nr||"?"}</span>`}<span class="t">${esc(x.text)}</span>${x.art==="tb"&&!zu?`<button type="button" class="x" data-tbweg="${x.id}">×</button>`:""}</div>`).join(""):'<div class="leer" style="padding:10px">Noch kein Eintrag</div>');
+  setzeHtml($("tbListe"),l.length?l.slice().reverse().map(x=>`<div class="fmeld ${x.art}"><span class="z">${uhrS(x.t)}</span>${x.nr==null?"":`<span class="tn">Trupp ${x.nr}</span>`}<span class="t">${esc(x.text)}</span>${x.art==="tb"&&!zu?`<button type="button" class="x" data-tbweg="${x.id}">×</button>`:""}</div>`).join(""):'<div class="leer" style="padding:10px">Noch kein Eintrag</div>');
 }
 function tbEintragen(text){
   text=(text||"").trim(); if(!text||!aktuell||aktuell.status==="abgeschlossen")return;
@@ -1882,7 +1888,7 @@ async function pdfErzeugen(btn,einsatz){
     if(uf.length){H("Unfallfahrzeuge ("+uf.length+")");uf.forEach((f,i)=>{doc.setFont("helvetica","bold");doc.setFontSize(10.5);check(6);doc.text("Fahrzeug "+(i+1),L,y);y+=5.5;KV("Kennzeichen",f.kennzeichen);KV("Marke / Type",f.marke);KV("Lenker/in",f.lenker);KV("Anmerkung",f.anm);y+=2})}
     const pers=persListe(e);
     if(pers.length){H("Beteiligte / Geschädigte ("+pers.length+")");pers.forEach((f,i)=>{doc.setFont("helvetica","bold");doc.setFontSize(10.5);check(6);doc.text("Person "+(i+1)+(f.rolle?" – "+f.rolle:""),L,y);y+=5.5;KV("Name",f.name);KV("Adresse / Telefon",f.kontakt);KV("Anmerkung",f.anm);y+=2})}
-    { const tbl=tbListe(e); if(tbl.length){ H(stamm(e)+"tagebuch"); tbl.forEach(x=>{ doc.setFont("helvetica","normal"); doc.setFontSize(10); const ln=doc.splitTextToSize((x.art==="tb"?"":"Trupp "+(x.nr||"?")+": ")+x.text,R-L-24); check(ln.length*4.8+1); doc.setFont("helvetica","bold"); doc.text(uhrS(x.t),L,y); doc.setFont("helvetica","normal"); doc.text(ln,L+24,y); y+=ln.length*4.8+1; }); } }
+    { const tbl=tbListe(e); if(tbl.length){ H(stamm(e)+"tagebuch"); tbl.forEach(x=>{ doc.setFont("helvetica","normal"); doc.setFontSize(10); const ln=doc.splitTextToSize((x.nr==null?"":"Trupp "+x.nr+": ")+x.text,R-L-24); check(ln.length*4.8+1); doc.setFont("helvetica","bold"); doc.text(uhrS(x.t),L,y); doc.setFont("helvetica","normal"); doc.text(ln,L+24,y); y+=ln.length*4.8+1; }); } }
     if(zusammenfassung("secMass",e)){H("Lage und Maßnahmen");
       if((e.lage||"").trim()){doc.setFont("helvetica","bold");doc.setFontSize(10.5);check(6);doc.text("Lage beim Eintreffen",L,y);y+=5.5;P(e.lage.trim());y+=2}
       if((e.massnahmen||"").trim()){doc.setFont("helvetica","bold");doc.setFontSize(10.5);check(6);doc.text("Gesetzte Maßnahmen",L,y);y+=5.5;P(e.massnahmen.trim());y+=2}
