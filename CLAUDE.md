@@ -14,7 +14,7 @@ Tablet-Web-App (PWA) der Freiwilligen Feuerwehr Auersthal zur Einsatzerfassung. 
 Live: https://wolfgangmatzner.github.io/einsatzerfassung/ · Supabase-Projekt `zukookhfrgmffottgrng` (eu-west-1)
 
 ## Datenmodell
-Ein Einsatz = eine Zeile in `einsaetze` mit JSON-Dokument `data`. Wichtige Felder: `art, einsatz, ort, gemeinde, ueberoertlich, datum, ausfahrt, rueckkehr, rueckkehrDatum, fz[], m{nr:true}, r{nr:true}, el, zuteilung{nr:fz}, fzRollen{fz:{ma,gk}}, as{nr:true} (Atemschutzträger), ffs{name:{aktiv,fz,mann,extra}}, kraefte{rettung{NAH,NEF,RTW,Arzt,FR},polizei,stellen{},sonst}, atemschutz{}, schaden{}, material{}, wetter[], temp, unfallfz{id:{…,fotos{}}}, personen{id:{…,fotos{}}}, fotos{id:{asset,text}}, lage, massnahmen, uebergabe, brandwache, kostenpflichtig, bemerkung, status`.
+Ein Einsatz = eine Zeile in `einsaetze` mit JSON-Dokument `data`. Wichtige Felder: `art, einsatz, ort, gemeinde, ueberoertlich, datum, ausfahrt, rueckkehr, rueckkehrDatum, fz[], m{nr:true}, r{nr:true}, el, zuteilung{nr:fz}, fzRollen{fz:{ma,gk}}, as{nr:true} (Atemschutzträger), asTrupps{id:{nr,auftrag,start,ende,mitglieder{nr:{pos,druck,tm}}}} (Atemschutzüberwachung, eigene Ansicht `asView`, `zeichneAS()`), ffs{name:{aktiv,fz,mann,extra}}, kraefte{rettung{NAH,NEF,RTW,Arzt,FR},polizei,stellen{},sonst}, atemschutz{}, schaden{}, material{}, wetter[], temp, unfallfz{id:{…,fotos{}}}, personen{id:{…,fotos{}}}, fotos{id:{asset,text}}, lage, massnahmen, uebergabe, brandwache, kostenpflichtig, bemerkung, status`.
 Schreiben immer als Patch über RPC `einsatz_patch` (tiefes Merge, `null` löscht einen Schlüssel).
 
 ## Zentrale Mechanismen in index.html

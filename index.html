@@ -129,6 +129,35 @@
   .dokuitem{display:flex;flex-direction:column}
   .foto .lade{position:absolute;inset:0;background:rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center;font-size:14px}
   #fotoGross img{max-width:100%;max-height:80vh;display:block;margin:0 auto;border-radius:8px}
+  .astrupp{border:2px solid var(--rand);border-radius:14px;padding:14px;margin-bottom:14px;background:#fff}
+  .astrupp.aktiv{border-color:#ea580c;border-width:3px}
+  .astrupp.beendet{opacity:.85;background:var(--grau)}
+  .astkopf{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .astkopf b{font-size:20px}
+  .astkopf .badge.lauf{background:#ffedd5;color:#9a3412}
+  .astimer{font-family:ui-monospace,monospace;font-size:44px;font-weight:800;letter-spacing:1px;margin:6px 0 2px;color:#9a3412;font-variant-numeric:tabular-nums}
+  .astzeit{font-size:14px;color:#6b7280}
+  .astm{display:grid;grid-template-columns:1fr auto;gap:8px 10px;align-items:center;padding:10px 0;border-top:1px solid #e5e7eb}
+  .astm .n{font-weight:700;font-size:17px;min-width:0}
+  .astm .n small{display:block;font-weight:400;color:#6b7280;font-size:13px}
+  .astm .x{background:none;border:none;color:var(--rot);font-size:22px;width:40px;height:40px}
+  .astm .zeile2{grid-column:1/-1;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .druck{display:flex;align-items:center;border:2px solid var(--rand);border-radius:10px;overflow:hidden;height:48px}
+  .druck input{width:84px;border:none;font-size:20px;font-weight:700;text-align:right;padding:0 4px;height:100%;font-family:inherit}
+  .druck input:focus{outline:none}
+  .druck:focus-within{border-color:#ea580c}
+  .druck span{padding:0 10px 0 4px;font-weight:600;color:#4b5563}
+  .druck.fehlt{border-color:#fca5a5}
+  .tmchip{display:inline-flex;align-items:center;gap:8px;border:2px solid var(--rand);border-radius:10px;padding:0 12px;height:48px;font-weight:600;font-size:15px;cursor:pointer;user-select:none;background:#fff}
+  .tmchip input{display:none}
+  .tmchip:has(input:checked){background:#dcfce7;border-color:var(--gruen);color:#166534}
+  .tmchip:has(input:checked)::before{content:"✓";font-weight:800}
+  .asfrei{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .asfrei button{border:2px dashed #ea580c;background:#fff7ed;color:#9a3412;border-radius:10px;padding:10px 12px;font-size:15px;font-weight:600}
+  .astakt{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .btn-as{background:#ea580c;color:#fff}
+  .btn:disabled{opacity:.45}
+  .asfehl{font-size:14px;color:#9a3412;margin-top:8px}
   .zusfassung{display:none;font-size:15px;color:#4b5563;margin:-4px 0 10px}
   .zusfassung:not(:empty){display:block}
   .chip:has(input[type=radio]){justify-content:center;text-align:center}
@@ -337,6 +366,8 @@
     <div class="zusfassung" id="zf_secAS"></div>
     <div id="secAS" style="display:none">
       <div class="hinweis" id="asNamen" style="margin:0 0 8px;font-size:15px;color:#374151"></div>
+      <button type="button" class="btn btn-as" style="width:100%;margin:4px 0 10px" onclick="zeigeAS(true)">Atemschutzüberwachung öffnen</button>
+      <div class="hinweis" id="asStatus" style="margin:0 0 8px"></div>
       <div class="zeile"><div class="zname">Trupps<span class="zsub">eingesetzte Atemschutztrupps</span></div><div data-stepper="atemschutz.trupps"></div></div>
       <div class="zeile"><div class="zname">Träger<span class="zsub">Atemschutzträger gesamt</span></div><div data-stepper="atemschutz.traeger"></div></div>
       <div class="zeile"><div class="zname">Geräte<span class="zsub">verwendete Atemschutzgeräte / Flaschen</span></div><div data-stepper="atemschutz.geraete"></div></div>
@@ -427,6 +458,11 @@
       <button class="btn btn-grau btn-klein" id="btnLoeschen" onclick="loeschenFragen()" style="color:var(--rot);display:none">Einsatz löschen</button>
     </div>
   </section>
+
+  <!-- ATEMSCHUTZÜBERWACHUNG -->
+  <section id="asView" style="display:none">
+    <div id="asInhalt"></div>
+  </section>
 </main>
 </div>
 
@@ -435,6 +471,11 @@
   <button class="btn btn-grau" id="adminBtn" style="display:none" onclick="adminOeffnen()">Admin</button>
   <div class="anz"></div>
   <button class="btn btn-rot" onclick="neuerEinsatz()">+ Neu</button>
+</div>
+<div class="leiste" id="leisteAS" style="display:none">
+  <button class="btn btn-grau" onclick="zeigeAS(false)">‹ Zum Einsatz</button>
+  <div class="anz"></div>
+  <button class="btn btn-as" id="asNeuBtn" onclick="asTruppNeu()">+ Trupp</button>
 </div>
 <div class="leiste" id="leisteEinsatz" style="display:none">
   <button class="btn btn-grau" onclick="zeigeUebersicht()">‹ Übersicht</button>
@@ -619,7 +660,8 @@ async function start(){
     $("loginView").style.display="none";
     if(letzteListe.length||warteschlange.length)zeichneUebersicht(mitQueue(letzteListe));
     let wiederOeffnen=null; try{wiederOeffnen=sessionStorage.getItem("ffa-offen");sessionStorage.removeItem("ffa-offen")}catch(e){}
-    realtimeStarten(); if(wiederOeffnen)oeffne(wiederOeffnen); else pollen(); qAbarbeiten();
+    let asWieder=false; try{asWieder=sessionStorage.getItem("ffa-as")==="1";sessionStorage.removeItem("ffa-as")}catch(e){}
+    realtimeStarten(); if(wiederOeffnen){oeffne(wiederOeffnen); if(asWieder&&aktuell)zeigeAS(true);} else pollen(); qAbarbeiten();
   }catch(e){ if(e.code!=="auth")setStatus("err","Server nicht erreichbar ("+(e.message||e.code)+")."); }
 }
 function zeigeLogin(){
@@ -709,7 +751,7 @@ function zeichneUebersicht(alle){
         ${e.el&&NAMEN[e.el]?`<span><b>EL</b> ${esc(NAMEN[e.el])}</span>`:""}
         ${wetterText(e)?`<span><b>Witterung</b> ${esc(wetterText(e))}</span>`:""}
       </div>
-      <div class="fuss"><span class="badge zahl">${n} Mitglieder</span>${ffN?`<span class="badge">+${ffN} FF</span>`:""}${kraefteBadges(e)}${ufListe(e).length?`<span class="badge" style="background:#fef3c7;color:#92400e">${ufListe(e).length} Unfall-Kfz</span>`:""}${persListe(e).length?`<span class="badge" style="background:#fef3c7;color:#92400e">${persListe(e).length} Pers.</span>`:""}${dokuListe(e).length?`<span class="badge">📷 ${dokuListe(e).length}</span>`:""}</div>
+      <div class="fuss"><span class="badge zahl">${n} Mitglieder</span>${ffN?`<span class="badge">+${ffN} FF</span>`:""}${asTrupps(e).filter(t=>truppStatus(t)==="aktiv").length?`<span class="badge" style="background:#ffedd5;color:#9a3412">AS-Trupp im Einsatz</span>`:""}${kraefteBadges(e)}${ufListe(e).length?`<span class="badge" style="background:#fef3c7;color:#92400e">${ufListe(e).length} Unfall-Kfz</span>`:""}${persListe(e).length?`<span class="badge" style="background:#fef3c7;color:#92400e">${persListe(e).length} Pers.</span>`:""}${dokuListe(e).length?`<span class="badge">📷 ${dokuListe(e).length}</span>`:""}</div>
     </div>`;
   };
   $("listeAktiv").innerHTML=aktiv.length?aktiv.map(karte).join(""):'<div class="leer">Kein aktiver Einsatz</div>';
@@ -744,7 +786,7 @@ function oeffne(id){
   aktuellId=id; aktuell=null; docStand="";
   $("uebersicht").style.display="none";$("leisteUebersicht").style.display="none";
   $("einsatzView").style.display="";$("leisteEinsatz").style.display="";
-  
+  asOffen=false; $("asView").style.display="none"; $("leisteAS").style.display="none";
   $("suche").value="";document.querySelectorAll(".person").forEach(p=>p.style.display="");
   ersteFuellung=true; zuteilFz=null; $("scroller").scrollTop=0;
   aktuell=lokalerEinsatz(id); if(aktuell)fuelleFormular(aktuell);  // sofort aus dem Zwischenspeicher, Server-Stand folgt
@@ -754,6 +796,7 @@ function zeigeUebersicht(){
   $("scroller").scrollTop=0;
   aktuellId=null;aktuell=null;listeStand="";
   $("einsatzView").style.display="none";$("leisteEinsatz").style.display="none";
+  asOffen=false; $("asView").style.display="none"; $("leisteAS").style.display="none";
   $("uebersicht").style.display="";$("leisteUebersicht").style.display="";
   $("zurueck").style.display="none";document.querySelector("header").classList.remove("mit-zurueck");
   $("kopf").innerHTML='Einsatzerfassung<small>Freiwillige Feuerwehr Auersthal</small>';
@@ -798,6 +841,7 @@ function fuelleFormular(e){
   $("btnStatus").className="btn btn-klein "+(abgeschlossen?"btn-gruen":"btn-grau");
   $("kopf").innerHTML=esc(e.einsatz||kurz(e.art)||"Einsatz")+'<small>'+esc([e.art&&e.einsatz?kurz(e.art):"",ortText(e),datumDE(e.datum)+(e.ausfahrt?" "+e.ausfahrt:""),abgeschlossen?"abgeschlossen":""].filter(Boolean).join(" · "))+'</small>';
   zaehlen(e); zfAlle(); bilderLaden();
+  zeichneASStatus(e); if(asOffen)zeichneAS(e);
 }
 function zaehlen(e){
   const m=Object.values(e.m||{}).filter(Boolean).length,r=Object.values(e.r||{}).filter(Boolean).length;
@@ -965,7 +1009,7 @@ function zusammenfassung(ziel,e){
     case "secUf": return liste(ufListe(e).map(f=>f.kennzeichen||f.marke||"Fahrzeug"),4);
     case "secPers": return liste(persListe(e).map(f=>(f.name||"Person")+(f.rolle?" ("+f.rolle.replace(/\/.*$/,"")+")":"")),3);
     case "secDoku": { const n=dokuListe(e).length; return n?n+" Foto"+(n>1?"s":""):""; }
-    case "secAS": { const a=e.atemschutz||{};const z=[];const tr=asListe(e);if(tr.length)z.push("AS: "+(tr.length<=4?tr.map(nr=>kurzName(NAMEN[nr])).join(", "):tr.length+" Träger gewählt"));if(+a.trupps)z.push(a.trupps+" Trupp"+(a.trupps>1?"s":""));if(+a.traeger)z.push(a.traeger+" Träger");if(+a.geraete)z.push(a.geraete+" Geräte");return z.join(", "); }
+    case "secAS": { const a=e.atemschutz||{};const z=[];const tr=asListe(e);const lauf=asTrupps(e).filter(t=>truppStatus(t)==="aktiv").length;if(lauf)z.push(lauf+" Trupp"+(lauf>1?"s":"")+" im Einsatz");const fertig=asTrupps(e).filter(t=>truppStatus(t)==="beendet").length;if(fertig)z.push(fertig+" Trupp"+(fertig>1?"s":"")+" beendet");if(tr.length)z.push("AS: "+(tr.length<=4?tr.map(nr=>kurzName(NAMEN[nr])).join(", "):tr.length+" Träger gewählt"));if(+a.trupps)z.push(a.trupps+" Trupp"+(a.trupps>1?"s":""));if(+a.traeger)z.push(a.traeger+" Träger");if(+a.geraete)z.push(a.geraete+" Geräte");return z.join(", "); }
     case "secSchaden": { const a=e.schaden||{};const z=[];[["gerettet","gerettet"],["geborgen","geborgen"],["verletzt","verletzt"],["tot","tot"],["tiere","Tiere"]].forEach(([k,l])=>{if(+a[k])z.push(a[k]+" "+l)});return z.join(", "); }
     case "secMat": { const m=e.material||{};const z=[];if(+m.oel)z.push(m.oel+" kg Ölbindemittel");if(+m.schaum)z.push(m.schaum+" l Schaummittel");if(+m.wasser)z.push(m.wasser+" l Löschwasser");if(m.sonst)z.push(m.sonst);return z.join(", "); }
     case "secMass": { const z=[];const t=(e.lage||e.massnahmen||"").trim().split("\n")[0];if(t)z.push(t.slice(0,70)+(t.length>70?" …":""));if(e.uebergabe)z.push("Übergabe: "+e.uebergabe);if(e.brandwache)z.push("Brandwache");if(e.kostenpflichtig)z.push("kostenpflichtig");return z.join(" · "); }
@@ -1251,6 +1295,91 @@ function zuteilLang(p){ // Longpress bei gewähltem Fahrzeug: – → MA → GK 
   schreibe(patch);
 }
 
+// ---------- Atemschutzüberwachung ----------
+// Daten: asTrupps{id:{nr, erstellt, auftrag, start, ende, mitglieder{nr:{pos, druck, tm}}}}
+let asOffen=false;
+const TRUPPGROESSE=3;
+function asTrupps(e){ const t=e.asTrupps||{}; return Object.keys(t).filter(k=>t[k]).map(k=>({id:k,...t[k]})).sort((a,b)=>(a.nr||0)-(b.nr||0)); }
+const truppStatus=t=>t.ende?"beendet":t.start?"aktiv":"vorb";
+function truppMitgl(t){ const m=t.mitglieder||{}; return Object.keys(m).filter(nr=>m[nr]).sort((a,b)=>(m[a].pos||0)-(m[b].pos||0)); }
+function truppBereit(t){ const l=truppMitgl(t), m=t.mitglieder||{}; return l.length===TRUPPGROESSE&&l.every(nr=>+m[nr].druck>0&&m[nr].tm); }
+function asGebunden(e){ const s=new Set(); asTrupps(e).filter(t=>truppStatus(t)!=="beendet").forEach(t=>truppMitgl(t).forEach(nr=>s.add(nr))); return s; }
+const pad2=n=>String(n).padStart(2,"0");
+function dauerText(ms){ ms=Math.max(0,ms); const sek=Math.floor(ms/1000), h=Math.floor(sek/3600), m=Math.floor(sek%3600/60), s2=sek%60; return (h?h+":"+pad2(m):m)+":"+pad2(s2); }
+const uhr=iso=>{ const d=new Date(iso); return pad2(d.getHours())+":"+pad2(d.getMinutes()); };
+const asName=nr=>NAMEN[nr]||("Nr. "+nr);
+function zeigeAS(an){
+  if(!aktuell)return;
+  asOffen=!!an;
+  $("asView").style.display=an?"":"none"; $("leisteAS").style.display=an?"":"none";
+  $("einsatzView").style.display=an?"none":""; $("leisteEinsatz").style.display=an?"none":"";
+  $("scroller").scrollTop=0;
+  fuelleFormular(aktuell);
+  if(!an){ const h=document.querySelector('h2[data-ziel="secAS"]'), sc=$("scroller"); sektion("secAS",true,true); requestAnimationFrame(()=>sc.scrollTo({top:h.getBoundingClientRect().top-sc.getBoundingClientRect().top+sc.scrollTop-10})); }
+}
+function zeichneASStatus(e){
+  const l=asTrupps(e), akt=l.filter(t=>truppStatus(t)==="aktiv").length, vor=l.filter(t=>truppStatus(t)==="vorb").length, end=l.filter(t=>truppStatus(t)==="beendet").length;
+  $("asStatus").textContent=l.length?[akt?akt+" Trupp"+(akt>1?"s":"")+" im Einsatz":"",vor?vor+" in Vorbereitung":"",end?end+" beendet":""].filter(Boolean).join(" · "):"";
+}
+function zeichneAS(e){
+  $("kopf").innerHTML='Atemschutzüberwachung<small>'+esc([e.einsatz||kurz(e.art)||wort(e),ortText(e)].filter(Boolean).join(" · "))+'</small>';
+  const ae=document.activeElement; if(ae&&ae.dataset&&(ae.dataset.asd||ae.dataset.ast))return;   // nicht neu zeichnen, während getippt wird
+  const zu=e.status==="abgeschlossen", l=asTrupps(e), gebunden=asGebunden(e), frei=asListe(e).filter(nr=>!gebunden.has(nr));
+  $("asNeuBtn").style.display=zu?"none":"";
+  const karte=t=>{
+    const st=truppStatus(t), m=t.mitglieder||{}, ml=truppMitgl(t);
+    const titel=`<b>Trupp ${t.nr||"?"}</b>`+(st==="aktiv"?'<span class="badge lauf">IM EINSATZ</span>':st==="beendet"?'<span class="badge">beendet</span>':'<span class="badge">Vorbereitung</span>');
+    const auftrag=st==="vorb"&&!zu?`<label class="feld" style="margin-top:8px">Auftrag / Ort (optional)<input type="text" data-ast="${t.id}" value="${esc(t.auftrag||"")}" placeholder="z. B. Innenangriff 1. OG, Personensuche" autocomplete="off"></label>`:(t.auftrag?`<div class="astzeit" style="margin-top:4px">Auftrag: ${esc(t.auftrag)}</div>`:"");
+    if(st==="vorb"){
+      const zeilen=ml.map(nr=>`<div class="astm"><div class="n">${esc(asName(nr))}</div>${zu?"":`<button type="button" class="x" data-asrm="${t.id}|${nr}">×</button>`}
+        <div class="zeile2"><div class="druck ${+m[nr].druck>0?"":"fehlt"}"><input type="number" inputmode="numeric" min="0" max="400" placeholder="–" data-asd="${t.id}|${nr}" value="${m[nr].druck||""}" ${zu?"disabled":""}><span>bar</span></div>
+        <label class="tmchip"><input type="checkbox" data-astm="${t.id}|${nr}" ${m[nr].tm?"checked":""} ${zu?"disabled":""}>Totmannwarner eingesammelt</label></div></div>`).join("");
+      const platz=TRUPPGROESSE-ml.length;
+      const wahl=zu?"":platz>0?(frei.length?`<div class="astzeit" style="margin-top:10px">Noch ${platz} ${platz===1?"Mitglied":"Mitglieder"} wählen:</div><div class="asfrei">${frei.map(nr=>`<button type="button" data-asadd="${t.id}|${nr}">+ ${esc(asName(nr))}</button>`).join("")}</div>`
+        :`<div class="asfehl">Keine freien Atemschutzträger. Träger in der Mannschaftsliste über „Atemschutz“ auswählen (${platz} ${platz===1?"fehlt":"fehlen"} noch).</div>`):"";
+      const fehlt=[]; if(ml.length<TRUPPGROESSE)fehlt.push((TRUPPGROESSE-ml.length)+" Mitglied"+(TRUPPGROESSE-ml.length>1?"er":"")); 
+      const od=ml.filter(nr=>!(+m[nr].druck>0)).length, ot=ml.filter(nr=>!m[nr].tm).length; if(od)fehlt.push(od+"× Startdruck"); if(ot)fehlt.push(ot+"× Totmannwarner");
+      return `<div class="astrupp"><div class="astkopf">${titel}</div>${auftrag}${zeilen}${wahl}
+        ${zu?"":`<div class="astakt"><button type="button" class="btn btn-as" data-asstart="${t.id}" ${truppBereit(t)?"":"disabled"}>▶ Timer starten</button><button type="button" class="btn btn-grau" data-asdel="${t.id}">Trupp verwerfen</button></div>${fehlt.length?`<div class="asfehl">Fehlt noch: ${fehlt.join(", ")}</div>`:""}`}</div>`;
+    }
+    const mzeilen=ml.map(nr=>`<div class="astm"><div class="n">${esc(asName(nr))}<small>Startdruck ${m[nr].druck||"–"} bar</small></div></div>`).join("");
+    if(st==="aktiv") return `<div class="astrupp aktiv"><div class="astkopf">${titel}</div><div class="astimer" data-timer="${t.start}">${dauerText(Date.now()-new Date(t.start))}</div><div class="astzeit">Start ${uhr(t.start)} Uhr</div>${auftrag}${mzeilen}
+      ${zu?"":`<div class="astakt"><button type="button" class="btn btn-rot" data-asende="${t.id}">■ Trupp zurück – Timer stoppen</button></div>`}</div>`;
+    return `<div class="astrupp beendet"><div class="astkopf">${titel}<span class="astzeit">${uhr(t.start)}–${uhr(t.ende)} Uhr · ${dauerText(new Date(t.ende)-new Date(t.start))} min</span></div>${auftrag}${mzeilen}</div>`;
+  };
+  const gruppe=(titel,liste)=>liste.length?`<h2>${titel} (${liste.length})</h2>`+liste.map(karte).join(""):"";
+  const akt=l.filter(t=>truppStatus(t)==="aktiv"), vor=l.filter(t=>truppStatus(t)==="vorb"), end=l.filter(t=>truppStatus(t)==="beendet").reverse();
+  $("asInhalt").innerHTML=(l.length?"":`<div class="leer">Noch kein Trupp angelegt.<br>${asListe(e).length?"Mit „+ Trupp“ unten einen Trupp zusammenstellen.":"Zuerst im Einsatz bei der Mannschaft über „Atemschutz“ die Atemschutzträger auswählen."}</div>`)
+    +gruppe("Im Einsatz",akt)+gruppe("In Vorbereitung",vor)+gruppe("Beendet",end)
+    +`<div class="hinweis" style="margin-top:14px">Verfügbare Atemschutzträger: ${frei.length?esc(frei.map(asName).join(", ")):"–"}</div>`;
+}
+setInterval(()=>{ document.querySelectorAll(".astimer[data-timer]").forEach(el=>{ el.textContent=dauerText(Date.now()-new Date(el.dataset.timer)); }); },1000);
+function asTruppNeu(){
+  if(!aktuell||aktuell.status==="abgeschlossen")return;
+  const l=asTrupps(aktuell), id="t"+Date.now().toString(36);
+  schreibe({asTrupps:{[id]:{nr:l.reduce((mx,t)=>Math.max(mx,t.nr||0),0)+1,erstellt:new Date().toISOString(),auftrag:"",start:"",ende:"",mitglieder:{}}}});
+}
+document.addEventListener("click",ev=>{
+  if(!asOffen||!aktuell||aktuell.status==="abgeschlossen")return;
+  const b=ev.target.closest("[data-asadd],[data-asrm],[data-asstart],[data-asende],[data-asdel]"); if(!b)return;
+  const d=b.dataset, T=aktuell.asTrupps||{};
+  if(d.asadd){ const [tid,nr]=d.asadd.split("|"), t=T[tid]; if(!t||truppMitgl(t).length>=TRUPPGROESSE||asGebunden(aktuell).has(nr))return;
+    const pos=truppMitgl(t).reduce((mx,n)=>Math.max(mx,t.mitglieder[n].pos||0),0)+1;
+    schreibe({asTrupps:{[tid]:{mitglieder:{[nr]:{pos,druck:"",tm:false}}}}}); }
+  else if(d.asrm){ const [tid,nr]=d.asrm.split("|"); schreibe({asTrupps:{[tid]:{mitglieder:{[nr]:null}}}}); }
+  else if(d.asstart){ const t=T[d.asstart]; if(!t||!truppBereit(t)||t.start)return; schreibe({asTrupps:{[d.asstart]:{start:new Date().toISOString()}}}); }
+  else if(d.asende){ const t=T[d.asende]; if(!t)return; frage("Trupp "+(t.nr||"")+" ist zurück? Der Timer wird gestoppt und der Trupp als beendet eingetragen.",()=>schreibe({asTrupps:{[d.asende]:{ende:new Date().toISOString()}}}),"Trupp beenden"); }
+  else if(d.asdel){ const t=T[d.asdel]; if(!t)return; const weg=()=>schreibe({asTrupps:{[d.asdel]:null}}); if(truppMitgl(t).length)frage("Trupp "+(t.nr||"")+" verwerfen? Die Eingaben dieses Trupps gehen verloren.",weg,"Verwerfen"); else weg(); }
+});
+document.addEventListener("change",ev=>{ const i=ev.target; if(!i.dataset||!i.dataset.astm||!aktuell)return; const [tid,nr]=i.dataset.astm.split("|"); schreibe({asTrupps:{[tid]:{mitglieder:{[nr]:{tm:i.checked}}}}}); });
+document.addEventListener("input",ev=>{
+  const i=ev.target; if(!i.dataset||!aktuell)return;
+  if(i.dataset.asd){ const [tid,nr]=i.dataset.asd.split("|"); const v=i.value===""?"":Math.max(0,Math.min(400,parseInt(i.value)||0)); clearTimeout(textTimer["asd"+i.dataset.asd]);
+    textTimer["asd"+i.dataset.asd]=setTimeout(()=>schreibe({asTrupps:{[tid]:{mitglieder:{[nr]:{druck:v}}}}}),400); }
+  else if(i.dataset.ast){ const tid=i.dataset.ast; clearTimeout(textTimer["ast"+tid]); textTimer["ast"+tid]=setTimeout(()=>schreibe({asTrupps:{[tid]:{auftrag:i.value}}}),500); }
+});
+document.addEventListener("focusout",ev=>{ const i=ev.target; if(asOffen&&i.dataset&&(i.dataset.asd||i.dataset.ast)&&aktuell)setTimeout(()=>{ if(aktuell&&asOffen)zeichneAS(aktuell); },120); });
+
 // Longpress auf eine Person = Einsatzleiter setzen / entfernen
 let lpTimer=null, lpAusgeloest=false;
 function lpStart(ev){
@@ -1436,7 +1565,8 @@ async function pdfErzeugen(btn,einsatz){
     Object.keys(k.stellen||{}).filter(x=>k.stellen[x]).forEach(x=>kz.push(x));
     if(k.sonst)kz.push(k.sonst);
     if(kz.length){H("Weitere Kräfte");kz.forEach(z=>P("• "+z))}
-    if(zusammenfassung("secAS",e)){H("Atemschutz");const a=e.atemschutz||{};const tr=asListe(e);if(tr.length)KV("Atemschutzträger ("+tr.length+")",tr.map(nr=>NAMEN[nr]).join(", "));KV("Trupps",a.trupps);KV("Träger",a.traeger);KV("Geräte",a.geraete)}
+    if(zusammenfassung("secAS",e)){H("Atemschutz");const a=e.atemschutz||{};const tr=asListe(e);if(tr.length)KV("Atemschutzträger ("+tr.length+")",tr.map(nr=>NAMEN[nr]).join(", "));
+      asTrupps(e).filter(t=>t.start).forEach(t=>{ const mm=t.mitglieder||{}; KV("Trupp "+(t.nr||""),truppMitgl(t).map(nr=>asName(nr)+" ("+(mm[nr].druck||"–")+" bar)").join(", ")+" · "+uhr(t.start)+"–"+(t.ende?uhr(t.ende)+" Uhr ("+Math.round((new Date(t.ende)-new Date(t.start))/60000)+" min)":"läuft")+(t.auftrag?" · "+t.auftrag:"")); });KV("Trupps",a.trupps);KV("Träger",a.traeger);KV("Geräte",a.geraete)}
     if(zusammenfassung("secSchaden",e)){H("Personenschäden");const a=e.schaden||{};KV("Gerettet",a.gerettet);KV("Geborgen",a.geborgen);KV("Verletzt",a.verletzt);KV("Tot",a.tot);KV("Tiere",a.tiere)}
     if(zusammenfassung("secMat",e)){H("Verbrauchsmaterial");const mt=e.material||{};KV("Ölbindemittel",mt.oel?mt.oel+" kg":"");KV("Schaummittel",mt.schaum?mt.schaum+" l":"");KV("Löschwasser",mt.wasser?mt.wasser+" l":"");KV("Sonstiges",mt.sonst)}
     const uf=ufListe(e);
@@ -1515,7 +1645,7 @@ function updateAnwenden(){
   if(!neueVersion||warteschlange.length)return;                       // nichts Ungespeichertes verlieren
   const ae=document.activeElement; if(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))return;   // niemand tippt gerade
   if([...document.querySelectorAll(".dialog")].some(d=>d.id!=="loginView"&&getComputedStyle(d).display!=="none"))return;
-  try{ if(sessionStorage.getItem("ffa-reload")===neueVersion)return; sessionStorage.setItem("ffa-reload",neueVersion); if(aktuellId)sessionStorage.setItem("ffa-offen",aktuellId); }catch(e){}
+  try{ if(sessionStorage.getItem("ffa-reload")===neueVersion)return; sessionStorage.setItem("ffa-reload",neueVersion); if(aktuellId)sessionStorage.setItem("ffa-offen",aktuellId); if(asOffen)sessionStorage.setItem("ffa-as","1"); }catch(e){}
   location.reload();
 }
 async function updatePruefen(){
