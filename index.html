@@ -167,10 +167,34 @@
   .btn-as{background:#ea580c;color:#fff}
   .btn:disabled{opacity:.45}
   .asfehl{font-size:13px;color:#9a3412;margin-top:6px}
-  .pwahl{display:flex;align-items:center;gap:12px;padding:10px 12px;border:2px solid var(--rand);border-radius:10px;min-height:52px;width:100%;background:#fff;font:inherit;text-align:left;cursor:pointer}
-  .pwahl .nr{font-family:ui-monospace,monospace;color:#6b7280;width:38px;flex:none}
-  .pwahl .name{font-weight:600}
-  .pwahl .bdg{margin-left:auto;font-size:12px;font-weight:700;padding:3px 7px;border-radius:6px;background:var(--grau);color:#6b7280;white-space:nowrap}
+  .dialog.sheet{padding:0;display:none;align-items:flex-end;justify-content:center}
+  .dialog.sheet[style*="block"]{display:flex!important}
+  .dialog.sheet .box{margin:0;width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));max-height:88vh;display:flex;flex-direction:column}
+  @media(min-width:700px){.dialog.sheet{align-items:center}.dialog.sheet .box{border-radius:18px}}
+  .shkopf{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .shtitel{font-weight:800;font-size:19px}
+  .shsub{font-size:13px;color:#6b7280;margin-top:2px}
+  .shzu{background:var(--grau);border:none;border-radius:50%;width:36px;height:36px;font-size:20px;line-height:1;color:#374151;flex:none}
+  .shliste{overflow:auto;-webkit-overflow-scrolling:touch;min-height:120px}
+  .shgruppe{font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#6b7280;padding:12px 2px 4px;position:sticky;top:0;background:#fff}
+  .pwahl{display:flex;align-items:center;gap:12px;padding:11px 4px;border:none;border-bottom:1px solid #eef0f3;width:100%;background:#fff;font:inherit;text-align:left;cursor:pointer}
+  .pwahl:active{background:#fff7ed}
+  .pwahl .name{font-weight:600;font-size:17px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pwahl .nr{font-size:13px;color:#9ca3af;font-variant-numeric:tabular-nums}
+  .pwahl .plus{width:32px;height:32px;border-radius:50%;background:#ea580c;color:#fff;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
+  .fmeld{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #eef0f3;font-size:16px;align-items:baseline}
+  .fmeld .z{font-family:ui-monospace,monospace;font-size:14px;color:#9a3412;font-weight:700;flex:none;font-variant-numeric:tabular-nums}
+  .fmeld .t{flex:1;min-width:0;word-break:break-word}
+  .fmeld .x{background:none;border:none;color:#9ca3af;font-size:18px;padding:0 4px}
+  .fschnell{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+  .fschnell button{border:2px solid var(--rand);background:#fff;border-radius:10px;padding:9px 12px;font-size:15px;font-weight:600;color:var(--text)}
+  .fschnell button:active{background:#ffedd5;border-color:#ea580c}
+  .feingabe{display:flex;gap:8px}
+  .feingabe input{flex:1;min-width:0;height:48px;font-size:17px;padding:0 12px;border:2px solid var(--rand);border-radius:10px;font-family:inherit}
+  .feingabe input:focus{outline:none;border-color:#ea580c}
+  .feingabe .btn{height:48px;padding:0 16px;font-size:16px}
+  .astrupp.aktiv,.asend{cursor:pointer}
+  .astfunk{font-size:12.5px;color:#9a3412;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:-4px;margin-bottom:6px}
   .asend{font-size:14px;padding:7px 0;border-top:1px solid #e5e7eb;color:#374151}
   .asend b{color:var(--text)}
   .linkklein{background:none;border:none;color:#6b7280;font-size:13px;text-decoration:underline;padding:6px 0}
@@ -531,14 +555,16 @@
   </div>
 </div>
 
-<div id="asMehr" class="dialog" onclick="if(event.target===this)this.style.display='none'">
-  <div class="box" style="max-width:520px">
-    <div style="font-weight:700;font-size:18px" id="asMehrTitel"></div>
-    <div class="hinweis" style="margin:2px 0 10px">Antippen fügt das Mitglied dem Trupp hinzu. Es wird im Einsatz automatisch als anwesend und als Atemschutzträger eingetragen.</div>
-    <input class="suche" id="asMehrSuche" type="search" placeholder="Name suchen …" autocomplete="off">
-    <div id="asMehrListe" style="max-height:50vh;overflow:auto;display:flex;flex-direction:column;gap:6px"></div>
-    <button class="btn btn-grau" style="width:100%;margin-top:10px" onclick="document.getElementById('asMehr').style.display='none'">Fertig</button>
+<div id="asMehr" class="dialog sheet" onclick="if(event.target===this)this.style.display='none'">
+  <div class="box">
+    <div class="shkopf"><div><div class="shtitel" id="asMehrTitel"></div><div class="shsub">Wird automatisch als anwesend und Atemschutzträger eingetragen</div></div><button type="button" class="shzu" onclick="document.getElementById('asMehr').style.display='none'">×</button></div>
+    <input class="suche" id="asMehrSuche" type="search" placeholder="Name suchen …" autocomplete="off" style="margin:10px 0 4px">
+    <div id="asMehrListe" class="shliste"></div>
   </div>
+</div>
+
+<div id="asTruppDlg" class="dialog sheet" onclick="if(event.target===this)asDlgZu()">
+  <div class="box" id="asTruppBox"></div>
 </div>
 
 <div id="frage" class="dialog" onclick="if(event.target===this)this.style.display='none'">
@@ -1337,7 +1363,7 @@ const uhr=iso=>{ const d=new Date(iso); return pad2(d.getHours())+":"+pad2(d.get
 const asName=nr=>NAMEN[nr]||("Nr. "+nr);
 function zeigeAS(an){
   if(!aktuell)return;
-  asOffen=!!an;
+  asOffen=!!an; asDlgZu();
   $("asView").style.display=an?"":"none"; $("leisteAS").style.display=an?"":"none";
   $("einsatzView").style.display=an?"none":""; $("leisteEinsatz").style.display=an?"none":"";
   $("scroller").scrollTop=0;
@@ -1351,14 +1377,17 @@ function zeichneASStatus(e){
 function zeichneAS(e){
   $("kopf").innerHTML='Atemschutzüberwachung<small>'+esc([e.einsatz||kurz(e.art)||wort(e),ortText(e)].filter(Boolean).join(" · "))+'</small>';
   const ae=document.activeElement; if(ae&&ae.dataset&&(ae.dataset.asd||ae.dataset.ast))return;   // nicht neu zeichnen, während getippt wird
+  if(ae&&ae.id==="funkText"){ asDlgZeichnen(true); return; }
   const zu=e.status==="abgeschlossen", l=asTrupps(e), gebunden=asGebunden(e), frei=asListe(e).filter(nr=>!gebunden.has(nr));
   $("asNeuBtn").style.display=zu?"none":"";
   const kn=nr=>NAMEN[nr]?kurzName(NAMEN[nr]):asName(nr);
   // laufender Trupp: kompakte Kachel, mehrere nebeneinander
   const aktivKarte=t=>{ const m=t.mitglieder||{};
-    return `<div class="astrupp aktiv"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="astimer" data-timer="${t.start}">${dauerText(Date.now()-new Date(t.start))}</span></div>
+    const fm=funkListe(t), lm=fm[fm.length-1];
+    return `<div class="astrupp aktiv" data-astile="${t.id}"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="astimer" data-timer="${t.start}">${dauerText(Date.now()-new Date(t.start))}</span></div>
       <div class="astzeit">ab ${uhr(t.start)}${t.auftrag?" · "+esc(t.auftrag):""}</div>
       <div class="astl">${truppMitgl(t).map(nr=>`<div><span>${esc(kn(nr))}</span><span>${m[nr].druck||"–"} bar</span></div>`).join("")}</div>
+      <div class="astfunk">${lm?"Funk "+uhrS(lm.t).slice(0,5)+" · "+esc(lm.text)+(fm.length>1?" (+"+(fm.length-1)+")":""):"Antippen für Funkmeldung"}</div>
       ${zu?"":`<button type="button" class="btn btn-rot" data-asende="${t.id}">■ Zurück</button>`}</div>`; };
   // Trupp in Vorbereitung: Schritt 1 Mitglieder wählen, erst danach Schritt 2 Druck + Totmannwarner
   const vorbKarte=t=>{ const m=t.mitglieder||{}, ml=truppMitgl(t), voll=ml.length>=TRUPPGROESSE;
@@ -1375,24 +1404,67 @@ function zeichneAS(e){
         ${zu?"<span></span>":`<button type="button" class="x" data-asrm="${t.id}|${nr}">×</button>`}</div>`).join("")}
       ${zu?"":`<div class="astakt"><input type="text" data-ast="${t.id}" value="${esc(t.auftrag||"")}" placeholder="Auftrag (optional)" autocomplete="off"><button type="button" class="btn btn-as" data-asstart="${t.id}" ${truppBereit(t)?"":"disabled"}>▶ Start</button></div>
       ${fehlt.length?`<div class="asfehl">Fehlt noch: ${fehlt.join(", ")}</div>`:""}<button type="button" class="linkklein" data-asdel="${t.id}">Trupp verwerfen</button>`}</div>`; };
-  const endZeile=t=>{ const m=t.mitglieder||{}; return `<div class="asend"><b>Trupp ${t.nr||"?"}</b> · ${uhr(t.start)}–${uhr(t.ende)} (${dauerText(new Date(t.ende)-new Date(t.start))}) · ${truppMitgl(t).map(nr=>esc(kn(nr))+" "+(m[nr].druck||"–")).join(", ")}${t.auftrag?" · "+esc(t.auftrag):""}</div>`; };
+  const endZeile=t=>{ const m=t.mitglieder||{}; return `<div class="asend" data-astile="${t.id}"><b>Trupp ${t.nr||"?"}</b> · ${uhr(t.start)}–${uhr(t.ende)} (${dauerText(new Date(t.ende)-new Date(t.start))}) · ${truppMitgl(t).map(nr=>esc(kn(nr))+" "+(m[nr].druck||"–")).join(", ")}${t.auftrag?" · "+esc(t.auftrag):""}${funkListe(t).length?" · "+funkListe(t).length+" Funkmeldung"+(funkListe(t).length>1?"en":""):""}</div>`; };
   const akt=l.filter(t=>truppStatus(t)==="aktiv"), vor=l.filter(t=>truppStatus(t)==="vorb"), end=l.filter(t=>truppStatus(t)==="beendet").reverse();
   $("asInhalt").innerHTML=(l.length?"":`<div class="leer">Noch kein Trupp angelegt.<br>${asListe(e).length?"Mit „+ Trupp“ unten einen Trupp zusammenstellen.":"Zuerst im Einsatz bei der Mannschaft über „Atemschutz“ die Atemschutzträger auswählen."}</div>`)
     +(akt.length?`<h2>Im Einsatz (${akt.length})</h2><div class="asgrid">${akt.map(aktivKarte).join("")}</div>`:"")
     +(vor.length?`<h2>In Vorbereitung (${vor.length})</h2>${vor.map(vorbKarte).join("")}`:"")
     +(end.length?`<h2>Beendet (${end.length})</h2>${end.map(endZeile).join("")}`:"")
     +`<div class="hinweis" style="margin-top:12px">Frei: ${frei.length?esc(frei.map(kn).join(", ")):"–"}</div>`;
+  if(asDlgTid)asDlgZeichnen();
 }
+// Funkmeldungen je Trupp: asTrupps[id].meldungen{mid:{t:ISO,text}} – chronologisch mit Sekunden
+const FUNK_SCHNELL=["Am Einsatzort","Lage in Ordnung","Person gefunden","Brand lokalisiert","Feuer aus","Rückzug angetreten"];
+function funkListe(t){ const m=t.meldungen||{}; return Object.keys(m).filter(k=>m[k]).map(k=>({id:k,...m[k]})).sort((a,b)=>(a.t||"").localeCompare(b.t||"")); }
+const uhrS=iso=>{ const d=new Date(iso); return pad2(d.getHours())+":"+pad2(d.getMinutes())+":"+pad2(d.getSeconds()); };
+let asDlgTid=null;
+function asDlgZu(){ asDlgTid=null; $("asTruppDlg").style.display="none"; }
+function asDlgZeichnen(nurListe){
+  const e=aktuell, t=e&&asDlgTid&&(e.asTrupps||{})[asDlgTid]; if(!t){ asDlgZu(); return; }
+  const st=truppStatus(t), m=t.mitglieder||{}, zu=e.status==="abgeschlossen", fm=funkListe(t);
+  const liste=fm.length?fm.map(x=>`<div class="fmeld"><span class="z">${uhrS(x.t)}</span><span class="t">${esc(x.text)}</span>${zu?"":`<button type="button" class="x" data-funkweg="${x.id}">×</button>`}</div>`).join(""):'<div class="leer" style="padding:14px">Noch keine Funkmeldung</div>';
+  if(nurListe&&$("funkListe")){ $("funkListe").innerHTML=liste; return; }
+  $("asTruppBox").innerHTML=`<div class="shkopf"><div><div class="shtitel">Trupp ${t.nr||""} ${st==="aktiv"?`· <span class="astimer" style="font-size:22px" data-timer="${t.start}">${dauerText(Date.now()-new Date(t.start))}</span>`:""}</div>
+      <div class="shsub">${st==="aktiv"?"ab "+uhr(t.start):uhr(t.start)+"–"+uhr(t.ende)+" ("+dauerText(new Date(t.ende)-new Date(t.start))+")"} · ${truppMitgl(t).map(nr=>esc(NAMEN[nr]?kurzName(NAMEN[nr]):asName(nr))+" "+(m[nr].druck||"–")).join(", ")}${t.auftrag?" · "+esc(t.auftrag):""}</div></div>
+      <button type="button" class="shzu" onclick="asDlgZu()">×</button></div>
+    ${zu?"":`<div class="fschnell">${FUNK_SCHNELL.map(x=>`<button type="button" data-funkschnell="${esc(x)}">${esc(x)}</button>`).join("")}</div>
+    <div class="feingabe"><input id="funkText" type="text" placeholder="Funkmeldung eingeben …" autocomplete="off" enterkeyhint="send"><button type="button" class="btn btn-as" id="funkOk">Eintragen</button></div>`}
+    <div class="shgruppe" style="position:static">Funkmeldungen (${fm.length})</div>
+    <div class="shliste" id="funkListe">${liste}</div>`;
+}
+function funkEintragen(text){
+  text=(text||"").trim(); if(!text||!aktuell||!asDlgTid||aktuell.status==="abgeschlossen")return;
+  schreibe({asTrupps:{[asDlgTid]:{meldungen:{["f"+Date.now().toString(36)]:{t:new Date().toISOString(),text}}}}});
+  const l=$("funkListe"); if(l)l.scrollTop=l.scrollHeight;
+}
+document.addEventListener("click",ev=>{
+  if(!aktuell)return;
+  if(ev.target.closest("#asTruppDlg")){
+    const q=ev.target.closest("[data-funkschnell]"); if(q){ funkEintragen(q.dataset.funkschnell); return; }
+    if(ev.target.closest("#funkOk")){ const i=$("funkText"); funkEintragen(i.value); i.value=""; i.focus(); return; }
+    const w=ev.target.closest("[data-funkweg]"); if(w){ const tid=asDlgTid, mid=w.dataset.funkweg; frage("Diese Funkmeldung löschen?",()=>schreibe({asTrupps:{[tid]:{meldungen:{[mid]:null}}}}),"Löschen"); return; }
+    return;
+  }
+  if(!asOffen)return;
+  const k=ev.target.closest("[data-astile]"); if(!k||ev.target.closest("[data-asende]"))return;
+  asDlgTid=k.dataset.astile; asDlgZeichnen(); $("asTruppDlg").style.display="block";
+});
+document.addEventListener("keydown",ev=>{ if(ev.key==="Enter"&&ev.target.id==="funkText"){ ev.preventDefault(); funkEintragen(ev.target.value); ev.target.value=""; } });
+
 // Auswahl eines Mitglieds, das noch nicht anwesend / kein Atemschutzträger ist
 let asMehrTid=null;
 function asMehrZeichnen(){
   const e=aktuell, t=e&&(e.asTrupps||{})[asMehrTid];
   if(!t||truppStatus(t)!=="vorb"||truppMitgl(t).length>=TRUPPGROESSE){ $("asMehr").style.display="none"; return; }
   const geb=asGebunden(e), schonFrei=new Set(asListe(e)), q=$("asMehrSuche").value.toLowerCase().trim();
-  $("asMehrTitel").textContent="Trupp "+(t.nr||"")+" – Mitglied wählen ("+truppMitgl(t).length+"/"+TRUPPGROESSE+")";
-  const zeile=([nr,name],g)=>{ nr=String(nr); if(geb.has(nr)||schonFrei.has(nr)||(q&&!name.toLowerCase().includes(q)))return "";
-    const da=istDa(e,nr); return `<button type="button" class="pwahl" data-asaddx="${asMehrTid}|${nr}|${g}"><span class="nr">${nr}</span><span class="name">${esc(name)}</span><span class="bdg">${da?"anwesend":g==="r"?"Reserve":"noch nicht da"}</span></button>`; };
-  $("asMehrListe").innerHTML=(MANNSCHAFT.map(x=>zeile(x,"m")).join("")+RESERVE.map(x=>zeile(x,"r")).join(""))||'<div class="leer">Kein passendes Mitglied</div>';
+  $("asMehrTitel").textContent="Trupp "+(t.nr||"")+" – Mitglied wählen · "+truppMitgl(t).length+"/"+TRUPPGROESSE;
+  const passt=([nr,name])=>!geb.has(String(nr))&&!schonFrei.has(String(nr))&&(!q||name.toLowerCase().includes(q));
+  const zeile=([nr,name],g)=>`<button type="button" class="pwahl" data-asaddx="${asMehrTid}|${nr}|${g}"><span class="name">${esc(name)}</span><span class="nr">${nr}</span><span class="plus">+</span></button>`;
+  const da=MANNSCHAFT.filter(passt).filter(([nr])=>istDa(e,String(nr))).map(x=>zeile(x,"m")).concat(RESERVE.filter(passt).filter(([nr])=>istDa(e,String(nr))).map(x=>zeile(x,"r")));
+  const weg=MANNSCHAFT.filter(passt).filter(([nr])=>!istDa(e,String(nr))).map(x=>zeile(x,"m"));
+  const res=RESERVE.filter(passt).filter(([nr])=>!istDa(e,String(nr))).map(x=>zeile(x,"r"));
+  const grp=(t,l)=>l.length?`<div class="shgruppe">${t} (${l.length})</div>`+l.join(""):"";
+  $("asMehrListe").innerHTML=(grp("Anwesend, noch kein Atemschutz",da)+grp("Noch nicht anwesend",weg)+grp("Reserve",res))||'<div class="leer">Kein passendes Mitglied</div>';
 }
 $("asMehrSuche").addEventListener("input",asMehrZeichnen);
 document.addEventListener("click",ev=>{
@@ -1618,7 +1690,7 @@ async function pdfErzeugen(btn,einsatz){
     if(k.sonst)kz.push(k.sonst);
     if(kz.length){H("Weitere Kräfte");kz.forEach(z=>P("• "+z))}
     if(zusammenfassung("secAS",e)){H("Atemschutz");const a=e.atemschutz||{};const tr=asListe(e);if(tr.length)KV("Atemschutzträger ("+tr.length+")",tr.map(nr=>NAMEN[nr]).join(", "));
-      asTrupps(e).filter(t=>t.start).forEach(t=>{ const mm=t.mitglieder||{}; KV("Trupp "+(t.nr||""),truppMitgl(t).map(nr=>asName(nr)+" ("+(mm[nr].druck||"–")+" bar)").join(", ")+" · "+uhr(t.start)+"–"+(t.ende?uhr(t.ende)+" Uhr ("+Math.round((new Date(t.ende)-new Date(t.start))/60000)+" min)":"läuft")+(t.auftrag?" · "+t.auftrag:"")); });KV("Trupps",a.trupps);KV("Träger",a.traeger);KV("Geräte",a.geraete)}
+      asTrupps(e).filter(t=>t.start).forEach(t=>{ const mm=t.mitglieder||{}; KV("Trupp "+(t.nr||""),truppMitgl(t).map(nr=>asName(nr)+" ("+(mm[nr].druck||"–")+" bar)").join(", ")+" · "+uhr(t.start)+"–"+(t.ende?uhr(t.ende)+" Uhr ("+Math.round((new Date(t.ende)-new Date(t.start))/60000)+" min)":"läuft")+(t.auftrag?" · "+t.auftrag:"")); funkListe(t).forEach(x=>{ check(6); doc.setFont("helvetica","normal"); doc.setFontSize(10); const ln=doc.splitTextToSize(uhrS(x.t)+"  "+x.text,R-L-50); doc.text(ln,L+50,y); y+=ln.length*4.8; }); y+=1; });KV("Trupps",a.trupps);KV("Träger",a.traeger);KV("Geräte",a.geraete)}
     if(zusammenfassung("secSchaden",e)){H("Personenschäden");const a=e.schaden||{};KV("Gerettet",a.gerettet);KV("Geborgen",a.geborgen);KV("Verletzt",a.verletzt);KV("Tot",a.tot);KV("Tiere",a.tiere)}
     if(zusammenfassung("secMat",e)){H("Verbrauchsmaterial");const mt=e.material||{};KV("Ölbindemittel",mt.oel?mt.oel+" kg":"");KV("Schaummittel",mt.schaum?mt.schaum+" l":"");KV("Löschwasser",mt.wasser?mt.wasser+" l":"");KV("Sonstiges",mt.sonst)}
     const uf=ufListe(e);
