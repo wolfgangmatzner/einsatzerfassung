@@ -133,6 +133,16 @@
   .astrupp{border:2px solid var(--rand);border-radius:12px;padding:10px 12px;background:#fff;min-width:0}
   .astrupp.aktiv{border-color:#ea580c;border-width:3px;display:flex;flex-direction:column}
   .astrupp.vorb{margin-bottom:10px}
+  .astrupp.ende{background:var(--grau);border-color:#e5e7eb;color:#4b5563;display:flex;flex-direction:column;cursor:pointer}
+  .astrupp.ende .astimer{color:#6b7280;font-size:22px}
+  .astrupp.ende .astfunk{color:#6b7280;margin-bottom:0}
+  .astrupp.ende b{color:#374151}
+  .asprot{margin-bottom:4px}
+  .asprot .fmeld{font-size:15px;padding:6px 0}
+  .asprot .fmeld .tn{flex:none;font-size:12px;font-weight:800;background:#ffedd5;color:#9a3412;border-radius:5px;padding:1px 6px}
+  .asprot .fmeld.start .t,.asprot .fmeld.ende .t{color:#6b7280}
+  .asprot .fmeld.start .tn{background:#dcfce7;color:#166534}
+  .asprot .fmeld.ende .tn{background:#e5e7eb;color:#374151}
   .astkopf{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
   .astkopf b{font-size:17px;white-space:nowrap}
   .astkopf .sub{font-size:13px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1436,12 +1446,26 @@ function zeichneAS(e){
         ${zu?"<span></span>":`<button type="button" class="x" data-asrm="${t.id}|${nr}">×</button>`}</div>`).join("")}
       ${zu?"":`<div class="astakt"><input type="text" data-ast="${t.id}" value="${esc(t.auftrag||"")}" placeholder="Auftrag (optional)" autocomplete="off"><button type="button" class="btn btn-as" data-asstart="${t.id}" ${truppBereit(t)?"":"disabled"}>▶ Start</button></div>
       ${fehlt.length?`<div class="asfehl">Fehlt noch: ${fehlt.join(", ")}</div>`:""}<button type="button" class="linkklein" data-asdel="${t.id}">Trupp verwerfen</button>`}</div>`; };
-  const endZeile=t=>{ const m=t.mitglieder||{}; return `<div class="asend" data-astile="${t.id}"><b>Trupp ${t.nr||"?"}</b> · ${uhr(t.start)}–${uhr(t.ende)} (${dauerText(new Date(t.ende)-new Date(t.start))}) · ${truppMitgl(t).map(nr=>esc(kn(nr))+" "+(m[nr].druck||"–")).join(", ")}${t.auftrag?" · "+esc(t.auftrag):""}${funkListe(t).length?" · "+funkListe(t).length+" Meldung"+(funkListe(t).length>1?"en":""):""}</div>`; };
+  // beendeter Trupp: gleiche Kachel wie laufende, aber grau
+  const endKarte=t=>{ const m=t.mitglieder||{}, fm=funkListe(t), lm=fm[fm.length-1];
+    return `<div class="astrupp ende" data-astile="${t.id}"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="astimer">${dauerText(new Date(t.ende)-new Date(t.start))}</span></div>
+      <div class="astzeit">${uhr(t.start)}–${uhr(t.ende)}${t.auftrag?" · "+esc(t.auftrag):""}</div>
+      <div class="astl">${truppMitgl(t).map(nr=>`<div><span>${esc(kn(nr))}</span><span>${m[nr].druck||"–"} bar${nennVon(m[nr])===200?" (200er)":""}</span></div>`).join("")}</div>
+      <div class="astfunk">${lm?uhrS(lm.t).slice(0,5)+" · "+esc(lm.text)+(fm.length>1?" (+"+(fm.length-1)+")":""):"keine Meldungen"}</div></div>`; };
+  // Protokoll: Start, Meldungen und Ende aller Trupps in zeitlicher Reihenfolge
+  const prot=[];
+  l.filter(t=>t.start).forEach(t=>{ const m=t.mitglieder||{};
+    prot.push({t:t.start,nr:t.nr,art:"start",text:"Start · "+truppMitgl(t).map(nr=>kn(nr)+" "+(m[nr].druck||"–")).join(", ")+(t.auftrag?" · "+t.auftrag:"")});
+    funkListe(t).forEach(x=>prot.push({t:x.t,nr:t.nr,art:"m",text:x.text}));
+    if(t.ende)prot.push({t:t.ende,nr:t.nr,art:"ende",text:"Ende · Dauer "+dauerText(new Date(t.ende)-new Date(t.start))}); });
+  prot.sort((a,b)=>(a.t||"").localeCompare(b.t||""));
+  const protHtml=prot.map(x=>`<div class="fmeld ${x.art}"><span class="z">${uhrS(x.t)}</span><span class="tn">T${x.nr||"?"}</span><span class="t">${esc(x.text)}</span></div>`).join("");
   const akt=l.filter(t=>truppStatus(t)==="aktiv"), vor=l.filter(t=>truppStatus(t)==="vorb"), end=l.filter(t=>truppStatus(t)==="beendet").reverse();
   $("asInhalt").innerHTML=(l.length?"":`<div class="leer">Noch kein Trupp angelegt.<br>${asListe(e).length?"Mit „+ Trupp“ unten einen Trupp zusammenstellen.":"Zuerst im Einsatz bei der Mannschaft über „Atemschutz“ die Atemschutzträger auswählen."}</div>`)
     +(akt.length?`<h2>Im Einsatz (${akt.length})</h2><div class="asgrid">${akt.map(aktivKarte).join("")}</div>`:"")
     +(vor.length?`<h2>In Vorbereitung (${vor.length})</h2>${vor.map(vorbKarte).join("")}`:"")
-    +(end.length?`<h2>Beendet (${end.length})</h2>${end.map(endZeile).join("")}`:"")
+    +(prot.length?`<h2 class="klapp ${asProtOffen?"offen":""}" data-asprot="1">Protokoll (${prot.length})</h2>${asProtOffen?`<div class="asprot">${protHtml}</div>`:""}`:"")
+    +(end.length?`<h2>Beendet (${end.length})</h2><div class="asgrid">${end.map(endKarte).join("")}</div>`:"")
     +`<div class="hinweis" style="margin-top:12px">Frei: ${frei.length?esc(frei.map(kn).join(", ")):"–"}</div>`;
   if(asDlgTid)asDlgZeichnen();
 }
@@ -1482,6 +1506,10 @@ document.addEventListener("click",ev=>{
   asDlgTid=k.dataset.astile; asDlgZeichnen(); $("asTruppDlg").style.display="block";
 });
 document.addEventListener("keydown",ev=>{ if(ev.key==="Enter"&&ev.target.id==="funkText"){ ev.preventDefault(); funkEintragen(ev.target.value); ev.target.value=""; } });
+
+// Protokoll ein-/ausklappen (pro Gerät gemerkt)
+let asProtOffen=true; try{ asProtOffen=localStorage.getItem("ffa-asprot")!=="0"; }catch(e){}
+document.addEventListener("click",ev=>{ if(!ev.target.closest("[data-asprot]")||!aktuell)return; asProtOffen=!asProtOffen; try{localStorage.setItem("ffa-asprot",asProtOffen?"1":"0")}catch(e){} zeichneAS(aktuell); });
 
 // Auswahl eines Mitglieds, das noch nicht anwesend / kein Atemschutzträger ist
 let asMehrTid=null;
