@@ -1034,7 +1034,7 @@ document.addEventListener("change",ev=>{
   if(i.dataset.gem){ const u=i.dataset.gem==="ueber"; $("gemeinde").style.display=u?"":"none"; const gv=$("gemeinde").value; if(u&&gv==="Auersthal")$("gemeinde").value=""; schreibe({ueberoertlich:u, gemeinde:u?($("gemeinde").value||""):"Auersthal"}); if(u)setTimeout(()=>$("gemeinde").focus(),100); return; }
   if(i.dataset.wetter){ const w=WETTER.filter(x=>document.querySelector(`input[data-wetter="${x}"]`).checked); schreibe({wetter:w}); return; }
   if(i.type!=="checkbox")return;
-  if(i.dataset.ff){ const n=i.dataset.ff; const alt=(aktuell.ffs||{})[n]||{}; schreibe(Object.assign({ffs:{[n]:{aktiv:i.checked,fz:alt.fz||0,mann:alt.mann||0,extra:!!alt.extra}}},tbAuto("a:ff:"+n,"FF "+n+" eingetroffen",i.checked))); return; }
+  if(i.dataset.ff){ const n=i.dataset.ff; const alt=(aktuell.ffs||{})[n]||{}; schreibe(Object.assign({ffs:{[n]:{aktiv:i.checked,fz:alt.fz||0,mann:alt.mann||0,extra:!!alt.extra}}},tbAuto("a:ff:"+n,"FF "+n+" eingetroffen",i.checked),i.checked?{}:{tagebuch:{["a:ff:"+n]:null,["a:ffs:"+n]:null}})); return; }
   if(i.dataset.stelle){ schreibe(Object.assign({kraefte:{stellen:{[i.dataset.stelle]:i.checked}}},tbAuto("a:st:"+i.dataset.stelle,i.dataset.stelle+" eingetroffen",i.checked))); return; }
   if(i.dataset.fz){
     const fz=FAHRZEUGE.filter(f=>document.querySelector(`input[data-fz="${f}"]`).checked);
@@ -1198,7 +1198,14 @@ document.addEventListener("input",ev=>{
   const i=ev.target; if(!i.dataset||!i.dataset.ffnum||!aktuell)return;
   const [n,feld]=i.dataset.ffnum.split("|"); const v=Math.max(0,parseInt(i.value)||0);
   clearTimeout(textTimer[i.dataset.ffnum]);
-  textTimer[i.dataset.ffnum]=setTimeout(()=>{ if(((aktuell.ffs||{})[n]||{})[feld]!==v) schreibe({ffs:{[n]:{[feld]:v}}}); },600);
+  textTimer[i.dataset.ffnum]=setTimeout(()=>{
+    const alt=(aktuell.ffs||{})[n]||{}; if(alt[feld]===v)return;
+    // Stärkemeldung der Feuerwehr auch ins Tagebuch (ein Eintrag je Feuerwehr, wird bei Korrektur aktualisiert)
+    const st={fz:+alt.fz||0,mann:+alt.mann||0}; st[feld]=v;
+    const id="a:ffs:"+n, gibt=!!(aktuell.tagebuch||{})[id];
+    const eintrag=(st.fz||st.mann)?Object.assign({text:"FF "+n+": "+st.fz+" Fahrzeug"+(st.fz===1?"":"e")+", "+st.mann+" Mann",auto:true},gibt?{}:{t:new Date().toISOString()}):null;
+    schreibe({ffs:{[n]:{[feld]:v}},tagebuch:{[id]:eintrag}});
+  },900);
 });
 document.addEventListener("focusout",ev=>{ const i=ev.target; if(i.dataset&&i.dataset.ffnum&&aktuell) setTimeout(()=>zeichneFF(aktuell),50); });
 $("ffNeu").addEventListener("keydown",ev=>{if(ev.key==="Enter"){ev.preventDefault();ffHinzu()}});
