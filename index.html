@@ -596,7 +596,7 @@
 </div>
 <div class="leiste" id="leisteEinsatz" style="display:none">
   <button class="btn btn-grau" onclick="zeigeUebersicht()">‹ Übersicht</button>
-  <button class="btn btn-grau mitte" id="anzGesamt" onclick="zurMannschaft()">0 Mitglieder</button>
+  <button class="btn btn-grau mitte" onclick="zurSektion('secTb')">Tagebuch</button>
   <button class="btn btn-rot" id="pdfBtn" onclick="pdfErzeugen(this)">PDF teilen</button>
 </div>
 
@@ -982,7 +982,6 @@ function fuelleFormular(e){
 function zaehlen(e){
   const m=Object.values(e.m||{}).filter(Boolean).length,r=Object.values(e.r||{}).filter(Boolean).length;
   $("anzMann").textContent=m?`(${m})`:"";$("anzRes").textContent=r?`(${r})`:"";
-  $("anzGesamt").textContent=(m+r)+" Mitglieder";
 }
 
 // Schreiben: ein Feld (oder eine Person) pro Aufruf, nacheinander
@@ -1125,9 +1124,9 @@ document.querySelectorAll("h2[data-gruppe]").forEach(h=>{
     try{const st=gruppenZustand();st[id]=offen;localStorage.setItem("ffa-gruppen",JSON.stringify(st))}catch(e){}
   });
 });
-function zurMannschaft(){
-  sektion("secMann",true,true);
-  const h=document.querySelector('h2[data-ziel="secMann"]'), sc=$("scroller");
+function zurSektion(ziel){
+  sektion(ziel,true,true);
+  const h=document.querySelector('h2[data-ziel="'+ziel+'"]'), sc=$("scroller");
   requestAnimationFrame(()=>sc.scrollTo({top:h.getBoundingClientRect().top-sc.getBoundingClientRect().top+sc.scrollTop-10,behavior:"smooth"}));
 }
 function kurzName(n){const t=n.split(" ");return t[0]+(t[1]?" "+t[1][0]+".":"")}
