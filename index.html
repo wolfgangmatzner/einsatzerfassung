@@ -238,6 +238,10 @@
   .astfunk.warn{background:#dc2626;color:#fff!important;font-weight:700;border-radius:6px;padding:3px 6px;margin-top:0;white-space:normal}
   .asnachbox{border:2px solid #dc2626;border-radius:12px;padding:8px 10px;margin:10px 0 0;background:#fef2f2}
   .asnachtitel{font-weight:800;color:#b91c1c;font-size:15px;margin-bottom:2px}
+  .tbzeit{display:flex;align-items:center;gap:8px;margin:2px 0 0;font-size:14px;color:#6b7280}
+  .tbzeit button{flex:none;white-space:nowrap;border:2px solid var(--rand);background:#fff;border-radius:10px;padding:7px 10px;font-size:14px;font-weight:600;color:var(--text);font-family:inherit}
+  .tbzeit button.an{background:var(--text);border-color:var(--text);color:#fff}
+  .tbzeit input{flex:1;height:38px;font-size:16px;padding:0 6px;border:2px solid #ea580c;border-radius:10px;font-family:inherit;min-width:0}
   #nachToast{position:fixed;left:10px;right:10px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:9;align-items:center;gap:10px;background:#1f2937;color:#fff;border-radius:14px;padding:10px 10px 10px 14px;box-shadow:0 6px 20px rgba(0,0,0,.3);font-size:14.5px;max-width:680px;margin:0 auto}
   #nachToast span{flex:1;min-width:0}
   #nachToast button{flex:none;background:#fff;color:#111827;border:none;border-radius:10px;padding:10px 12px;font-size:15px;font-weight:700;font-family:inherit}
@@ -625,6 +629,7 @@
     <div class="zusfassung" id="zf_secTb"></div>
     <div id="secTb" style="display:none">
       <div id="tbEingabe">
+        <div class="tbzeit"><span>Zeitpunkt</span><button type="button" id="tbJetzt" class="an" onclick="tbZeitModus(false)">Jetzt</button><button type="button" id="tbAnders" onclick="tbZeitModus(true)">Andere Zeit</button><input id="tbZeit" type="time" style="display:none"></div>
         <div class="fschnell" id="tbSchnell"></div>
         <div class="feingabe"><input id="tbText" type="text" placeholder="Eintrag …" autocomplete="off" enterkeyhint="send"><button type="button" class="btn btn-rot" id="tbOk">Eintragen</button></div>
       </div>
@@ -776,11 +781,11 @@
 <div id="nachDlg" class="dialog sheet" onclick="if(event.target===this)nachZu()">
   <div class="box">
     <div class="shkopf"><div><div class="shtitel" id="nachTitel"></div><div class="shsub" id="nachSub"></div></div><button type="button" class="shzu" onclick="nachZu()">×</button></div>
-    <div class="shgruppe" style="position:static">Schon länger da – eingetroffen vor</div>
+    <div class="shgruppe" style="position:static" id="nachKopf"></div>
     <div class="wahl" style="grid-template-columns:repeat(4,1fr)"><button type="button" onclick="nachSetzen('min',5)">5 min</button><button type="button" onclick="nachSetzen('min',10)">10 min</button><button type="button" onclick="nachSetzen('min',15)">15 min</button><button type="button" onclick="nachSetzen('min',30)">30 min</button></div>
     <div class="shgruppe" style="position:static">oder um</div>
     <div class="feingabe"><input id="nachZeit" type="time"><button type="button" class="btn btn-grau" onclick="nachSetzen('uhr',document.getElementById('nachZeit').value)">Übernehmen</button></div>
-    <div class="ffakt" style="margin-top:14px;justify-content:space-between"><button type="button" class="btn btn-grau" id="nachLive" onclick="nachSetzen('live')">Doch live erfasst</button><button type="button" class="btn btn-grau" onclick="nachSetzen('unb')">Zeit unbekannt</button></div>
+    <div class="ffakt" style="margin-top:14px;justify-content:space-between"><button type="button" class="btn btn-grau" id="nachLive" onclick="nachSetzen('live')">Doch live erfasst</button><button type="button" class="btn btn-grau" id="nachUnb" onclick="nachSetzen('unb')">Zeit unbekannt</button></div>
   </div>
 </div>
 <div id="frage" class="dialog" onclick="if(event.target===this)this.style.display='none'">
@@ -1899,7 +1904,9 @@ function nachHinweis(id){
 function nachDlgAuf(id){
   const x=aktuell&&(aktuell.tagebuch||{})[id]; if(!x||aktuell.status==="abgeschlossen")return; nachId=id;
   clearTimeout(nachTimer); $("nachToast").style.display="none";
-  $("nachTitel").textContent=(x.text||"").replace(/ eingetroffen$/,""); $("nachSub").textContent="Erfasst um "+uhr(x.erfasst||x.t)+(x.nach==="zeit"?" · eingetroffen "+uhr(x.t):x.nach==="unb"?" · Eintreffzeit unbekannt":" · als live erfasst eingetragen");
+  const ein=!!x.auto&&/ eingetroffen$/.test(x.text||"");
+  $("nachTitel").textContent=(x.text||"").replace(/ eingetroffen$/,""); $("nachSub").textContent="Erfasst um "+uhr(x.erfasst||x.t)+(x.nach==="zeit"?" · Zeitpunkt "+uhr(x.t):x.nach==="unb"?" · Eintreffzeit unbekannt":" · als live erfasst eingetragen");
+  $("nachKopf").textContent=ein?"Schon länger da – eingetroffen vor":"Tatsächlicher Zeitpunkt – vor"; $("nachUnb").style.display=ein?"":"none";
   $("nachZeit").value=""; $("nachLive").style.display=x.nach?"":"none"; $("nachDlg").style.display="block";
 }
 function nachZu(){ $("nachDlg").style.display="none"; }
@@ -1920,7 +1927,7 @@ function tbAutoZaehler(key,alt,neu){ // Zähler erhöht → Eintrag für die n-t
 }
 function tbListe(e){
   const tb=e.tagebuch||{};
-  const eigene=Object.keys(tb).filter(k=>tb[k]).map(k=>({id:k,t:tb[k].t,text:tbText(tb[k]),art:"tb",ein:!!tb[k].auto&&/ eingetroffen$/.test(tb[k].text||""),nach:tb[k].nach||""}));
+  const eigene=Object.keys(tb).filter(k=>tb[k]).map(k=>({id:k,t:tb[k].t,text:tbText(tb[k]),art:"tb",ein:true,nach:tb[k].nach||""}));
   // Ausfahrt und Rückkehr kommen direkt aus den Zeitfeldern des Einsatzes (immer aktuell, daher nicht löschbar)
   const zeit=(datum,uhrzeit)=>{ if(!datum||!uhrzeit)return null; const d=new Date(datum+"T"+uhrzeit+":00"); return isNaN(d)?null:d.toISOString(); };
   const sys=[]; const ta=zeit(e.datum,e.ausfahrt), tr=zeit(e.rueckkehrDatum||e.datum,e.rueckkehr);
@@ -1934,9 +1941,17 @@ function zeichneTb(e){
   $("tbEingabe").style.display=zu?"none":"";
   setzeHtml($("tbListe"),l.length?l.slice().reverse().map(x=>`<div class="fmeld ${x.art}"><span class="z">${uhrS(x.t)}</span>${x.nr==null?"":`<span class="tn">Trupp ${x.nr}</span>`}<span class="t ${x.ein&&!zu?"einz":""}" ${x.ein&&!zu?`data-tbnach="${esc(x.id)}"`:""}>${esc(x.text)}${x.ein&&!zu?' <i>Zeit ändern</i>':""}</span>${x.art==="tb"&&!zu?`<button type="button" class="x" data-tbweg="${x.id}">×</button>`:""}</div>`).join(""):'<div class="leer" style="padding:10px">Noch kein Eintrag</div>');
 }
+// Zeitpunkt des nächsten Eintrags: Standard „Jetzt“, optional eine andere Uhrzeit (Nachtrag) – springt nach dem Eintragen auf „Jetzt“ zurück
+function tbZeitModus(anders){
+  $("tbJetzt").classList.toggle("an",!anders); $("tbAnders").classList.toggle("an",!!anders); const z=$("tbZeit"); z.style.display=anders?"":"none";
+  if(anders){ const d=new Date(); z.value=pad2(d.getHours())+":"+pad2(d.getMinutes()); z.focus(); } else z.value="";
+}
 function tbEintragen(text){
   text=(text||"").trim(); if(!text||!aktuell||aktuell.status==="abgeschlossen")return;
-  schreibe({tagebuch:{["e"+Date.now().toString(36)]:{t:new Date().toISOString(),text}}});
+  const jetzt=new Date(), z=$("tbZeit").value, x={t:jetzt.toISOString(),text};
+  if($("tbAnders").classList.contains("an")&&/^\d\d:\d\d$/.test(z)){ const d=new Date(jetzt); d.setHours(+z.slice(0,2),+z.slice(3),0,0); if(d.getTime()>jetzt.getTime())d.setDate(d.getDate()-1);
+    if(Math.abs(jetzt-d)>=60000){ x.t=d.toISOString(); x.nach="zeit"; x.erfasst=jetzt.toISOString(); } }
+  schreibe({tagebuch:{["e"+Date.now().toString(36)]:x}}); tbZeitModus(false);
 }
 document.addEventListener("click",ev=>{
   if(!aktuell||!ev.target.closest("#secTb"))return;
