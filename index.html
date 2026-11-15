@@ -1585,7 +1585,7 @@ function asListe(e){ const a=e.as||{}; return Object.keys(a).filter(nr=>a[nr]&&i
 function setzeHtml(el,html){ if(el._html!==html){ el.innerHTML=html; el._html=html; } }
 function zeichneZuteil(e){
   const fz=(e.fz||[]), zt=e.zuteilung||{}, as=e.as||{};
-  if(zuteilFz&&zuteilFz!==AS&&!fz.includes(zuteilFz))zuteilFz=null;
+  if(zuteilFz&&zuteilFz!==AS&&!fz.includes(zuteilFz)){ zuteilFz=null; sortAnwenden(); }
   $("zuteil").style.display="";
   const nAs=asListe(e).length;
   setzeHtml($("zuteilChips"),fz.map(f=>{ const n=Object.keys(zt).filter(nr=>zt[nr]===f&&istDa(e,nr)).length; return `<button type="button" class="chip ${zuteilFz===f?"an":""}" data-zfz="${f}">${f}${n?" · "+n:""}</button>`; }).join("")
@@ -1606,7 +1606,7 @@ function zeichneZuteil(e){
 }
 document.addEventListener("click",ev=>{
   const b=ev.target.closest("[data-zfz]"); if(!b||!aktuell||aktuell.status==="abgeschlossen")return;
-  zuteilFz=zuteilFz===b.dataset.zfz?null:b.dataset.zfz; zeichneZuteil(aktuell);
+  zuteilFz=zuteilFz===b.dataset.zfz?null:b.dataset.zfz; zeichneZuteil(aktuell); sortAnwenden();
 });
 function zuteilTipp(p){ // Tipp auf eine Person bei gewähltem Fahrzeug
   setTimeout(sucheLeeren,0);
@@ -1964,7 +1964,17 @@ let sortHaeufig=false; try{ sortHaeufig=localStorage.getItem("ffa-sort")==="h"; 
 function sortAnwenden(){
   const zahl={};
   if(sortHaeufig) letzteListe.forEach(e=>["m","r"].forEach(g=>Object.keys(e[g]||{}).forEach(nr=>{ if(e[g][nr])zahl[nr]=(zahl[nr]||0)+1; })));
-  document.querySelectorAll("#mannschaft .person, #reserve .person").forEach(p=>{ p.style.order=sortHaeufig?-(zahl[p.querySelector("input").dataset.nr]||0):""; });
+  // Ist ein Fahrzeug (oder Atemschutz) gewählt: zuerst dessen Mitglieder (MA, GK, dann A–Z), dann die noch freien, zuletzt die anderer Fahrzeuge
+  const e=aktuell, fz=e&&zuteilFz, zt=(e&&e.zuteilung)||{}, rollen=(fz&&fz!==AS&&(e.fzRollen||{})[fz])||{};
+  const stufe=nr=>{ if(!fz)return 0; const da=istDa(e,nr);
+    if(fz===AS)return da&&(e.as||{})[nr]?0:3;
+    if(da&&zt[nr]===fz)return String(rollen.ma)===nr?0:String(rollen.gk)===nr?1:2;
+    return da&&zt[nr]?4:3; };
+  ["mannschaft","reserve"].forEach(id=>{
+    const l=[...document.querySelectorAll("#"+id+" .person")].map((p,i)=>{ const nr=p.querySelector("input").dataset.nr, st=stufe(nr); return {p,i,st,z:st<3?0:(zahl[nr]||0)}; });
+    if(!fz&&!sortHaeufig){ l.forEach(x=>x.p.style.order=""); return; }
+    l.sort((a,b)=>a.st-b.st||b.z-a.z||a.i-b.i).forEach((x,k)=>x.p.style.order=k);
+  });
   $("sortBtn").textContent=sortHaeufig?"Häufigste":"A–Z"; $("sortBtn").classList.toggle("an",sortHaeufig);
 }
 function sortWechseln(){ sortHaeufig=!sortHaeufig; try{localStorage.setItem("ffa-sort",sortHaeufig?"h":"a")}catch(e){} sortAnwenden(); }
