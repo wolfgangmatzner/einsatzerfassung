@@ -238,6 +238,10 @@
   .astfunk.warn{background:#dc2626;color:#fff!important;font-weight:700;border-radius:6px;padding:3px 6px;margin-top:0;white-space:normal}
   .asnachbox{border:2px solid #dc2626;border-radius:12px;padding:8px 10px;margin:10px 0 0;background:#fef2f2}
   .asnachtitel{font-weight:800;color:#b91c1c;font-size:15px;margin-bottom:2px}
+  #nachToast{position:fixed;left:10px;right:10px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:9;align-items:center;gap:10px;background:#1f2937;color:#fff;border-radius:14px;padding:10px 10px 10px 14px;box-shadow:0 6px 20px rgba(0,0,0,.3);font-size:14.5px;max-width:680px;margin:0 auto}
+  #nachToast span{flex:1;min-width:0}
+  #nachToast button{flex:none;background:#fff;color:#111827;border:none;border-radius:10px;padding:10px 12px;font-size:15px;font-weight:700;font-family:inherit}
+  #tbListe .t.einz i{font-style:normal;font-size:12px;color:#6b7280;text-decoration:underline;white-space:nowrap;margin-left:4px}
   .asneu{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:64px;margin:12px 0 14px;border:2px dashed #ea580c;border-radius:14px;background:#fff7ed;color:#c2410c;font-size:19px;font-weight:700;font-family:inherit}
   .asneu span{font-size:30px;line-height:1;font-weight:600}
   .asneu:active{background:#ffedd5}
@@ -768,6 +772,17 @@
   <div class="box" id="asTruppBox"></div>
 </div>
 
+<div id="nachToast" style="display:none"><span id="nachToastText"></span><button type="button" id="nachToastBtn" onclick="nachDlgAuf(nachId)"></button></div>
+<div id="nachDlg" class="dialog sheet" onclick="if(event.target===this)nachZu()">
+  <div class="box">
+    <div class="shkopf"><div><div class="shtitel" id="nachTitel"></div><div class="shsub" id="nachSub"></div></div><button type="button" class="shzu" onclick="nachZu()">×</button></div>
+    <div class="shgruppe" style="position:static">Schon länger da – eingetroffen vor</div>
+    <div class="wahl" style="grid-template-columns:repeat(4,1fr)"><button type="button" onclick="nachSetzen('min',5)">5 min</button><button type="button" onclick="nachSetzen('min',10)">10 min</button><button type="button" onclick="nachSetzen('min',15)">15 min</button><button type="button" onclick="nachSetzen('min',30)">30 min</button></div>
+    <div class="shgruppe" style="position:static">oder um</div>
+    <div class="feingabe"><input id="nachZeit" type="time"><button type="button" class="btn btn-grau" onclick="nachSetzen('uhr',document.getElementById('nachZeit').value)">Übernehmen</button></div>
+    <div class="ffakt" style="margin-top:14px;justify-content:space-between"><button type="button" class="btn btn-grau" id="nachLive" onclick="nachSetzen('live')">Doch live erfasst</button><button type="button" class="btn btn-grau" onclick="nachSetzen('unb')">Zeit unbekannt</button></div>
+  </div>
+</div>
 <div id="frage" class="dialog" onclick="if(event.target===this)this.style.display='none'">
   <div class="box" style="max-width:420px;text-align:center">
     <p id="frageText" style="font-size:18px;margin:0 0 16px"></p>
@@ -1082,6 +1097,7 @@ function oeffne(id){
   pollen();
 }
 function zeigeUebersicht(){
+  clearTimeout(nachTimer); $("nachToast").style.display="none"; nachZu();
   $("scroller").scrollTop=0;
   aktuellId=null;aktuell=null;listeStand="";
   $("einsatzView").style.display="none";$("leisteEinsatz").style.display="none";
@@ -1406,7 +1422,8 @@ function ffFzSpeichern(weg){
     if(!d.typ||d.mann==null)return;
     const jetzt=new Date().toISOString(), bes=d.kdt+":"+d.mann, v={typ:d.typ,bes,t:(fzg[id]&&fzg[id].t)||jetzt};
     fzg[id]=v; patch.ffs[d.n].fzg[id]=v;
-    patch.tagebuch[tbId]={t:v.t,text:"FF "+d.n+": "+d.typ+" ("+bes+") eingetroffen",auto:true};
+    const txt="FF "+d.n+": "+d.typ+" ("+bes+") eingetroffen";
+    patch.tagebuch[tbId]=d.id&&(aktuell.tagebuch||{})[tbId]?{text:txt}:tbEintreff(tbId,txt);   // beim Ändern bleiben Zeit und Nacherfassung des Eintrags erhalten
   }
   const l=Object.values(fzg).filter(Boolean), fz=l.length, mann=l.reduce((a,x)=>a+besMann(x.bes),0);
   Object.assign(patch.ffs[d.n],{fz,mann,gemeldet:fz||mann?fz+"|"+mann:""});
@@ -1616,7 +1633,7 @@ function krWeitere(e){ const k=(e&&e.kraefte)||{}; return (k.sonst?[{id:"sonst",
 function krHinzu(){
   const text=$("krSonst").value.trim(); if(!text||!aktuell||aktuell.status==="abgeschlossen")return;
   $("krSonst").value=""; const id="k"+Date.now().toString(36), t=new Date().toISOString();
-  schreibe({kraefte:{weitere:{[id]:{text,t}}},tagebuch:{["a:kw:"+id]:{t,text:text+" eingetroffen",auto:true}}});
+  schreibe({kraefte:{weitere:{[id]:{text,t}}},tagebuch:{["a:kw:"+id]:tbEintreff("a:kw:"+id,text+" eingetroffen")}});
 }
 $("krSonst").addEventListener("keydown",ev=>{if(ev.key==="Enter"){ev.preventDefault();krHinzu()}});
 document.addEventListener("click",ev=>{
@@ -1863,7 +1880,39 @@ $("tbSchnell").innerHTML=TB_SCHNELL.map(x=>`<button type="button" data-tbschnell
 // Automatische Einträge „… eingetroffen“ beim Anwählen weiterer Feuerwehren / Kräfte.
 // Feste IDs (a:<art>:<name>[:n]), damit das Abwählen den Eintrag wieder entfernt.
 const RETT_NAME={NAH:"Notarzthubschrauber",NEF:"Notarztfahrzeug",RTW:"Rettungsfahrzeug",Arzt:"Arzt",FR:"First Responder"};
-function tbAuto(id,text,an){ return {tagebuch:{[id]:an?{t:new Date().toISOString(),text,auto:true}:null}}; }
+// „… eingetroffen“-Einträge: live erfasst (t = Zeitpunkt des Tippens) oder nacherfasst.
+//   nach:"zeit" → t = angegebene Eintreffzeit, erfasst = Zeitpunkt der Erfassung („nachgetragen um …“)
+//   nach:"unb"  → Eintreffzeit unbekannt, Text „… vor Ort (nacherfasst …)“, t = Zeitpunkt der Erfassung
+// Ist die Rückkehr schon eingetragen, gilt jede neue Eingabe automatisch als nacherfasst.
+function einsatzBeendet(e){ if(!e||!e.rueckkehr||!e.datum)return false; const d=new Date((e.rueckkehrDatum||e.datum)+"T"+e.rueckkehr+":00"); return !isNaN(d)&&d.getTime()<=Date.now(); }
+function tbEintreff(id,text){
+  const jetzt=new Date().toISOString(), x={t:jetzt,text,auto:true,ein:true}; if(einsatzBeendet(aktuell)){ x.nach="unb"; x.erfasst=jetzt; }
+  setTimeout(()=>nachHinweis(id),50); return x;
+}
+function tbText(x){ const s=x.text||""; if(x.nach==="unb")return s.replace(/ eingetroffen$/," vor Ort")+" (nacherfasst, Eintreffzeit unbekannt)"; if(x.nach==="zeit")return s+" (nachgetragen um "+uhr(x.erfasst)+")"; return s; }
+let nachTimer=null, nachId=null;
+function nachHinweis(id){
+  const x=aktuell&&(aktuell.tagebuch||{})[id]; if(!x)return; nachId=id;
+  $("nachToastText").textContent=uhr(x.t)+" · "+tbText(x); $("nachToastBtn").textContent=x.nach?"Zeit angeben":"Schon länger da";
+  $("nachToast").style.display="flex"; clearTimeout(nachTimer); nachTimer=setTimeout(()=>{ $("nachToast").style.display="none"; },8000);
+}
+function nachDlgAuf(id){
+  const x=aktuell&&(aktuell.tagebuch||{})[id]; if(!x||aktuell.status==="abgeschlossen")return; nachId=id;
+  clearTimeout(nachTimer); $("nachToast").style.display="none";
+  $("nachTitel").textContent=(x.text||"").replace(/ eingetroffen$/,""); $("nachSub").textContent="Erfasst um "+uhr(x.erfasst||x.t)+(x.nach==="zeit"?" · eingetroffen "+uhr(x.t):x.nach==="unb"?" · Eintreffzeit unbekannt":" · als live erfasst eingetragen");
+  $("nachZeit").value=""; $("nachLive").style.display=x.nach?"":"none"; $("nachDlg").style.display="block";
+}
+function nachZu(){ $("nachDlg").style.display="none"; }
+function nachSetzen(art,wert){
+  const id=nachId, x=aktuell&&(aktuell.tagebuch||{})[id]; if(!x)return; const erf=x.erfasst||x.t; let p;
+  if(art==="min")p={t:new Date(new Date(erf).getTime()-wert*60000).toISOString(),nach:"zeit",erfasst:erf};
+  else if(art==="uhr"){ if(!/^\d\d:\d\d$/.test(wert||""))return; const d=new Date(erf); d.setHours(+wert.slice(0,2),+wert.slice(3),0,0); if(d.getTime()>new Date(erf).getTime())d.setDate(d.getDate()-1); p={t:d.toISOString(),nach:"zeit",erfasst:erf}; }
+  else if(art==="unb")p={t:erf,nach:"unb",erfasst:erf};
+  else p={t:erf,nach:null,erfasst:null};
+  const patch={tagebuch:{[id]:p}}; if(id.startsWith("a:kw:"))patch.kraefte={weitere:{[id.slice(5)]:{t:p.t}}};
+  schreibe(patch); nachZu();
+}
+function tbAuto(id,text,an){ return {tagebuch:{[id]:an?tbEintreff(id,text):null}}; }
 function tbAutoZaehler(key,alt,neu){ // Zähler erhöht → Eintrag für die n-te Einheit, verringert → dessen Eintrag wieder weg
   let name=null; if(key==="kraefte.polizei")name="Polizei"; else if(key.startsWith("kraefte.rettung."))name=RETT_NAME[key.split(".")[2]]||key.split(".")[2];
   if(!name)return {};
@@ -1871,7 +1920,7 @@ function tbAutoZaehler(key,alt,neu){ // Zähler erhöht → Eintrag für die n-t
 }
 function tbListe(e){
   const tb=e.tagebuch||{};
-  const eigene=Object.keys(tb).filter(k=>tb[k]).map(k=>({id:k,t:tb[k].t,text:tb[k].text,art:"tb"}));
+  const eigene=Object.keys(tb).filter(k=>tb[k]).map(k=>({id:k,t:tb[k].t,text:tbText(tb[k]),art:"tb",ein:!!tb[k].auto&&/ eingetroffen$/.test(tb[k].text||""),nach:tb[k].nach||""}));
   // Ausfahrt und Rückkehr kommen direkt aus den Zeitfeldern des Einsatzes (immer aktuell, daher nicht löschbar)
   const zeit=(datum,uhrzeit)=>{ if(!datum||!uhrzeit)return null; const d=new Date(datum+"T"+uhrzeit+":00"); return isNaN(d)?null:d.toISOString(); };
   const sys=[]; const ta=zeit(e.datum,e.ausfahrt), tr=zeit(e.rueckkehrDatum||e.datum,e.rueckkehr);
@@ -1883,7 +1932,7 @@ function zeichneTb(e){
   const l=tbListe(e), zu=e.status==="abgeschlossen";
   $("anzTb").textContent=l.length?"("+l.length+")":"";
   $("tbEingabe").style.display=zu?"none":"";
-  setzeHtml($("tbListe"),l.length?l.slice().reverse().map(x=>`<div class="fmeld ${x.art}"><span class="z">${uhrS(x.t)}</span>${x.nr==null?"":`<span class="tn">Trupp ${x.nr}</span>`}<span class="t">${esc(x.text)}</span>${x.art==="tb"&&!zu?`<button type="button" class="x" data-tbweg="${x.id}">×</button>`:""}</div>`).join(""):'<div class="leer" style="padding:10px">Noch kein Eintrag</div>');
+  setzeHtml($("tbListe"),l.length?l.slice().reverse().map(x=>`<div class="fmeld ${x.art}"><span class="z">${uhrS(x.t)}</span>${x.nr==null?"":`<span class="tn">Trupp ${x.nr}</span>`}<span class="t ${x.ein&&!zu?"einz":""}" ${x.ein&&!zu?`data-tbnach="${esc(x.id)}"`:""}>${esc(x.text)}${x.ein&&!zu?' <i>Zeit ändern</i>':""}</span>${x.art==="tb"&&!zu?`<button type="button" class="x" data-tbweg="${x.id}">×</button>`:""}</div>`).join(""):'<div class="leer" style="padding:10px">Noch kein Eintrag</div>');
 }
 function tbEintragen(text){
   text=(text||"").trim(); if(!text||!aktuell||aktuell.status==="abgeschlossen")return;
@@ -1893,6 +1942,7 @@ document.addEventListener("click",ev=>{
   if(!aktuell||!ev.target.closest("#secTb"))return;
   const q=ev.target.closest("[data-tbschnell]"); if(q){ tbEintragen(q.dataset.tbschnell); return; }
   if(ev.target.closest("#tbOk")){ const i=$("tbText"); tbEintragen(i.value); i.value=""; i.focus(); return; }
+  const nz=ev.target.closest("[data-tbnach]"); if(nz){ nachDlgAuf(nz.dataset.tbnach); return; }
   const w=ev.target.closest("[data-tbweg]"); if(w){ const id=w.dataset.tbweg; frage("Diesen Tagebuch-Eintrag löschen?",()=>schreibe({tagebuch:{[id]:null}}),"Löschen"); }
 });
 document.addEventListener("keydown",ev=>{ if(ev.key==="Enter"&&ev.target.id==="tbText"){ ev.preventDefault(); tbEintragen(ev.target.value); ev.target.value=""; } });
