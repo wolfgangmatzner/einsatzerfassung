@@ -412,11 +412,8 @@
 <div id="loginView" class="dialog" style="display:flex;align-items:center;justify-content:center;background:var(--rot);z-index:50">
   <form class="box" style="max-width:380px;width:100%;text-align:center" onsubmit="login(event)">
     <h2 style="border:none;margin:0 0 4px;font-size:22px;text-transform:none;letter-spacing:0;color:var(--text)">Einsatzerfassung</h2>
-    <div style="color:#6b7280;margin-bottom:18px">Freiwillige Feuerwehr Auersthal</div>
-    <div class="chips" style="justify-content:center;margin-bottom:12px">
-      <label class="chip"><input type="radio" name="konto" value="tablet" checked>Tablet</label>
-      <label class="chip"><input type="radio" name="konto" value="admin">Admin</label>
-    </div>
+    <div style="color:#6b7280;margin-bottom:18px">Feuerwehr wählen und anmelden</div>
+    <select id="loginFF" aria-label="Feuerwehr" style="width:100%;font-size:18px;font-weight:600;padding:14px;border:2px solid var(--rand);border-radius:12px;text-align:center;text-align-last:center;margin-bottom:12px;background:#fff;color:var(--text);font-family:inherit"></select>
     <input id="pw" type="password" placeholder="Passwort" autocomplete="current-password" style="width:100%;font-size:20px;padding:14px;border:2px solid var(--rand);border-radius:12px;text-align:center;margin-bottom:12px">
     <div id="loginFehler" style="color:var(--rot);font-weight:600;min-height:22px;margin-bottom:6px"></div>
     <button class="btn btn-rot" type="submit" style="width:100%">Anmelden</button>
@@ -776,7 +773,17 @@ let rolle=null, aktuellId=null, aktuell=null, pollTimer=null, listeStand="", doc
 // ---------- Supabase ----------
 const SB_URL="https://zukookhfrgmffottgrng.supabase.co";
 const SB_KEY="sb_publishable_BxYd15JCZpqIsENFxTZm1g_2OvYm3YO";
-const KONTEN={tablet:"tablet@einsatz.feuerwehr-auersthal.at",admin:"admin@einsatz.feuerwehr-auersthal.at"};
+// Anmeldung mit der Feuerwehrnummer: Konto <nr> (normal) und <nr>-admin (nur für die Admin-Bereiche im Zahnrad, nie als Anmeldung am Gerät)
+const WEHREN=[{nr:"N04103",name:"FF Auersthal"}];
+const KONTO_DOMAIN="@einsatz.feuerwehr-auersthal.at";
+const ALTKONTEN={N04103:{normal:"tablet"+KONTO_DOMAIN,admin:"admin"+KONTO_DOMAIN}};   // frühere Kontonamen als Rückfall, damit beim Umstellen niemand ausgesperrt wird
+function aktFF(){ let nr=null; try{nr=localStorage.getItem("ffa-ff")}catch(e){} return WEHREN.find(f=>f.nr===nr)||WEHREN[0]; }
+function kontoMails(nr,admin){ const alt=(ALTKONTEN[nr]||{})[admin?"admin":"normal"]; return [nr.toLowerCase()+(admin?"-admin":"")+KONTO_DOMAIN].concat(alt?[alt]:[]); }
+async function anmeldenMit(client,mails,pw){
+  let fehler=null;
+  for(const email of mails){ const {data,error}=await client.auth.signInWithPassword({email,password:pw}); if(!error)return data; fehler=error; if(!/invalid login credentials/i.test(error.message||""))break; }
+  throw {code:/invalid login credentials/i.test(fehler.message||"")?"falsch":"netz",message:fehler.message};
+}
 const sb=window.supabase?window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}}):null;
 let sbAdmin=null;   // zweite, nicht gespeicherte Admin-Sitzung nur für die Mitgliederpflege
 function sbFehler(e){ const msg=(e&&(e.message||e.error_description||e.code))||"Fehler"; throw {code:e&&e.code||"sb",message:msg}; }
@@ -806,7 +813,7 @@ async function api(a,body,opts={}){
       if(!r)return {ok:true,rolle:null,mitglieder:[]};
       let mg; try{mg=await mitgliederLaden()}catch(e){mg=cache.mitglieder||[]}
       return {ok:true,rolle:r,mitglieder:mg}; }
-    case "login": { const {data,error}=await sb.auth.signInWithPassword({email:KONTEN[body.konto]||KONTEN.tablet,password:body.pw}); if(error)throw {code:"falsch",message:error.message}; return {ok:true,rolle:rolleAus(data.session),mitglieder:await mitgliederLaden()}; }
+    case "login": { const data=await anmeldenMit(sb,kontoMails(body.ff,false),body.pw); return {ok:true,rolle:rolleAus(data.session),mitglieder:await mitgliederLaden()}; }
     case "logout": await sb.auth.signOut(); return {ok:true};
     case "liste": { const {data,error}=await sb.from("einsaetze").select("id,data,version,updated_at").order("datum",{ascending:false}).limit(500); if(error)sbFehler(error);
       const stand=data.length+"|"+data.reduce((m,r)=>r.updated_at>m?r.updated_at:m,"")+"|"+data.reduce((a,r)=>a+r.version,0);
@@ -822,7 +829,7 @@ async function api(a,body,opts={}){
     case "fotoweg": { await sb.storage.from("fotos").remove([body.id]); return {ok:true}; }
     case "mitglieder": return {ok:true,mitglieder:await mitgliederLaden()};
     case "admin_login": { const c=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false,storageKey:"ffa-admin-tmp"}});
-      const {data,error}=await c.auth.signInWithPassword({email:KONTEN.admin,password:body.pw}); if(error)throw {code:"falsch",message:error.message};
+      const data=await anmeldenMit(c,kontoMails(aktFF().nr,true),body.pw);
       if(rolleAus(data.session)!=="admin"){ throw {code:"falsch",message:"kein Admin"}; } sbAdmin=c; return {ok:true}; }
     case "admin_logout": { if(sbAdmin){ const c=sbAdmin; sbAdmin=null; try{await c.auth.signOut({scope:"local"})}catch(e){} } return {ok:true}; }
     case "mitglieder_speichern": { const {error}=await (sbAdmin||sb).rpc("mitglieder_setzen",{p_liste:body.mitglieder}); if(error)sbFehler(error); return {ok:true,mitglieder:await mitgliederLaden()}; }
@@ -899,6 +906,7 @@ function zeigeLogin(){
 }
 window.addEventListener("error",ev=>{ const f=$("loginFehler"); if(f)f.textContent="Fehler: "+(ev.message||ev.error); });
 window.addEventListener("unhandledrejection",ev=>{ const f=$("loginFehler"); if(f)f.textContent="Fehler: "+((ev.reason&&(ev.reason.message||ev.reason.code))||ev.reason); });
+$("loginFF").innerHTML=WEHREN.map(f=>`<option value="${f.nr}">${f.name} · ${f.nr}</option>`).join(""); $("loginFF").value=aktFF().nr;
 async function login(ev){
   if(ev&&ev.preventDefault)ev.preventDefault();
   $("loginFehler").textContent="";
@@ -906,12 +914,12 @@ async function login(ev){
   const btn=$("loginView").querySelector("button[type=submit]"); btn.disabled=true; btn.textContent="Anmelden …";
   const zeit=setTimeout(()=>{$("loginFehler").textContent="Keine Antwort vom Server – Verbindung prüfen.";btn.disabled=false;btn.textContent="Anmelden"},15000);
   try{
-    const konto=(document.querySelector('input[name="konto"]:checked')||{}).value||"tablet";
-    const r=await api("login",{pw:$("pw").value,konto});
+    const ff=$("loginFF").value||WEHREN[0].nr; try{localStorage.setItem("ffa-ff",ff)}catch(e){}
+    const r=await api("login",{pw:$("pw").value,ff});
     $("pw").value=""; rolle=r.rolle; mitgliederSetzen(r.mitglieder||[]);
     cache.rolle=rolle; cache.mitglieder=r.mitglieder||[]; cacheSpeichern();
     $("loginView").style.display="none"; realtimeStarten(); pollen(); qAbarbeiten();
-  }catch(e){ $("loginFehler").textContent=e.code==="falsch"?"Passwort falsch ("+(e.message||"")+")":"Fehler: "+(e.message||e.code||e); }
+  }catch(e){ $("loginFehler").textContent=e.code==="falsch"?"Passwort stimmt nicht.":"Anmeldung nicht möglich: "+(e.message||e.code||e); }
   finally{ clearTimeout(zeit); btn.disabled=false; btn.textContent="Anmelden"; }
   return false;
 }
@@ -2189,7 +2197,7 @@ let adminMitglieder=[];
 function adminZu(){ $("adminView").style.display="none"; api("admin_logout",{}).catch(()=>{}); }
 function einstZu(){ $("einstDlg").style.display="none"; }
 function einstOeffnen(){
-  $("einstInfo").textContent=(rolle==="admin"?"Angemeldet als Admin":"Angemeldet als Tablet")+(BUILD.startsWith("__")?"":" · Version "+BUILD);
+  $("einstInfo").textContent=(aktFF().name+" ("+aktFF().nr+")"+(rolle==="admin"?" · Admin":""))+(BUILD.startsWith("__")?"":" · Version "+BUILD);
   document.querySelectorAll(".pwhinweis").forEach(x=>x.textContent=rolle==="admin"?"":"Admin-Passwort erforderlich");
   $("einstDlg").style.display="block";
 }
