@@ -149,6 +149,18 @@
   .astkopf{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
   .astkopf b{font-size:17px;white-space:nowrap}
   .astkopf .astimer{white-space:nowrap;flex:none}
+  /* Timer-Größe nach Platzbedarf: data-len = Zeichen der Zeit + 1 bei zweistelliger Truppnummer; Umbruch als Notlösung auf sehr schmalen Geräten */
+  .astrupp .astkopf{flex-wrap:wrap;justify-content:space-between}
+  .astrupp .astimer{margin-left:auto}
+  .astrupp .astimer[data-len="5"]{font-size:25px}
+  .astrupp .astimer[data-len="6"]{font-size:20px}
+  .astrupp .astimer[data-len="7"]{font-size:17px}
+  .astrupp .astimer[data-len="8"],.astrupp .astimer[data-len="9"]{font-size:15px}
+  .astrupp.ende .astimer[data-len="5"]{font-size:21px}
+  .astrupp.ende .astimer[data-len="6"]{font-size:18px}
+  .astrupp.ende .astimer[data-len="7"]{font-size:16px}
+  .astrupp.ende .astimer[data-len="8"],.astrupp.ende .astimer[data-len="9"]{font-size:14px}
+  .astl div+div{margin-top:3px}
   .astkopf .sub{font-size:13px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .astimer{font-family:ui-monospace,monospace;font-size:30px;font-weight:800;color:#9a3412;font-variant-numeric:tabular-nums;line-height:1.1}
   .astzeit{font-size:12.5px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1782,7 +1794,7 @@ function zeichneAS(e){
   // laufender Trupp: kompakte Kachel, mehrere nebeneinander
   const aktivKarte=t=>{ const m=t.mitglieder||{};
     const fm=funkListe(t), lm=fm[fm.length-1];
-    return `<div class="astrupp aktiv" data-astile="${t.id}"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="astimer" data-timer="${t.start}">${timerText(Date.now()-new Date(t.start))}</span></div>
+    return `<div class="astrupp aktiv" data-astile="${t.id}"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="astimer" data-timer="${t.start}" data-plus="${String(t.nr||"").length>1?1:0}" data-len="${timerText(Date.now()-new Date(t.start)).length+(String(t.nr||"").length>1?1:0)}">${timerText(Date.now()-new Date(t.start))}</span></div>
       <div class="astzeit">ab ${uhr(t.start)}${t.auftrag?" · "+esc(t.auftrag):""}</div>
       <div class="astl">${truppMitgl(t).map(nr=>`<div><span>${esc(kn(nr))}</span>${m[nr].tm?"":'<i class="tmf" title="Totmannwarner nicht bestätigt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 17V11a6 6 0 0 1 9.5-4.9M18 11v6H9"/><path d="M4 17h1M10 20.5h4"/><path d="M4 4l16 16"/></svg></i>'}${+m[nr].druck>0?`<span class="dw ${druckKlasse(m[nr].druck,nennVon(m[nr]))}">${m[nr].druck} bar${nennVon(m[nr])===200?" (200er)":""}</span>`:'<span class="dw fehltd">? bar</span>'}</div>`).join("")}</div>
       <div class="astfunk ${truppFehlt(t).length?"warn":""}">${truppFehlt(t).length?"⚠ Fehlt: "+truppFehlt(t).join(", "):lm?uhrS(lm.t).slice(0,5)+" · "+esc(lm.text)+(fm.length>1?" (+"+(fm.length-1)+")":""):"Antippen für Meldung"}</div>
@@ -1803,7 +1815,7 @@ function zeichneAS(e){
       ${fehlt.length?`<div class="asfehl">Fehlt noch: ${fehlt.join(", ")} – Start ist trotzdem möglich, bitte danach nachtragen.</div>`:""}<button type="button" class="linkklein" data-asdel="${t.id}">Trupp verwerfen</button>`}</div>`; };
   // beendeter Trupp: gleiche Kachel wie laufende, aber grau
   const endKarte=t=>{ const m=t.mitglieder||{}, fm=funkListe(t), lm=fm[fm.length-1];
-    return `<div class="astrupp ende" data-astile="${t.id}"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="astimer">${timerText(new Date(t.ende)-new Date(t.start))}</span></div>
+    return `<div class="astrupp ende" data-astile="${t.id}"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="astimer" data-len="${timerText(new Date(t.ende)-new Date(t.start)).length+(String(t.nr||"").length>1?1:0)}">${timerText(new Date(t.ende)-new Date(t.start))}</span></div>
       <div class="astzeit">${uhr(t.start)}–${uhr(t.ende)}${t.auftrag?" · "+esc(t.auftrag):""}</div>
       <div class="astl">${truppMitgl(t).map(nr=>`<div><span>${esc(kn(nr))}</span><span>${m[nr].druck||"–"} bar${nennVon(m[nr])===200?" (200er)":""}</span></div>`).join("")}</div>
       <div class="astfunk ${truppFehlt(t).length?"warn":""}">${truppFehlt(t).length?"⚠ Fehlt: "+truppFehlt(t).join(", "):t.rueck?"Rückkehr: "+esc(t.rueck):lm?uhrS(lm.t).slice(0,5)+" · "+esc(lm.text)+(fm.length>1?" (+"+(fm.length-1)+")":""):"keine Meldungen"}</div></div>`; };
@@ -2016,7 +2028,7 @@ document.addEventListener("click",ev=>{
   if(asMehrErsatz){ asMehrErsatz=null; $("asMehr").style.display="none"; return; }
   asMehrZeichnen();
 });
-setInterval(()=>{ document.querySelectorAll(".astimer[data-timer]").forEach(el=>{ el.textContent=timerText(Date.now()-new Date(el.dataset.timer)); }); },1000);
+setInterval(()=>{ document.querySelectorAll(".astimer[data-timer]").forEach(el=>{ const tx=timerText(Date.now()-new Date(el.dataset.timer)); el.textContent=tx; if(el.dataset.plus!=null)el.dataset.len=tx.length+(+el.dataset.plus); }); },1000);
 // Trupp beenden: Endzeit = Zeitpunkt des Tippens auf „Trupp Ende“, dazu optional eine Kurzinfo des zurückkehrenden Trupps (asTrupps[id].rueck)
 let asEnde=null;
 const RUECK_SCHNELL=["Alles in Ordnung","Auftrag erledigt","Abgelöst","Brand aus","Person gerettet","Trupp erschöpft"];
