@@ -251,10 +251,8 @@
   .person .name{font-weight:600}
   .person:has(input:checked){background:#dcfce7;border-color:var(--gruen)}
   .person{-webkit-touch-callout:none;-webkit-user-select:none;position:relative}
-  .person .fzb{margin-left:auto;font-size:12px;font-weight:700;padding:3px 7px;border-radius:6px;background:#e0e7ff;color:#3730a3;flex:none;white-space:nowrap}
+  .person .fzb{margin-left:auto;font-size:12px;font-weight:700;padding:3px 7px;border-radius:6px;background:#4f46e5;color:#fff;flex:none;white-space:nowrap}
   .person .fzb:empty,.person .asb:empty{display:none}
-  .person .fzb.ma{background:#1d4ed8;color:#fff}
-  .person .fzb.gk{background:#166534;color:#fff}
   .personen>.mtrenner{grid-column:1/-1;height:2px;margin:8px 0;background:var(--rand);border-radius:1px}
   .person .bdg{margin-left:auto;display:flex;gap:6px;align-items:center;flex:none}
   .person .bdg .fzb,.person .bdg .el{margin-left:0}
@@ -264,12 +262,13 @@
   .zuteil .chip.as{border-color:#ea580c;color:#9a3412}
   .zuteil .chip.as.an{background:#ea580c;border-color:#ea580c;color:#fff}
   .zuteil .zh.as{color:#9a3412;background:#fff7ed}
-  .person.im-fz{outline:3px solid #6366f1;outline-offset:-3px}
+  .person.im-fz{outline:3px solid var(--fzf,#6366f1);outline-offset:-3px}
   .zuteil{margin:8px 0 10px}
   .zuteil .zt{font-size:13px;color:#6b7280;font-weight:600;margin-bottom:6px}
   .zuteil .chips{gap:8px}
   .zuteil .chip{padding:8px 12px;font-size:15px;border-radius:10px}
-  .zuteil .chip.an{background:#4f46e5;border-color:#4f46e5;color:#fff}
+  .zuteil .chip[style]{border-color:var(--fzf);color:var(--fzf)}
+  .zuteil .chip.an{background:var(--fzf,#4f46e5);border-color:var(--fzf,#4f46e5);color:#fff}
   .zuteil .zh{font-size:14px;color:#3730a3;background:#eef2ff;border-radius:8px;padding:8px 10px;margin-top:8px}
   .person .el{display:none;margin-left:auto;background:var(--rot);color:#fff;font-size:13px;font-weight:800;padding:3px 8px;border-radius:6px;flex:none}
   .person.ist-el{border-color:var(--rot);background:#fee2e2}
@@ -752,6 +751,7 @@ const STELLEN_KURZ={"BH (Bezirkshauptmannschaft)":"BH","ÖBB Einsatzleiter":"ÖB
 const STELLEN = ["Straßendienst","BH (Bezirkshauptmannschaft)","ÖBB Einsatzleiter","Gemeinde / Bürgermeister","EVU (Strom)","Gasversorger","Wasserversorger","Abschleppdienst","Krisenintervention (KIT)","Bundesheer"];
 const WETTER = ["Sonnig","Bewölkt","Regen","Starkregen","Gewitter","Schnee","Glatteis","Nebel","Sturm"];
 const FAHRZEUGE = ["HLF3","LFW","KDO","MTF","LAST","WLF","WLA-SST"];
+const FZFARBEN = {HLF3:"#1d4ed8",LFW:"#7c3aed",KDO:"#0f766e",MTF:"#be185d",LAST:"#92400e",WLF:"#475569","WLA-SST":"#4d7c0f"};   // eine feste Farbe je Fahrzeug (Marken, Zuteil-Knöpfe)
 let MANNSCHAFT=[], RESERVE=[];
 const $=id=>document.getElementById(id);
 const NAMEN={};
@@ -1592,7 +1592,7 @@ function zeichneZuteil(e){
   if(zuteilFz&&zuteilFz!==AS&&!fz.includes(zuteilFz)){ zuteilFz=null; sortAnwenden(); }
   $("zuteil").style.display="";
   const nAs=asListe(e).length;
-  setzeHtml($("zuteilChips"),fz.map(f=>{ const n=Object.keys(zt).filter(nr=>zt[nr]===f&&istDa(e,nr)).length; return `<button type="button" class="chip ${zuteilFz===f?"an":""}" data-zfz="${f}">${f}${n?" · "+n:""}</button>`; }).join("")
+  setzeHtml($("zuteilChips"),fz.map(f=>{ const n=Object.keys(zt).filter(nr=>zt[nr]===f&&istDa(e,nr)).length; return `<button type="button" class="chip ${zuteilFz===f?"an":""}" style="--fzf:${FZFARBEN[f]||"#4f46e5"}" data-zfz="${f}">${f}${n?" · "+n:""}</button>`; }).join("")
     +`<button type="button" class="chip as ${zuteilFz===AS?"an":""}" data-zfz="${AS}">Atemschutz${nAs?" · "+nAs:""}</button>`);
   const h=$("zuteilHinweis"); h.style.display=zuteilFz?"":"none"; h.classList.toggle("as",zuteilFz===AS);
   if(zuteilFz===AS)h._html=h.innerHTML="<b>Atemschutz</b> gewählt: Namen antippen = Atemschutzträger / wieder lösen (unabhängig vom Fahrzeug). Haken vorne antippen = Mitglied ganz abmelden. „Atemschutz“ nochmal antippen = fertig.";
@@ -1600,7 +1600,8 @@ function zeichneZuteil(e){
   document.querySelectorAll(".person").forEach(p=>{
     const nr=p.querySelector("input").dataset.nr, da=istDa(e,nr), f=da&&fz.includes(zt[nr])?zt[nr]:"";
     const ro=f?rolleVon(e,nr):"", istAs=da&&!!as[nr];
-    const fb=p.querySelector(".fzb"); fb.textContent=f?(f+(ro?" · "+ro:"")):""; fb.classList.toggle("ma",ro==="MA"); fb.classList.toggle("gk",ro==="GK");
+    const fb=p.querySelector(".fzb"); fb.textContent=f?((ro?ro+" ":"")+f):""; fb.style.background=f?(FZFARBEN[f]||"#4f46e5"):"";
+    p.style.setProperty("--fzf",FZFARBEN[zuteilFz]||"#6366f1");
     p.querySelector(".asb").textContent=istAs?"AS":"";
     p.classList.toggle("im-fz",!!zuteilFz&&zuteilFz!==AS&&f===zuteilFz);
     p.classList.toggle("im-as",zuteilFz===AS&&istAs);
