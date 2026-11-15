@@ -1791,13 +1791,13 @@ function zeichneAS(e){
   if(ae&&(ae.id==="funkText"||ae.id==="rueckText")){ asDlgZeichnen(true); return; }
   const zu=e.status==="abgeschlossen", l=asTrupps(e), gebunden=asGebunden(e), frei=asListe(e).filter(nr=>!gebunden.has(nr)).concat(gaesteFrei(e,gebunden));
   $("asNeuBtn").style.display=zu?"none":"";
-  const kn=knAS;
+  const kn=knAS, knK=nr=>istPlatz(nr)?["Führer","Mann 1","Mann 2"][+String(nr)[1]-1]||"Mann":knAS(nr);   // auf den schmalen Kacheln gekürzt
   // laufender Trupp: kompakte Kachel, mehrere nebeneinander
   const aktivKarte=t=>{ const m=t.mitglieder||{};
     const fm=funkListe(t), lm=fm[fm.length-1];
     return `<div class="astrupp aktiv" data-astile="${t.id}"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="astimer" data-timer="${t.start}" data-plus="${String(t.nr||"").length>1?1:0}" data-len="${timerText(Date.now()-new Date(t.start)).length+(String(t.nr||"").length>1?1:0)}">${timerText(Date.now()-new Date(t.start))}</span></div>
       <div class="astzeit">ab ${uhr(t.start)}${t.auftrag?" · "+esc(t.auftrag):""}</div>
-      <div class="astl">${truppMitgl(t).map(nr=>`<div><span>${esc(kn(nr))}</span>${m[nr].tm?"":'<i class="tmf" title="Totmannwarner nicht bestätigt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 17V11a6 6 0 0 1 9.5-4.9M18 11v6H9"/><path d="M4 17h1M10 20.5h4"/><path d="M4 4l16 16"/></svg></i>'}${+m[nr].druck>0?`<span class="dw ${druckKlasse(m[nr].druck,nennVon(m[nr]))}">${m[nr].druck} bar${nennVon(m[nr])===200?" (200er)":""}</span>`:'<span class="dw fehltd">? bar</span>'}</div>`).join("")}</div>
+      <div class="astl">${truppMitgl(t).map(nr=>`<div><span>${esc(knK(nr))}</span>${m[nr].tm?"":'<i class="tmf" title="Totmannwarner nicht bestätigt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 17V11a6 6 0 0 1 9.5-4.9M18 11v6H9"/><path d="M4 17h1M10 20.5h4"/><path d="M4 4l16 16"/></svg></i>'}${+m[nr].druck>0?`<span class="dw ${druckKlasse(m[nr].druck,nennVon(m[nr]))}">${m[nr].druck} bar${nennVon(m[nr])===200?" (200er)":""}</span>`:'<span class="dw fehltd">? bar</span>'}</div>`).join("")}</div>
       <div class="astfunk ${truppFehlt(t).length?"warn":""}">${truppFehlt(t).length?"⚠ Fehlt: "+truppFehlt(t).join(", "):lm?uhrS(lm.t).slice(0,5)+" · "+esc(lm.text)+(fm.length>1?" (+"+(fm.length-1)+")":""):"Antippen für Meldung"}</div>
       ${zu?"":`<button type="button" class="btn btn-rot" data-asende="${t.id}">■ Trupp Ende</button>`}</div>`; };
   // Trupp in Vorbereitung: Schritt 1 Mitglieder wählen, erst danach Schritt 2 Druck + Totmannwarner
@@ -1818,7 +1818,7 @@ function zeichneAS(e){
   const endKarte=t=>{ const m=t.mitglieder||{}, fm=funkListe(t), lm=fm[fm.length-1];
     return `<div class="astrupp ende" data-astile="${t.id}"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="astimer" data-len="${timerText(new Date(t.ende)-new Date(t.start)).length+(String(t.nr||"").length>1?1:0)}">${timerText(new Date(t.ende)-new Date(t.start))}</span></div>
       <div class="astzeit">${uhr(t.start)}–${uhr(t.ende)}${t.auftrag?" · "+esc(t.auftrag):""}</div>
-      <div class="astl">${truppMitgl(t).map(nr=>`<div><span>${esc(kn(nr))}</span><span>${m[nr].druck||"–"} bar${nennVon(m[nr])===200?" (200er)":""}</span></div>`).join("")}</div>
+      <div class="astl">${truppMitgl(t).map(nr=>`<div><span>${esc(knK(nr))}</span><span>${m[nr].druck||"–"} bar${nennVon(m[nr])===200?" (200er)":""}</span></div>`).join("")}</div>
       <div class="astfunk ${truppFehlt(t).length?"warn":""}">${truppFehlt(t).length?"⚠ Fehlt: "+truppFehlt(t).join(", "):t.rueck?"Rückkehr: "+esc(t.rueck):lm?uhrS(lm.t).slice(0,5)+" · "+esc(lm.text)+(fm.length>1?" (+"+(fm.length-1)+")":""):"keine Meldungen"}</div></div>`; };
   // Protokoll: Start, Meldungen und Ende aller Trupps in zeitlicher Reihenfolge
   const prot=asProtokoll(e);
