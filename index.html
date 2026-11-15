@@ -233,8 +233,10 @@
   .astfunk{font-size:12.5px;color:#9a3412;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:-4px;margin-bottom:6px}
   .asend{font-size:14px;padding:7px 0;border-top:1px solid #e5e7eb;color:#374151}
   .asend b{color:var(--text)}
-  .astl .tmf{font-style:normal;font-size:11px;font-weight:800;color:#fff;background:#dc2626;border-radius:5px;padding:1px 4px;margin-left:2px}
-  .astl .dw.fehltd{background:#dc2626;color:#fff}
+  .astl .tmf{flex:none;margin-left:auto;align-self:center;display:flex;color:#dc2626}
+  .astl .tmf svg{width:17px;height:17px}
+  .astl div{gap:4px}
+  .astl .dw.fehltd{background:#fff;color:#b91c1c!important;border:1.5px dashed #dc2626;border-radius:5px;padding:0 5px;font-weight:700;line-height:1.2;align-self:center}
   .astfunk.warn{background:#dc2626;color:#fff!important;font-weight:700;border-radius:6px;padding:3px 6px;margin-top:0;white-space:normal}
   .asnachbox{border:2px solid #dc2626;border-radius:12px;padding:8px 10px;margin:10px 0 0;background:#fef2f2}
   .asnachtitel{font-weight:800;color:#b91c1c;font-size:15px;margin-bottom:2px}
@@ -1782,7 +1784,7 @@ function zeichneAS(e){
     const fm=funkListe(t), lm=fm[fm.length-1];
     return `<div class="astrupp aktiv" data-astile="${t.id}"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="astimer" data-timer="${t.start}">${timerText(Date.now()-new Date(t.start))}</span></div>
       <div class="astzeit">ab ${uhr(t.start)}${t.auftrag?" · "+esc(t.auftrag):""}</div>
-      <div class="astl">${truppMitgl(t).map(nr=>`<div><span>${esc(kn(nr))}${m[nr].tm?"":' <i class="tmf">TM?</i>'}</span>${+m[nr].druck>0?`<span class="dw ${druckKlasse(m[nr].druck,nennVon(m[nr]))}">${m[nr].druck} bar${nennVon(m[nr])===200?" (200er)":""}</span>`:'<span class="dw fehltd">Druck?</span>'}</div>`).join("")}</div>
+      <div class="astl">${truppMitgl(t).map(nr=>`<div><span>${esc(kn(nr))}</span>${m[nr].tm?"":'<i class="tmf" title="Totmannwarner nicht bestätigt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 17V11a6 6 0 0 1 9.5-4.9M18 11v6H9"/><path d="M4 17h1M10 20.5h4"/><path d="M4 4l16 16"/></svg></i>'}${+m[nr].druck>0?`<span class="dw ${druckKlasse(m[nr].druck,nennVon(m[nr]))}">${m[nr].druck} bar${nennVon(m[nr])===200?" (200er)":""}</span>`:'<span class="dw fehltd">? bar</span>'}</div>`).join("")}</div>
       <div class="astfunk ${truppFehlt(t).length?"warn":""}">${truppFehlt(t).length?"⚠ Fehlt: "+truppFehlt(t).join(", "):lm?uhrS(lm.t).slice(0,5)+" · "+esc(lm.text)+(fm.length>1?" (+"+(fm.length-1)+")":""):"Antippen für Meldung"}</div>
       ${zu?"":`<button type="button" class="btn btn-rot" data-asende="${t.id}">■ Trupp Ende</button>`}</div>`; };
   // Trupp in Vorbereitung: Schritt 1 Mitglieder wählen, erst danach Schritt 2 Druck + Totmannwarner
