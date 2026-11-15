@@ -253,6 +253,9 @@
   .person{-webkit-touch-callout:none;-webkit-user-select:none;position:relative}
   .person .fzb{margin-left:auto;font-size:12px;font-weight:700;padding:3px 7px;border-radius:6px;background:#e0e7ff;color:#3730a3;flex:none;white-space:nowrap}
   .person .fzb:empty,.person .asb:empty{display:none}
+  .person .fzb.ma{background:#1d4ed8;color:#fff}
+  .person .fzb.gk{background:#166534;color:#fff}
+  .personen>.mtrenner{grid-column:1/-1;height:2px;margin:8px 0;background:var(--rand);border-radius:1px}
   .person .bdg{margin-left:auto;display:flex;gap:6px;align-items:center;flex:none}
   .person .bdg .fzb,.person .bdg .el{margin-left:0}
   .person .asb{font-size:12px;font-weight:800;padding:3px 7px;border-radius:6px;background:#ffedd5;color:#9a3412;flex:none}
@@ -1596,12 +1599,13 @@ function zeichneZuteil(e){
   document.querySelectorAll(".person").forEach(p=>{
     const nr=p.querySelector("input").dataset.nr, da=istDa(e,nr), f=da&&fz.includes(zt[nr])?zt[nr]:"";
     const ro=f?rolleVon(e,nr):"", istAs=da&&!!as[nr];
-    p.querySelector(".fzb").textContent=f?(f+(ro?" · "+ro:"")):"";
+    const fb=p.querySelector(".fzb"); fb.textContent=f?(f+(ro?" · "+ro:"")):""; fb.classList.toggle("ma",ro==="MA"); fb.classList.toggle("gk",ro==="GK");
     p.querySelector(".asb").textContent=istAs?"AS":"";
     p.classList.toggle("im-fz",!!zuteilFz&&zuteilFz!==AS&&f===zuteilFz);
     p.classList.toggle("im-as",zuteilFz===AS&&istAs);
   });
   const n=asListe(e);
+  if(zuteilFz)sortAnwenden();
   setzeHtml($("asNamen"),n.length?"<b>Atemschutzträger ("+n.length+"):</b> "+esc(n.map(nr=>NAMEN[nr]).join(", ")):"Atemschutzträger in der Mannschaftsliste über „Atemschutz“ auswählen.");
 }
 document.addEventListener("click",ev=>{
@@ -1972,8 +1976,11 @@ function sortAnwenden(){
     return da&&zt[nr]?4:3; };
   ["mannschaft","reserve"].forEach(id=>{
     const l=[...document.querySelectorAll("#"+id+" .person")].map((p,i)=>{ const nr=p.querySelector("input").dataset.nr, st=stufe(nr); return {p,i,st,z:st<3?0:(zahl[nr]||0)}; });
+    let tr=document.querySelector("#"+id+">.mtrenner"); const n=l.filter(x=>x.st<3).length, zeigen=!!fz&&n>0&&n<l.length;
+    if(zeigen&&!tr){ tr=document.createElement("div"); tr.className="mtrenner"; $(id).appendChild(tr); }
+    if(tr){ tr.style.display=zeigen?"":"none"; tr.style.order=2*n-1; }
     if(!fz&&!sortHaeufig){ l.forEach(x=>x.p.style.order=""); return; }
-    l.sort((a,b)=>a.st-b.st||b.z-a.z||a.i-b.i).forEach((x,k)=>x.p.style.order=k);
+    l.sort((a,b)=>a.st-b.st||b.z-a.z||a.i-b.i).forEach((x,k)=>x.p.style.order=2*k);
   });
   $("sortBtn").textContent=sortHaeufig?"Häufigste":"A–Z"; $("sortBtn").classList.toggle("an",sortHaeufig);
 }
