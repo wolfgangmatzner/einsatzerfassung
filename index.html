@@ -253,6 +253,7 @@
   .person{-webkit-touch-callout:none;-webkit-user-select:none;position:relative}
   .person .fzb{margin-left:auto;font-size:12px;font-weight:700;padding:3px 7px;border-radius:6px;background:#4f46e5;color:#fff;flex:none;white-space:nowrap}
   .person .fzb:empty,.person .asb:empty{display:none}
+  .sucht .personen>.mtrenner{display:none!important}
   .personen>.mtrenner{grid-column:1/-1;height:2px;margin:8px 0;background:var(--rand);border-radius:1px}
   .person .bdg{margin-left:auto;display:flex;gap:6px;align-items:center;flex:none}
   .person .bdg .fzb,.person .bdg .el{margin-left:0}
@@ -1607,7 +1608,7 @@ function zeichneZuteil(e){
     p.classList.toggle("im-as",zuteilFz===AS&&istAs);
   });
   const n=asListe(e);
-  if(zuteilFz)sortAnwenden();
+  sortAnwenden();
   setzeHtml($("asNamen"),n.length?"<b>Atemschutzträger ("+n.length+"):</b> "+esc(n.map(nr=>NAMEN[nr]).join(", ")):"Atemschutzträger in der Mannschaftsliste über „Atemschutz“ auswählen.");
 }
 document.addEventListener("click",ev=>{
@@ -1952,6 +1953,7 @@ function sucheAnwenden(){
     const passt=!teile.length||teile.every(t=>woerter.some(w=>w.startsWith(t))||nr.startsWith(t))||(teile.length===1&&q.length>=2&&initialen.startsWith(q));
     p.style.display=passt?"":"none"; if(passt)n++;
   });
+  $("secMann").classList.toggle("sucht",!!q);
   if(q){sektion("secMann",true);sektion("reserve",true)}
   const h=$("suchHinweis"); h.style.display=q?"":"none";
   if(q)h.textContent=n===0?"Kein Treffer":n===1?"1 Treffer – Enter oder Antippen wählt aus":n+" Treffer";
@@ -1970,19 +1972,23 @@ let sortHaeufig=false; try{ sortHaeufig=localStorage.getItem("ffa-sort")==="h"; 
 function sortAnwenden(){
   const zahl={};
   if(sortHaeufig) letzteListe.forEach(e=>["m","r"].forEach(g=>Object.keys(e[g]||{}).forEach(nr=>{ if(e[g][nr])zahl[nr]=(zahl[nr]||0)+1; })));
-  // Ist ein Fahrzeug (oder Atemschutz) gewählt: zuerst dessen Mitglieder (MA, GK, dann A–Z), dann die noch freien, zuletzt die anderer Fahrzeuge
+  // Reihung in Blöcken mit Trennlinie dazwischen: [Besatzung des gewählten Fahrzeugs bzw. Atemschutzträger: MA, GK, dann A–Z] · [übrige Anwesende, freie vor
+  // anderweitig zugeteilten] · [nicht Anwesende]. Innerhalb der Blöcke gilt die gewählte Sortierung (A–Z oder Häufigste).
   const e=aktuell, fz=e&&zuteilFz, zt=(e&&e.zuteilung)||{}, rollen=(fz&&fz!==AS&&(e.fzRollen||{})[fz])||{};
-  const stufe=nr=>{ if(!fz)return 0; const da=istDa(e,nr);
-    if(fz===AS)return da&&(e.as||{})[nr]?0:3;
-    if(da&&zt[nr]===fz)return String(rollen.ma)===nr?0:String(rollen.gk)===nr?1:2;
-    return da&&zt[nr]?4:3; };
+  const stufe=nr=>{ if(!e)return 5; const da=istDa(e,nr); if(!da)return 5;
+    if(fz===AS)return (e.as||{})[nr]?2:3;
+    if(fz&&zt[nr]===fz)return String(rollen.ma)===nr?0:String(rollen.gk)===nr?1:2;
+    return fz&&zt[nr]?4:3; };
+  const block=st=>st<3?0:st<5?1:2;
   ["mannschaft","reserve"].forEach(id=>{
     const l=[...document.querySelectorAll("#"+id+" .person")].map((p,i)=>{ const nr=p.querySelector("input").dataset.nr, st=stufe(nr); return {p,i,st,z:st<3?0:(zahl[nr]||0)}; });
-    let tr=document.querySelector("#"+id+">.mtrenner"); const n=l.filter(x=>x.st<3).length, zeigen=!!fz&&n>0&&n<l.length;
-    if(zeigen&&!tr){ tr=document.createElement("div"); tr.className="mtrenner"; $(id).appendChild(tr); }
-    if(tr){ tr.style.display=zeigen?"":"none"; tr.style.order=2*n-1; }
-    if(!fz&&!sortHaeufig){ l.forEach(x=>x.p.style.order=""); return; }
-    l.sort((a,b)=>a.st-b.st||b.z-a.z||a.i-b.i).forEach((x,k)=>x.p.style.order=2*k);
+    l.sort((a,b)=>a.st-b.st||b.z-a.z||a.i-b.i);
+    const tr=[...document.querySelectorAll("#"+id+">.mtrenner")]; let k=0, t=0;
+    l.forEach((x,j)=>{
+      if(j&&block(x.st)!==block(l[j-1].st)){ let el=tr[t++]; if(!el){ el=document.createElement("div"); el.className="mtrenner"; $(id).appendChild(el); } el.style.display=""; el.style.order=k++; }
+      x.p.style.order=k++;
+    });
+    tr.slice(t).forEach(el=>el.style.display="none");
   });
   $("sortBtn").textContent=sortHaeufig?"Häufigste":"A–Z"; $("sortBtn").classList.toggle("an",sortHaeufig);
 }
