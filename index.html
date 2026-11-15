@@ -238,7 +238,7 @@
   .astfunk.warn{background:#dc2626;color:#fff!important;font-weight:700;border-radius:6px;padding:3px 6px;margin-top:0;white-space:normal}
   .asnachbox{border:2px solid #dc2626;border-radius:12px;padding:8px 10px;margin:10px 0 0;background:#fef2f2}
   .asnachtitel{font-weight:800;color:#b91c1c;font-size:15px;margin-bottom:2px}
-  .asneu{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:64px;margin:0 0 14px;border:2px dashed #ea580c;border-radius:14px;background:#fff7ed;color:#c2410c;font-size:19px;font-weight:700;font-family:inherit}
+  .asneu{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:64px;margin:12px 0 14px;border:2px dashed #ea580c;border-radius:14px;background:#fff7ed;color:#c2410c;font-size:19px;font-weight:700;font-family:inherit}
   .asneu span{font-size:30px;line-height:1;font-weight:600}
   .asneu:active{background:#ffedd5}
   .asohne{display:block;width:100%;height:46px;font-size:15px;margin:10px 0 2px;padding:0 10px}
@@ -1787,9 +1787,9 @@ function zeichneAS(e){
   const prot=asProtokoll(e);
   const protHtml=prot.slice().reverse().map(x=>`<div class="fmeld ${x.art}"><span class="z">${uhrS(x.t)}</span><span class="tn">T${x.nr||"?"}</span><span class="t">${esc(x.text)}</span></div>`).join("");
   const akt=l.filter(t=>truppStatus(t)==="aktiv"), vor=l.filter(t=>truppStatus(t)==="vorb"), end=l.filter(t=>truppStatus(t)==="beendet").reverse();
-  $("asInhalt").innerHTML=(zu||vor.length?"":`<button type="button" class="asneu" onclick="asTruppNeu()"><span>+</span>Neuer Trupp</button>`)
-    +(l.length?"":`<div class="leer">Noch kein Trupp angelegt.<br>Der Trupp kann auch ohne Namen starten, die Namen werden dann nachgetragen.</div>`)
+  $("asInhalt").innerHTML=(l.length?"":`<div class="leer">Noch kein Trupp angelegt.<br>Der Trupp kann auch ohne Namen starten, die Namen werden dann nachgetragen.</div>`)
     +(akt.length?`<h2>Im Einsatz (${akt.length})</h2><div class="asgrid">${akt.map(aktivKarte).join("")}</div>`:"")
+    +(zu||vor.length?"":`<button type="button" class="asneu" onclick="asTruppNeu()"><span>+</span>Neuer Trupp</button>`)
     +(vor.length?`<h2>In Vorbereitung (${vor.length})</h2>${vor.map(vorbKarte).join("")}`:"")
     +(prot.length?`<h2 class="klapp ${asProtOffen?"offen":""}" data-asprot="1">Protokoll (${prot.length})</h2>${asProtOffen?`<div class="asprot">${protHtml}</div>`:""}`:"")
     +(end.length?`<h2>Beendet (${end.length})</h2><div class="asgrid">${end.map(endKarte).join("")}</div>`:"")
