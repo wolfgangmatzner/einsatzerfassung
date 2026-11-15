@@ -677,6 +677,7 @@
     <div class="shkopf"><div><div class="shtitel">Einstellungen</div><div class="shsub" id="einstInfo"></div></div><button type="button" class="shzu" onclick="einstZu()">×</button></div>
     <button type="button" class="einstz" onclick="einstMitglieder()">Mitgliederliste bearbeiten<small class="pwhinweis"></small></button>
     <button type="button" class="einstz" onclick="einstZu();statOeffnen()">Statistik<small class="pwhinweis"></small></button>
+    <button type="button" class="einstz" onclick="einstZu();adminFrei('Passwörter ändern',pwAendOeffnen)">Passwörter ändern<small class="pwhinweis"></small></button>
     <button type="button" class="einstz" onclick="einstZu();updatePruefen(true)">Nach neuer Version suchen</button>
     <button type="button" class="einstz" onclick="einstZu();logout()">Abmelden</button>
   </div>
@@ -686,6 +687,17 @@
     <div class="shkopf"><div><div class="shtitel" id="pwTitel"></div><div class="shsub">Bitte Admin-Passwort eingeben</div></div><button type="button" class="shzu" onclick="pwZu()">×</button></div>
     <div class="feingabe" style="margin-top:12px"><input id="adminPw" type="password" placeholder="Admin-Passwort" autocomplete="off" enterkeyhint="go"><button type="button" class="btn btn-rot" id="adminPwOk" onclick="pwOk()">Öffnen</button></div>
     <div class="hinweis" id="adminPwFehler" style="color:var(--rot);min-height:20px"></div>
+  </div>
+</div>
+<div id="pwAendDlg" class="dialog sheet" style="align-items:flex-start" onclick="if(event.target===this)pwAendZu()">
+  <div class="box" style="margin-top:calc(60px + env(safe-area-inset-top))">
+    <div class="shkopf"><div><div class="shtitel">Passwörter ändern</div><div class="shsub" id="pwAendSub"></div></div><button type="button" class="shzu" onclick="pwAendZu()">×</button></div>
+    <div class="shgruppe" style="position:static">Passwort der Feuerwehr (Anmeldung an den Geräten)</div>
+    <div class="feingabe"><input id="pwNeuWehr" type="text" placeholder="Neues Passwort" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="button" class="btn btn-rot" onclick="pwAendern('wehr',this)">Ändern</button></div>
+    <div class="shgruppe" style="position:static;padding-top:12px">Admin-Passwort (Zahnrad)</div>
+    <div class="feingabe"><input id="pwNeuAdmin" type="text" placeholder="Neues Admin-Passwort" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="button" class="btn btn-rot" onclick="pwAendern('admin',this)">Ändern</button></div>
+    <div class="hinweis" id="pwAendInfo" style="min-height:22px;font-weight:600;margin-top:8px"></div>
+    <div class="hinweis">Mindestens 6 Zeichen. Bereits angemeldete Geräte bleiben angemeldet; das neue Passwort gilt ab der nächsten Anmeldung.</div>
   </div>
 </div>
 <div id="statDlg" class="dialog voll" onclick="if(event.target===this)statZu()">
@@ -837,8 +849,10 @@ async function api(a,body,opts={}){
       const stand=data.version+"|"+data.updated_at; if(q.stand===stand)return {ok:true,geaendert:false,stand}; return {ok:true,stand,data:data.data}; }
     case "neu": { const {error}=await sb.from("einsaetze").insert({id:body.id,data:body.data}); if(error&&error.code!=="23505")sbFehler(error); return {ok:true,id:body.id}; }
     case "patch": { const {data,error}=await sb.rpc("einsatz_patch",{p_id:body.id,p_patch:body.patch}); if(error)sbFehler(error); return {ok:true}; }
-    case "loeschen": { const {data:objs}=await sb.storage.from("fotos").list(body.id,{limit:1000}); if(objs&&objs.length)await sb.storage.from("fotos").remove(objs.map(o=>body.id+"/"+o.name));
-      const {error}=await sb.from("einsaetze").delete().eq("id",body.id); if(error)sbFehler(error); return {ok:true}; }
+    case "loeschen": { const c=sbAdmin||sb; const {data:objs}=await c.storage.from("fotos").list(body.id,{limit:1000}); if(objs&&objs.length)await c.storage.from("fotos").remove(objs.map(o=>body.id+"/"+o.name));
+      const {error}=await c.from("einsaetze").delete().eq("id",body.id); if(error)sbFehler(error); return {ok:true}; }
+    case "pw_wehr": { const {error}=await (sbAdmin||sb).rpc("wehr_passwort_setzen",{p_pw:body.pw}); if(error)sbFehler(error); return {ok:true}; }
+    case "pw_admin": { const {error}=await (sbAdmin||sb).auth.updateUser({password:body.pw}); if(error)throw {code:"fehler",message:error.message}; return {ok:true}; }
     case "upload": { const einsatz=body.get("einsatz"), blob=body.get("foto"); const pfad=einsatz+"/"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)+".jpg";
       const {error}=await sb.storage.from("fotos").upload(pfad,blob,{contentType:"image/jpeg",upsert:false}); if(error)sbFehler(error); return {ok:true,id:pfad}; }
     case "fotoweg": { await sb.storage.from("fotos").remove([body.id]); return {ok:true}; }
@@ -1102,7 +1116,7 @@ function fuelleFormular(e){
     else ALLE_SEKTIONEN.forEach(z=>sektion(z,standardOffen(z,e)));
   }
   const abgeschlossen=e.status==="abgeschlossen";
-  $("btnLoeschen").style.display=(rolle==="admin"||abgeschlossen)?"":"none";
+  $("btnLoeschen").style.display="";
   $("einsatzView").classList.toggle("gesperrt",abgeschlossen);
   $("btnStatus").textContent=abgeschlossen?wort(e)+" wieder öffnen":wort(e)+" abschließen";
   $("btnStatus").className="btn btn-klein "+(abgeschlossen?"btn-gruen":"btn-grau");
@@ -2071,7 +2085,10 @@ function statusWechseln(){
   schreibe(patch);
 }
 function frage(text,cb,jaText){$("frageText").textContent=text;$("frageJa").textContent=jaText||"Ja, löschen";$("frage").style.display="block";$("frageJa").onclick=()=>{$("frage").style.display="none";cb()}}
-function einsatzLoeschenFragen(id,e){
+function einsatzLoeschenFragen(id,e,frei){
+  // Aktive Einsätze darf nur der Admin löschen: dafür einmalig das Admin-Passwort (außer der Einsatz existiert erst am Gerät)
+  if(!frei&&e.status!=="abgeschlossen"&&rolle!=="admin"&&!warteschlange.some(j=>j.typ==="neu"&&j.id===id)){
+    adminFrei("Aktiven "+wort(e)+" löschen",()=>{ setTimeout(()=>api("admin_logout",{}).catch(()=>{}),180000); einsatzLoeschenFragen(id,e,true); }); return; }
   const name=[kurz(e.art),e.einsatz].filter(Boolean).join(" – ")||"Ohne Bezeichnung";
   frage(wort(e)+" „"+name+"“ vom "+datumDE(e.datum)+" samt allen Fotos löschen?",()=>{
     setTimeout(()=>frage("Wirklich endgültig löschen? „"+name+"“ ist danach auf allen Tablets weg und kann nicht wiederhergestellt werden.",async()=>{
@@ -2082,6 +2099,7 @@ function einsatzLoeschenFragen(id,e){
       if(nurLokal)return;
       try{await api("loeschen",{id}); listeStand=""; pollen();}
       catch(err){setStatus("warn","Löschen fehlgeschlagen ("+(err.message||err.code)+") – dafür ist eine Verbindung nötig. Bitte später erneut versuchen."); listeStand=""; }
+      finally{ api("admin_logout",{}).catch(()=>{}); }
     },"Endgültig löschen"),150);
   },"Löschen …");
 }
@@ -2106,6 +2124,7 @@ function aktionsMenue(e){
   ]:[
     [wort(e)+" abschließen","btn-rot",()=>{zu();schreibeFuer(e.id,{status:"abgeschlossen"})}],
     ["PDF teilen","btn-grau",pdf],
+    ["Löschen … (Admin)","btn-grau rotText",()=>{zu();einsatzLoeschenFragen(e.id,e)}],
   ];
   const box=$("aktionKnoepfe"); box.innerHTML="";
   knoepfe.forEach(([t,kl,fn])=>{const b=document.createElement("button");b.className="btn "+kl;b.style.width="100%";b.textContent=t;b.onclick=fn;box.appendChild(b)});
@@ -2254,6 +2273,17 @@ function einstOeffnen(){
 }
 function einstMitglieder(){ einstZu(); adminFrei("Mitgliederliste bearbeiten",adminOeffnen); }
 // Admin-Bereiche: als Admin angemeldet sofort, sonst erst nach dem Admin-Passwort (gilt nur, solange der Bereich offen ist)
+function pwAendOeffnen(){ $("pwNeuWehr").value=""; $("pwNeuAdmin").value=""; $("pwAendInfo").textContent=""; $("pwAendSub").textContent=aktFF().name+" · "+aktFF().nr; $("pwAendDlg").style.display="block"; }
+function pwAendZu(){ $("pwAendDlg").style.display="none"; $("pwNeuWehr").value=""; $("pwNeuAdmin").value=""; api("admin_logout",{}).catch(()=>{}); }
+async function pwAendern(was,btn){
+  const feld=$(was==="wehr"?"pwNeuWehr":"pwNeuAdmin"), pw=feld.value, info=$("pwAendInfo"); info.style.color="var(--rot)";
+  if(pw.length<6){ info.textContent="Das Passwort braucht mindestens 6 Zeichen."; return; }
+  if(pw!==pw.trim()){ info.textContent="Bitte keine Leerzeichen am Anfang oder Ende."; return; }
+  btn.disabled=true; info.textContent="";
+  try{ await api(was==="wehr"?"pw_wehr":"pw_admin",{pw}); feld.value=""; info.style.color="#166534"; info.textContent=(was==="wehr"?"Passwort der Feuerwehr":"Admin-Passwort")+" wurde geändert."; }
+  catch(e){ info.textContent="Ändern fehlgeschlagen: "+(e.message||e.code||e); }
+  finally{ btn.disabled=false; }
+}
 let pwDann=null;
 function adminFrei(titel,dann){
   if(rolle==="admin"){ dann(); return; }

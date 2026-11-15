@@ -97,5 +97,22 @@ create policy "fotos lesen" on storage.objects for select to authenticated using
 create policy "fotos hochladen" on storage.objects for insert to authenticated with check (bucket_id = 'fotos');
 create policy "fotos loeschen" on storage.objects for delete to authenticated using (bucket_id = 'fotos');
 
--- Auth (im Dashboard angelegt): tablet@einsatz.feuerwehr-auersthal.at (normal),
--- admin@einsatz.feuerwehr-auersthal.at mit raw_app_meta_data.rolle = 'admin'. Self-Signup deaktiviert.
+-- Auth: je Feuerwehr zwei Konten nach Feuerwehrnummer, z. B. n04103@einsatz.feuerwehr-auersthal.at (normal)
+-- und n04103-admin@einsatz.feuerwehr-auersthal.at mit raw_app_meta_data.rolle = 'admin'. Self-Signup deaktiviert.
+
+-- Der Admin einer Feuerwehr setzt das Passwort des normalen Kontos seiner Feuerwehr; Anmeldungen der Geräte bleiben gültig.
+create or replace function public.wehr_passwort_setzen(p_pw text) returns void
+language plpgsql security definer set search_path = '' as $$
+declare v_mail text; v_ziel text; v_n int;
+begin
+  if not public.ist_admin() then raise exception 'Nur Admin'; end if;
+  if p_pw is null or length(p_pw) < 6 then raise exception 'Passwort zu kurz (mindestens 6 Zeichen)'; end if;
+  select email into v_mail from auth.users where id = auth.uid();
+  if v_mail is null or position('-admin@' in v_mail) = 0 then raise exception 'Kein Admin-Konto einer Feuerwehr'; end if;
+  v_ziel := replace(v_mail, '-admin@', '@');
+  update auth.users set encrypted_password = extensions.crypt(p_pw, extensions.gen_salt('bf', 10)), updated_at = now() where email = v_ziel;
+  get diagnostics v_n = row_count;
+  if v_n <> 1 then raise exception 'Konto der Feuerwehr nicht gefunden'; end if;
+end $$;
+revoke all on function public.wehr_passwort_setzen(text) from public, anon;
+grant execute on function public.wehr_passwort_setzen(text) to authenticated;

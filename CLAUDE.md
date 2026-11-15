@@ -27,7 +27,7 @@ Schreiben immer als Patch über RPC `einsatz_patch` (tiefes Merge, `null` lösch
 - Rollen: `rolle` = "user" | "admin" (aus JWT app_metadata.rolle)
 - Anmeldung: Auswahl der Feuerwehr (`WEHREN`, gemerkt in localStorage `ffa-ff`, `aktFF()`) + Passwort. Konten `<nr>@einsatz.feuerwehr-auersthal.at` (z. B. `n04103`) und `<nr>-admin@…`; `kontoMails()` liefert zusätzlich die früheren Namen (`ALTKONTEN`: tablet@/admin@) als Rückfall. Keine Admin-Anmeldung am Gerät mehr
 - Fußleisten: Symbolleiste `.leiste .tab` (Übersicht: Suche `ueSuche()`/`ueFilter`, Statistik `statZeichnen()` aus `letzteListe`, Optionen `einstOeffnen()`, neue Übung, neuer Einsatz; Einsatz: Übersicht/Mannschaft/Tagebuch/Atemschutz/PDF, in der Atemschutzüberwachung Klasse `asmodus`)
-- Admin-Bereiche (Mitgliederliste, Statistik) über `adminFrei(titel, dann)`: als Admin sofort, sonst Passwortdialog → `api("admin_login",{pw})` öffnet eine zweite, nicht gespeicherte Supabase-Sitzung `sbAdmin` (für `mitglieder_speichern`); `adminZu()`/`statZu()` melden sie wieder ab. Die Statistik-Sperre ist nur eine Sperre in der Oberfläche (Daten liegen ohnehin am Gerät)
+- Admin-Bereiche (Mitgliederliste, Statistik, Passwörter ändern `pwAendern()` → RPC `wehr_passwort_setzen` bzw. `auth.updateUser`, aktiven Einsatz löschen) über `adminFrei(titel, dann)`: als Admin sofort, sonst Passwortdialog → `api("admin_login",{pw})` öffnet eine zweite, nicht gespeicherte Supabase-Sitzung `sbAdmin` (für `mitglieder_speichern`); `adminZu()`/`statZu()` melden sie wieder ab. Die Statistik-Sperre ist nur eine Sperre in der Oberfläche (Daten liegen ohnehin am Gerät)
 
 Einsatzarten: Brand, Technisch, Schadstoff, Brandsicherheitswache (Kurz: BSW), Fehlalarm, Übung (früher „Sonstiges“).
 
