@@ -1830,7 +1830,9 @@ document.addEventListener("click",ev=>{
     const sh=ev.target.closest("[data-asshift]");
     if(sh){ const t=(aktuell.asTrupps||{})[asDlgTid]; if(!t||!t.start||t.ende)return;
       const neu=new Date(new Date(t.start).getTime()+(+sh.dataset.asshift)*60000); if(neu.getTime()>Date.now()){ return; }
-      schreibe({asTrupps:{[asDlgTid]:{start:neu.toISOString(),startErfasst:t.startErfasst||t.start}}}); return; }
+      const tid=asDlgTid, min=+sh.dataset.asshift;
+      frage("Startzeit von Trupp "+(t.nr||"")+" um "+Math.abs(min)+" Minute"+(Math.abs(min)===1?"":"n")+" "+(min<0?"früher":"später")+" stellen? Neuer Start "+uhr(neu.toISOString())+" (bisher "+uhr(t.start)+").",
+        ()=>schreibe({asTrupps:{[tid]:{start:neu.toISOString(),startErfasst:t.startErfasst||t.start}}}),"Startzeit stellen"); return; }
     if(ev.target.closest("#rueckOk")){ schreibe({asTrupps:{[asDlgTid]:{rueck:$("rueckText").value.trim()}}}); return; }
     if(ev.target.closest("[data-asname]"))return;   // öffnet die Mitgliederauswahl (eigener Handler)
     if(ev.target.closest("#funkOk")){ const i=$("funkText"); funkEintragen(i.value); i.value=""; i.focus(); return; }
