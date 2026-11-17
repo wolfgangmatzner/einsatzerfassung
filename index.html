@@ -189,6 +189,17 @@
   .druck .ger small{font-size:11px;font-weight:700;color:#6b7280}
   .druck .ger.g200{background:#1d4ed8;color:#fff}
   .druck .ger.g200 small{color:#fff}
+  .druck .dwert{width:54px;height:100%;border:none;background:transparent;font:inherit;font-size:19px;font-weight:700;text-align:right;padding:0 2px;color:var(--text);cursor:pointer}
+  .druck.offen{box-shadow:0 0 0 3px rgba(234,88,12,.35)}
+  .asdchips{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:2px 0 10px}
+  .asdchips button{height:46px;border:2px solid var(--rand);border-radius:10px;background:#fff;font:inherit;font-size:17px;font-weight:700;color:var(--text);padding:0}
+  .asdchips button.gut{background:#dcfce7;border-color:#86efac;color:#166534}
+  .asdchips button.gelb{background:#fef9c3;border-color:#fde047;color:#854d0e}
+  .asdchips button.orange{background:#ffedd5;border-color:#fdba74;color:#9a3412}
+  .asdchips button.schlecht{background:#fee2e2;border-color:#fca5a5;color:#b91c1c}
+  .asdchips button.an{box-shadow:0 0 0 3px rgba(17,24,39,.55)}
+  .asdchips button.tast{font-size:13px;font-weight:600;color:#4b5563}
+  .asvoll{display:block;width:100%;height:46px;font-size:16px;margin:6px 0 2px}
   .druck.fehlt{border-color:#fca5a5}
   .druck input{background:transparent}
   .druck.gut{background:#dcfce7;border-color:#16a34a}
@@ -1818,9 +1829,13 @@ function aspkZeile(tid,nr,da){ return `<button type="button" class="aspk ${da?"d
 // Eine Zeile Mitglied · Startdruck · Totmann (in der Vorbereitung mit ×, im Trupp-Dialog zum Nacherfassen ohne)
 function astmZeile(t,nr,zu,mitX){ const m=t.mitglieder||{}, id=t.id||asDlgTid;
   return `<div class="astm"><div class="n">${zu?esc(knAS(nr)):`<button type="button" class="${istPlatz(nr)?"platz":"nmb"}" data-asname="${id}|${nr}">${esc(knAS(nr))}</button>`}</div>
-        <div class="druck ${+m[nr].druck>0?druckKlasse(m[nr].druck,nennVon(m[nr])):"fehlt"}"><input type="number" inputmode="numeric" min="0" max="400" placeholder="–" data-asd="${id}|${nr}" value="${m[nr].druck||""}" ${zu?"disabled":""}><button type="button" class="ger ${nennVon(m[nr])===200?"g200":""}" data-asger="${id}|${nr}" data-nenn="${nennVon(m[nr])}" ${zu?"disabled":""}>bar<small>${nennVon(m[nr])}er</small></button></div>
+        <div class="druck ${+m[nr].druck>0?druckKlasse(m[nr].druck,nennVon(m[nr])):"fehlt"} ${asDruckOffen===id+"|"+nr?"offen":""}">${asDruckTast===id+"|"+nr&&!zu?`<input type="number" inputmode="numeric" min="0" max="400" placeholder="–" data-asd="${id}|${nr}" value="${m[nr].druck||""}">`:`<button type="button" class="dwert" data-asdw="${id}|${nr}" ${zu?"disabled":""}>${m[nr].druck||"–"}</button>`}<button type="button" class="ger ${nennVon(m[nr])===200?"g200":""}" data-asger="${id}|${nr}" data-nenn="${nennVon(m[nr])}" ${zu?"disabled":""}>bar<small>${nennVon(m[nr])}er</small></button></div>
         <label class="tmchip"><input type="checkbox" data-astm="${id}|${nr}" ${m[nr].tm?"checked":""} ${zu?"disabled":""}>Totmann</label>
-        ${zu||!mitX?"<span></span>":`<button type="button" class="x" data-asrm="${id}|${nr}">×</button>`}</div>`; }
+        ${zu||!mitX?"<span></span>":`<button type="button" class="x" data-asrm="${id}|${nr}">×</button>`}</div>${asDruckOffen===id+"|"+nr&&!zu?`<div class="asdchips">${druckWerte(nennVon(m[nr])).map(v=>`<button type="button" class="${druckKlasse(v,nennVon(m[nr]))} ${+m[nr].druck===v?"an":""}" data-asdv="${id}|${nr}|${v}">${v}</button>`).join("")}<button type="button" class="tast" data-asdk="${id}|${nr}">⌨ andere</button></div>`:""}`; }
+// Schnellwahl für den Startdruck: ein Tipp statt Tastatur. Werte in 10er-Schritten rund um den Nenndruck.
+let asDruckOffen=null, asDruckTast=null, asDruckAuto={};   // "truppId|nr" mit offener Schnellwahl bzw. Tastatureingabe; je Trupp einmal automatisch öffnen
+function druckWerte(nenn){ return nenn===200?[210,200,190,180,170,160,150]:[320,310,300,290,280,270,260,250,240]; }
+function druckNaechster(tid){ const t=aktuell&&(aktuell.asTrupps||{})[tid]; if(!t)return null; const nr=truppMitgl(t).find(n=>!(+t.mitglieder[n].druck>0)); return nr?tid+"|"+nr:null; }
 // Was bei einem (gestarteten) Trupp noch nachzutragen ist
 function truppFehlt(t){ const l=truppMitgl(t), m=t.mitglieder||{}, f=[]; if(l.some(istPlatz))f.push("Namen"); if(l.some(nr=>!(+m[nr].druck>0)))f.push("Druck"); if(l.some(nr=>!m[nr].tm))f.push("Totmann"); return f; }
 function zeichneAS(e){
@@ -1857,6 +1872,7 @@ function zeichneAS(e){
     const od=ml.filter(nr=>!(+m[nr].druck>0)).length, ot=ml.filter(nr=>!m[nr].tm).length, fehlt=[]; if(od)fehlt.push(od+"× Startdruck"); if(ot)fehlt.push(ot+"× Totmannwarner");
     return `<div class="astrupp vorb"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="sub">Startdruck + Totmannwarner</span></div>
       ${ml.map(nr=>astmZeile(t,nr,zu,true)).join("")}
+      ${zu||!ml.some(nr=>!(+m[nr].druck>0))?"":`<button type="button" class="btn btn-grau asvoll" data-asdall="${t.id}">Alle voll (${[...new Set(ml.filter(nr=>!(+m[nr].druck>0)).map(nr=>nennVon(m[nr])))].join("/")} bar)</button>`}
       ${zu?"":`<div class="astakt"><input type="text" data-ast="${t.id}" value="${esc(t.auftrag||"")}" placeholder="Auftrag (optional)" autocomplete="off"><button type="button" class="btn btn-as" data-asstart="${t.id}">▶ Start</button></div>
       ${fehlt.length?`<div class="asfehl">Fehlt noch: ${fehlt.join(", ")} – Start ist trotzdem möglich, bitte danach nachtragen.</div>`:""}<button type="button" class="linkklein" data-asdel="${t.id}">Trupp verwerfen</button>`}</div>`; };
   // beendeter Trupp: gleiche Kachel wie laufende, aber grau
@@ -1868,6 +1884,7 @@ function zeichneAS(e){
   // Protokoll: Start, Meldungen und Ende aller Trupps in zeitlicher Reihenfolge
   const prot=asProtokoll(e);
   const protHtml=prot.slice().reverse().map(x=>`<div class="fmeld ${x.art}"><span class="z">${uhrS(x.t)}</span><span class="tn">T${x.nr||"?"}</span><span class="t">${esc(x.text)}</span></div>`).join("");
+  if(!zu&&!asDruckOffen&&!asDruckTast){ const tv=l.find(t=>truppStatus(t)==="vorb"&&truppMitgl(t).length>=TRUPPGROESSE&&!asDruckAuto[t.id]&&druckNaechster(t.id)); if(tv){ asDruckAuto[tv.id]=true; asDruckOffen=druckNaechster(tv.id); } }
   const offenVorb=l.filter(t=>truppStatus(t)==="vorb"&&truppMitgl(t).length<TRUPPGROESSE);
   if(!offenVorb.some(t=>t.id===asPickTid))asPickTid=offenVorb.length?offenVorb[offenVorb.length-1].id:null;   // Mitgliederauswahl ist immer nur bei einem Trupp aufgeklappt
   const akt=l.filter(t=>truppStatus(t)==="aktiv"), vor=l.filter(t=>truppStatus(t)==="vorb"), end=l.filter(t=>truppStatus(t)==="beendet").reverse();
@@ -1894,7 +1911,7 @@ function asDlgZeichnen(nurListe){
   $("asTruppBox").innerHTML=`<div class="shkopf"><div><div class="shtitel">Trupp ${t.nr||""} ${st==="aktiv"?`· <span class="astimer" style="font-size:22px" data-timer="${t.start}">${timerText(Date.now()-new Date(t.start))}</span>`:""}</div>
       <div class="shsub">${st==="aktiv"?"ab "+uhr(t.start):uhr(t.start)+"–"+uhr(t.ende)+" ("+dauerText(new Date(t.ende)-new Date(t.start))+")"} · ${truppMitgl(t).map(nr=>esc(knAS(nr))+` <span class="dw ${druckKlasse(m[nr].druck,nennVon(m[nr]))}">${m[nr].druck||"–"}${nennVon(m[nr])===200?"/200":""}</span>`).join(", ")}${t.auftrag?" · "+esc(t.auftrag):""}</div></div>
       <button type="button" class="shzu" onclick="asDlgZu()">×</button></div>
-    ${zu?"":`<div class="asnachbox ${truppFehlt(t).length?"":"ok"}"><div class="asnachtitel">${truppFehlt(t).length?"⚠ Nachtragen: "+truppFehlt(t).join(", "):"Besetzung"}</div>${truppMitgl(t).map(nr=>astmZeile(Object.assign({id:asDlgTid},t),nr,false,false)).join("")}<div class="hinweis" style="margin:4px 0 0">Namen antippen, um das Mitglied zu ändern. Jede Eingabe wird sofort gespeichert.</div><button type="button" class="btn btn-rot asfertig" style="height:46px;font-size:16px;margin-top:8px" onclick="asDlgZu()">Fertig</button></div>`}
+    ${zu?"":`<div class="asnachbox ${truppFehlt(t).length?"":"ok"}"><div class="asnachtitel">${truppFehlt(t).length?"⚠ Nachtragen: "+truppFehlt(t).join(", "):"Besetzung"}</div>${truppMitgl(t).map(nr=>astmZeile(Object.assign({id:asDlgTid},t),nr,false,false)).join("")}${truppMitgl(t).some(nr=>!(+t.mitglieder[nr].druck>0))?`<button type="button" class="btn btn-grau asvoll" data-asdall="${asDlgTid}">Alle voll (${[...new Set(truppMitgl(t).filter(nr=>!(+t.mitglieder[nr].druck>0)).map(nr=>nennVon(t.mitglieder[nr])))].join("/")} bar)</button>`:""}<div class="hinweis" style="margin:4px 0 0">Namen antippen, um das Mitglied zu ändern. Jede Eingabe wird sofort gespeichert.</div><button type="button" class="btn btn-rot asfertig" style="height:46px;font-size:16px;margin-top:8px" onclick="asDlgZu()">Fertig</button></div>`}
     ${zu||st!=="aktiv"?"":`<div class="asstart"><span>Start <b>${uhr(t.start)}</b></span><button type="button" data-asshift="-5">−5 min</button><button type="button" data-asshift="-1">−1 min</button><button type="button" data-asshift="1">+1 min</button></div>`}
     ${zu||st!=="beendet"?"":`<div class="feingabe"><input id="rueckText" type="text" value="${esc(t.rueck||"")}" placeholder="Kurzinfo bei Rückkehr (optional)" autocomplete="off"><button type="button" class="btn btn-grau" id="rueckOk">Speichern</button></div>`}
     ${zu?"":`<div class="shgruppe" style="position:static;padding-top:12px">Meldung vom Trupp eintragen</div><div class="fschnell" style="margin-top:4px">${FUNK_SCHNELL.map(x=>`<button type="button" data-funkschnell="${esc(x)}">${esc(x)}</button>`).join("")}</div>
@@ -1926,7 +1943,7 @@ document.addEventListener("click",ev=>{
   }
   if(!asOffen)return;
   const k=ev.target.closest("[data-astile]"); if(!k||ev.target.closest("[data-asende]"))return;
-  asDlgTid=k.dataset.astile; asDlgZeichnen(); $("asTruppDlg").style.display="block";
+  asDlgTid=k.dataset.astile; asDruckTast=null; asDruckOffen=aktuell.status==="abgeschlossen"?null:druckNaechster(asDlgTid); asDlgZeichnen(); $("asTruppDlg").style.display="block";
 });
 document.addEventListener("keydown",ev=>{ if(ev.key==="Enter"&&ev.target.id==="funkText"){ ev.preventDefault(); funkEintragen(ev.target.value); ev.target.value=""; } });
 
@@ -2097,10 +2114,15 @@ function asTruppNeu(){
 }
 document.addEventListener("click",ev=>{
   if(!asOffen||!aktuell||aktuell.status==="abgeschlossen")return;
+  const dw=ev.target.closest("[data-asdw]"), dv=ev.target.closest("[data-asdv]"), dk=ev.target.closest("[data-asdk]"), da=ev.target.closest("[data-asdall]");
+  if(dw){ asDruckTast=null; asDruckOffen=asDruckOffen===dw.dataset.asdw?null:dw.dataset.asdw; zeichneAS(aktuell); return; }
+  if(dv){ const [tid,nr,v]=dv.dataset.asdv.split("|"); asDruckOffen=null; schreibe({asTrupps:{[tid]:{mitglieder:{[nr]:{druck:+v}}}}}); asDruckOffen=druckNaechster(tid); zeichneAS(aktuell); return; }
+  if(dk){ asDruckOffen=null; asDruckTast=dk.dataset.asdk; zeichneAS(aktuell); const inp=document.querySelector(`input[data-asd="${asDruckTast}"]`); if(inp){ inp.focus(); inp.select(); } return; }
+  if(da){ const tid=da.dataset.asdall, t=(aktuell.asTrupps||{})[tid]; if(!t)return; const m={}; truppMitgl(t).forEach(nr=>{ if(!(+t.mitglieder[nr].druck>0))m[nr]={druck:nennVon(t.mitglieder[nr])}; }); asDruckOffen=null; if(Object.keys(m).length)schreibe({asTrupps:{[tid]:{mitglieder:m}}}); return; }
   const gb=ev.target.closest("[data-asger]");
   if(gb){ const [tid,nr]=gb.dataset.asger.split("|"), neu=gb.dataset.nenn==="200"?300:200;
     gb.dataset.nenn=neu; gb.classList.toggle("g200",neu===200); gb.querySelector("small").textContent=neu+"er";   // sofort sichtbar, auch wenn gerade getippt wird
-    const dk=gb.closest(".druck"), inp=dk.querySelector("input"); dk.className="druck "+(+inp.value>0?druckKlasse(inp.value,neu):"fehlt");
+    const dk=gb.closest(".druck"), inp=dk.querySelector("input,.dwert"), wert=inp.tagName==="INPUT"?inp.value:inp.textContent; dk.className="druck "+(+wert>0?druckKlasse(wert,neu):"fehlt");
     schreibe({asTrupps:{[tid]:{mitglieder:{[nr]:{geraet:neu}}}}}); return; }
   const pk=ev.target.closest("[data-aspick]"); if(pk){ asPickTid=pk.dataset.aspick; zeichneAS(aktuell); return; }
   const b=ev.target.closest("[data-asadd],[data-asrm],[data-asstart],[data-asende],[data-asdel],[data-asohne]"); if(!b)return;
@@ -2125,7 +2147,7 @@ document.addEventListener("input",ev=>{
     textTimer["asd"+i.dataset.asd]=setTimeout(()=>schreibe({asTrupps:{[tid]:{mitglieder:{[nr]:{druck:v}}}}}),400); }
   else if(i.dataset.ast){ const tid=i.dataset.ast; clearTimeout(textTimer["ast"+tid]); textTimer["ast"+tid]=setTimeout(()=>schreibe({asTrupps:{[tid]:{auftrag:i.value}}}),500); }
 });
-document.addEventListener("focusout",ev=>{ const i=ev.target; if(asOffen&&i.dataset&&(i.dataset.asd||i.dataset.ast)&&aktuell)setTimeout(()=>{ if(aktuell&&asOffen)zeichneAS(aktuell); },120); });
+document.addEventListener("focusout",ev=>{ const i=ev.target; if(asOffen&&i.dataset&&(i.dataset.asd||i.dataset.ast)&&aktuell){ if(i.dataset.asd)asDruckTast=null; setTimeout(()=>{ if(aktuell&&asOffen)zeichneAS(aktuell); },450); } });
 
 // Longpress auf eine Person = Einsatzleiter setzen / entfernen
 let lpTimer=null, lpAusgeloest=false;
