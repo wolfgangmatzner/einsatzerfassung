@@ -265,6 +265,18 @@
   .asneu{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:64px;margin:12px 0 14px;border:2px dashed #ea580c;border-radius:14px;background:#fff7ed;color:#c2410c;font-size:19px;font-weight:700;font-family:inherit}
   .asneu span{font-size:30px;line-height:1;font-weight:600}
   .asneu:active{background:#ffedd5}
+  .aspsuche{width:100%;font-size:16px;padding:11px 12px;border:2px solid var(--rand);border-radius:10px;font-family:inherit;margin-bottom:8px}
+  .aspick{display:grid;grid-template-columns:1fr;gap:6px}
+  @media(min-width:700px){.aspick{grid-template-columns:1fr 1fr}}
+  @media(min-width:1000px){.aspick{grid-template-columns:1fr 1fr 1fr}}
+  .aspk{display:flex;align-items:center;gap:10px;min-height:50px;padding:6px 10px;border:2px solid var(--rand);border-radius:12px;background:#fff;font:inherit;text-align:left;color:var(--text);cursor:pointer;min-width:0}
+  .aspk .hk{flex:none;width:22px;height:22px;border-radius:6px;border:2px solid #9ca3af;background:#fff}
+  .aspk.da{background:#dcfce7;border-color:#86efac}
+  .aspk.da .hk{background:#15803d;border-color:#15803d;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");background-size:16px;background-position:center;background-repeat:no-repeat}
+  .aspk .nr{flex:none;width:34px;font-family:ui-monospace,monospace;font-size:14px;color:#6b7280}
+  .aspk .name{flex:1;min-width:0;font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .aspk:active{border-color:#ea580c}
+  .asptrenn{grid-column:1/-1;font-size:13px;font-weight:700;letter-spacing:.3px;color:#6b7280;border-bottom:2px solid var(--rand);padding:10px 2px 5px}
   .asohne{display:block;width:100%;height:46px;font-size:15px;margin:10px 0 2px;padding:0 10px}
   .astm .n .platz{background:#fff7ed;border:2px dashed #ea580c;color:#9a3412;border-radius:8px;padding:7px 2px;width:100%;white-space:nowrap;font-size:13px;font-weight:700;font-family:inherit}
   .asnach,.asstart{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 0;font-size:14px;color:#6b7280}
@@ -710,6 +722,7 @@
     <div class="shkopf"><div><div class="shtitel">Einstellungen</div><div class="shsub" id="einstInfo"></div></div><button type="button" class="shzu" onclick="einstZu()">×</button></div>
     <button type="button" class="einstz" onclick="einstMitglieder()">Mitgliederliste bearbeiten<small class="pwhinweis"></small></button>
     <button type="button" class="einstz" onclick="einstZu();statOeffnen()">Statistik<small class="pwhinweis"></small></button>
+    <button type="button" class="einstz" onclick="einstZu();adminFrei('Atemschutztauglichkeit importieren',asImpOeffnen)">Atemschutztauglichkeit importieren<small id="asImpStand"></small></button>
     <button type="button" class="einstz" onclick="einstZu();adminFrei('Passwörter ändern',pwAendOeffnen)">Passwörter ändern<small class="pwhinweis"></small></button>
     <button type="button" class="einstz" onclick="einstZu();updatePruefen(true)">Nach neuer Version suchen</button>
     <button type="button" class="einstz" onclick="einstZu();logout()">Abmelden</button>
@@ -720,6 +733,15 @@
     <div class="shkopf"><div><div class="shtitel" id="pwTitel"></div><div class="shsub">Bitte Admin-Passwort eingeben</div></div><button type="button" class="shzu" onclick="pwZu()">×</button></div>
     <div class="feingabe" style="margin-top:12px"><input id="adminPw" type="password" placeholder="Admin-Passwort" autocomplete="off" enterkeyhint="go"><button type="button" class="btn btn-rot" id="adminPwOk" onclick="pwOk()">Öffnen</button></div>
     <div class="hinweis" id="adminPwFehler" style="color:var(--rot);min-height:20px"></div>
+  </div>
+</div>
+<div id="asImpDlg" class="dialog sheet" style="align-items:flex-start" onclick="if(event.target===this)asImpZu()">
+  <div class="box" style="margin-top:calc(60px + env(safe-area-inset-top))">
+    <div class="shkopf"><div><div class="shtitel">Atemschutztauglichkeit importieren</div><div class="shsub" id="asImpSub"></div></div><button type="button" class="shzu" onclick="asImpZu()">×</button></div>
+    <div class="hinweis" style="margin:10px 0">FDISK-Export (CSV) mit den Spalten FW-Nr, StbNr, Untersuchtungsart, Untersuchtungsdatum und Tauglichkeitsart wählen. Als tauglich gilt, wessen jüngste Atemschutztauglichkeit mit „tauglich“ eingetragen ist. Alle anderen Mitglieder werden auf nicht tauglich gesetzt.</div>
+    <input id="asImpDatei" type="file" accept=".csv,text/csv,text/plain" style="width:100%;font-size:16px;margin-bottom:10px">
+    <div id="asImpErgebnis" class="hinweis" style="font-size:15px;color:var(--text);min-height:22px"></div>
+    <div class="ffakt" style="margin-top:12px"><button type="button" class="btn btn-grau" onclick="asImpZu()">Abbrechen</button><button type="button" class="btn btn-rot" id="asImpOk" disabled style="opacity:.45" onclick="asImpSpeichern(this)">Übernehmen</button></div>
   </div>
 </div>
 <div id="pwAendDlg" class="dialog sheet" style="align-items:flex-start" onclick="if(event.target===this)pwAendZu()">
@@ -828,7 +850,9 @@ const FZFARBEN = {HLF3:"#1d4ed8",LFW:"#7c3aed",KDO:"#0f766e",MTF:"#be185d",LAST:
 let MANNSCHAFT=[], RESERVE=[];
 const $=id=>document.getElementById(id);
 const NAMEN={};
+const AS_T=new Set();   // Standesbuchnummern der atemschutztauglichen Mitglieder (Merkmal mitglieder.as_tauglich, aus dem FDISK-Export importiert)
 function mitgliederSetzen(liste){
+  AS_T.clear(); liste.forEach(m=>{ if(m.as_tauglich)AS_T.add(String(m.nr)); });
   MANNSCHAFT=liste.filter(m=>m.gruppe!=="r").map(m=>[m.nr,m.name]);
   RESERVE=liste.filter(m=>m.gruppe==="r").map(m=>[m.nr,m.name]);
   Object.keys(NAMEN).forEach(k=>delete NAMEN[k]); MANNSCHAFT.concat(RESERVE).forEach(([n,name])=>NAMEN[n]=name);
@@ -859,7 +883,7 @@ const sb=window.supabase?window.supabase.createClient(SB_URL,SB_KEY,{auth:{persi
 let sbAdmin=null;   // zweite, nicht gespeicherte Admin-Sitzung nur für die Mitgliederpflege
 function sbFehler(e){ const msg=(e&&(e.message||e.error_description||e.code))||"Fehler"; throw {code:e&&e.code||"sb",message:msg}; }
 function rolleAus(session){ return session&&session.user ? ((session.user.app_metadata||{}).rolle==="admin"?"admin":"user") : null; }
-async function mitgliederLaden(){ const {data,error}=await sb.from("mitglieder").select("nr,name,gruppe").order("name"); if(error)sbFehler(error); return data; }
+async function mitgliederLaden(){ const {data,error}=await sb.from("mitglieder").select("nr,name,gruppe,as_tauglich").order("name"); if(error)sbFehler(error); return data; }
 // Lokaler Zwischenspeicher (für Betrieb ohne Netz)
 let cache={liste:[],mitglieder:[],rolle:null}; try{cache=Object.assign(cache,JSON.parse(localStorage.getItem("ffa-cache")||"{}"))}catch(e){}
 let letzteListe=cache.liste||[];
@@ -895,6 +919,7 @@ async function api(a,body,opts={}){
     case "patch": { const {data,error}=await sb.rpc("einsatz_patch",{p_id:body.id,p_patch:body.patch}); if(error)sbFehler(error); return {ok:true}; }
     case "loeschen": { const c=sbAdmin||sb; const {data:objs}=await c.storage.from("fotos").list(body.id,{limit:1000}); if(objs&&objs.length)await c.storage.from("fotos").remove(objs.map(o=>body.id+"/"+o.name));
       const {error}=await c.from("einsaetze").delete().eq("id",body.id); if(error)sbFehler(error); return {ok:true}; }
+    case "as_setzen": { const {data,error}=await (sbAdmin||sb).rpc("atemschutz_setzen",{p_nrs:body.nrs}); if(error)sbFehler(error); return {ok:true,anzahl:data,mitglieder:await mitgliederLaden()}; }
     case "pw_wehr": { const {error}=await (sbAdmin||sb).rpc("wehr_passwort_setzen",{p_pw:body.pw}); if(error)sbFehler(error); return {ok:true}; }
     case "pw_admin": { const {error}=await (sbAdmin||sb).auth.updateUser({password:body.pw}); if(error)throw {code:"fehler",message:error.message}; return {ok:true}; }
     case "upload": { const einsatz=body.get("einsatz"), blob=body.get("foto"); const pfad=einsatz+"/"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)+".jpg";
@@ -1337,7 +1362,7 @@ function zusammenfassung(ziel,e){
     case "secUf": return liste(ufListe(e).map(f=>f.kennzeichen||f.marke||"Fahrzeug"),4);
     case "secPers": return liste(persListe(e).map(f=>(f.name||"Person")+(f.rolle?" ("+f.rolle.replace(/\/.*$/,"")+")":"")),3);
     case "secDoku": { const n=dokuListe(e).length; return n?n+" Foto"+(n>1?"s":""):""; }
-    case "secAS": { const a=asZahlen(e);const z=[];const tr=asListe(e);const lauf=asTrupps(e).filter(t=>truppStatus(t)==="aktiv").length;if(lauf)z.push(lauf+" Trupp"+(lauf>1?"s":"")+" im Einsatz");const fertig=asTrupps(e).filter(t=>truppStatus(t)==="beendet").length;if(fertig)z.push(fertig+" Trupp"+(fertig>1?"s":"")+" beendet");if(tr.length)z.push("AS: "+(tr.length<=4?tr.map(nr=>kurzName(NAMEN[nr])).join(", "):tr.length+" Träger gewählt"));if(+a.trupps)z.push(a.trupps+" Trupp"+(a.trupps>1?"s":""));if(+a.traeger)z.push(a.traeger+" Träger");if(+a.geraete)z.push(a.geraete+" Geräte");return z.join(", "); }
+    case "secAS": { const a=asZahlen(e);const z=[];const tr=asListe(e);const lauf=asTrupps(e).filter(t=>truppStatus(t)==="aktiv").length;if(lauf)z.push(lauf+" Trupp"+(lauf>1?"s":"")+" im Einsatz");const fertig=asTrupps(e).filter(t=>truppStatus(t)==="beendet").length;if(fertig)z.push(fertig+" Trupp"+(fertig>1?"s":"")+" beendet");if(+a.trupps)z.push(a.trupps+" Trupp"+(a.trupps>1?"s":""));if(+a.traeger)z.push(a.traeger+" Träger");if(+a.geraete)z.push(a.geraete+" Geräte");return z.join(", "); }
     case "secSchaden": { const a=e.schaden||{};const z=[];[["gerettet","gerettet"],["geborgen","geborgen"],["verletzt","verletzt"],["tot","tot"],["tiere","Tiere"]].forEach(([k,l])=>{if(+a[k])z.push(a[k]+" "+l)});return z.join(", "); }
     case "secMat": { const m=e.material||{};const z=[];if(+m.oel)z.push(m.oel+" kg Ölbindemittel");if(+m.schaum)z.push(m.schaum+" l Schaummittel");if(+m.wasser)z.push(m.wasser+" l Löschwasser");if(m.sonst)z.push(m.sonst);return z.join(", "); }
     case "secTb": { const l=tbListe(e), x=l[l.length-1]; return x?l.length+" Einträge · zuletzt "+uhrS(x.t).slice(0,5)+" "+(x.nr==null?"":"Trupp "+x.nr+": ")+x.text.slice(0,50):""; }
@@ -1673,21 +1698,27 @@ function rollenFrei(e,nr){ // Patch, der alle Funktionen dieser Person löscht
 }
 const AS="__AS__";   // Sonderwert für zuteilFz: Atemschutz-Auswahl
 const istDa=(e,nr)=>!!((e.m||{})[nr]||(e.r||{})[nr]);
-function asListe(e){ const a=e.as||{}; return Object.keys(a).filter(nr=>a[nr]&&istDa(e,nr)&&NAMEN[nr]).sort((x,y)=>NAMEN[x].localeCompare(NAMEN[y],"de")); }
+// Atemschutz: Wer tauglich ist, steht fest in der Mitgliederliste (AS_T). e.as[nr] markiert zusätzlich Mitglieder, die in diesem Einsatz
+// ausnahmsweise in einen Trupp genommen wurden, obwohl sie nicht als tauglich geführt sind.
+const asFaehig=(e,nr)=>AS_T.has(String(nr))||!!((e.as||{})[nr]);
+const nachName=(x,y)=>NAMEN[x].localeCompare(NAMEN[y],"de");
+const gruppeVon=nr=>RESERVE.some(([n])=>String(n)===String(nr))?"r":"m";
+function asListe(e){ return Object.keys(NAMEN).filter(nr=>istDa(e,nr)&&asFaehig(e,nr)).sort(nachName); }      // anwesend und atemschutzfähig
+function asAbwesend(e){ return Object.keys(NAMEN).filter(nr=>!istDa(e,nr)&&AS_T.has(nr)).sort(nachName); }      // tauglich, aber (noch) nicht anwesend
+function asEingesetzt(e){ const s=[]; asTrupps(e).filter(t=>t.start).forEach(t=>truppMitgl(t).forEach(nr=>{ if(!istPlatz(nr)&&!s.includes(nr))s.push(nr); })); return s; }
 function setzeHtml(el,html){ if(el._html!==html){ el.innerHTML=html; el._html=html; } }
 function zeichneZuteil(e){
-  const fz=(e.fz||[]), zt=e.zuteilung||{}, as=e.as||{};
-  if(zuteilFz&&zuteilFz!==AS&&!fz.includes(zuteilFz)){ zuteilFz=null; sortAnwenden(); }
+  const fz=(e.fz||[]), zt=e.zuteilung||{};
+  if(zuteilFz&&!fz.includes(zuteilFz)){ zuteilFz=null; sortAnwenden(); }
   $("zuteil").style.display="";
   const nAs=asListe(e).length;
-  setzeHtml($("zuteilChips"),fz.map(f=>{ const n=Object.keys(zt).filter(nr=>zt[nr]===f&&istDa(e,nr)).length; return `<button type="button" class="chip ${zuteilFz===f?"an":""}" style="--fzf:${FZFARBEN[f]||"#4f46e5"}" data-zfz="${f}">${f}${n?" · "+n:""}</button>`; }).join("")
-    +`<button type="button" class="chip as ${zuteilFz===AS?"an":""}" data-zfz="${AS}">Atemschutz${nAs?" · "+nAs:""}</button>`);
+  setzeHtml($("zuteilChips"),fz.map(f=>{ const n=Object.keys(zt).filter(nr=>zt[nr]===f&&istDa(e,nr)).length; return `<button type="button" class="chip ${zuteilFz===f?"an":""}" style="--fzf:${FZFARBEN[f]||"#4f46e5"}" data-zfz="${f}">${f}${n?" · "+n:""}</button>`; }).join(""));
+  $("zuteil").style.display=fz.length?"":"none";
   const h=$("zuteilHinweis"); h.style.display=zuteilFz?"":"none"; h.classList.toggle("as",zuteilFz===AS);
-  if(zuteilFz===AS)h._html=h.innerHTML="<b>Atemschutz</b> gewählt: Namen antippen = Atemschutzträger / wieder lösen (unabhängig vom Fahrzeug). Haken vorne antippen = Mitglied ganz abmelden. „Atemschutz“ nochmal antippen = fertig.";
-  else if(zuteilFz)h.innerHTML="<b>"+esc(zuteilFz)+"</b> gewählt: Namen antippen = zuteilen / wieder lösen. Haken vorne antippen = Mitglied ganz abmelden. Lang drücken = Maschinist (MA), nochmal lang = Gruppenkommandant (GK). Fahrzeug nochmal antippen = fertig.";
+  if(zuteilFz)h.innerHTML="<b>"+esc(zuteilFz)+"</b> gewählt: Namen antippen = zuteilen / wieder lösen. Haken vorne antippen = Mitglied ganz abmelden. Lang drücken = Maschinist (MA), nochmal lang = Gruppenkommandant (GK). Fahrzeug nochmal antippen = fertig.";
   document.querySelectorAll(".person").forEach(p=>{
     const nr=p.querySelector("input").dataset.nr, da=istDa(e,nr), f=da&&fz.includes(zt[nr])?zt[nr]:"";
-    const ro=f?rolleVon(e,nr):"", istAs=da&&!!as[nr];
+    const ro=f?rolleVon(e,nr):"", istAs=da&&asFaehig(e,nr);
     const fb=p.querySelector(".fzb"); fb.textContent=f?((ro?ro+" ":"")+f):""; fb.style.background=f?(FZFARBEN[f]||"#4f46e5"):"";
     p.style.setProperty("--fzf",FZFARBEN[zuteilFz]||"#6366f1");
     p.querySelector(".asb").textContent=istAs?"AS":"";
@@ -1696,7 +1727,7 @@ function zeichneZuteil(e){
   });
   const n=asListe(e);
   sortAnwenden();
-  setzeHtml($("asNamen"),n.length?"<b>Atemschutzträger ("+n.length+"):</b> "+esc(n.map(nr=>NAMEN[nr]).join(", ")):"Atemschutzträger in der Mannschaftsliste über „Atemschutz“ auswählen.");
+  setzeHtml($("asNamen"),n.length?"<b>Atemschutztauglich anwesend ("+n.length+"):</b> "+esc(n.map(nr=>kurzName(NAMEN[nr])).join(", ")):(AS_T.size?"Noch kein atemschutztaugliches Mitglied anwesend.":"Atemschutztauglichkeit ist noch nicht importiert (Optionen → Atemschutztauglichkeit importieren)."));
 }
 document.addEventListener("click",ev=>{
   const b=ev.target.closest("[data-zfz]"); if(!b||!aktuell||aktuell.status==="abgeschlossen")return;
@@ -1705,7 +1736,6 @@ document.addEventListener("click",ev=>{
 function zuteilTipp(p){ // Tipp auf eine Person bei gewähltem Fahrzeug
   setTimeout(sucheLeeren,0);
   const inp=p.querySelector("input"), nr=inp.dataset.nr, g=inp.dataset.gruppe, e=aktuell;
-  if(zuteilFz===AS){ schreibe((e.as||{})[nr]&&inp.checked?{as:{[nr]:null}}:{[g]:{[nr]:true},as:{[nr]:true}}); return; }
   const patch={}, frei=rollenFrei(e,nr);
   if((e.zuteilung||{})[nr]===zuteilFz&&inp.checked){ patch.zuteilung={[nr]:null}; }
   else { patch[g]={[nr]:true}; patch.zuteilung={[nr]:zuteilFz}; }
@@ -1788,9 +1818,9 @@ function astmZeile(t,nr,zu,mitX){ const m=t.mitglieder||{}, id=t.id||asDlgTid;
 function truppFehlt(t){ const l=truppMitgl(t), m=t.mitglieder||{}, f=[]; if(l.some(istPlatz))f.push("Namen"); if(l.some(nr=>!(+m[nr].druck>0)))f.push("Druck"); if(l.some(nr=>!m[nr].tm))f.push("Totmann"); return f; }
 function zeichneAS(e){
   $("kopf").innerHTML='Atemschutzüberwachung<small>'+esc([e.einsatz||kurz(e.art)||wort(e),ortText(e)].filter(Boolean).join(" · "))+'</small>';
-  const ae=document.activeElement; if(ae&&ae.dataset&&(ae.dataset.asd||ae.dataset.ast))return;   // nicht neu zeichnen, während getippt wird (auch beim Nacherfassen im Trupp-Dialog)
+  const ae=document.activeElement; if(ae&&ae.dataset&&(ae.dataset.asd||ae.dataset.ast||"asps" in ae.dataset))return;   // nicht neu zeichnen, während getippt wird (auch beim Nacherfassen im Trupp-Dialog)
   if(ae&&(ae.id==="funkText"||ae.id==="rueckText")){ asDlgZeichnen(true); return; }
-  const zu=e.status==="abgeschlossen", l=asTrupps(e), gebunden=asGebunden(e), frei=asListe(e).filter(nr=>!gebunden.has(nr)).concat(gaesteFrei(e,gebunden));
+  const zu=e.status==="abgeschlossen", l=asTrupps(e), gebunden=asGebunden(e), frei=asListe(e).filter(nr=>!gebunden.has(nr)).concat(gaesteFrei(e,gebunden)), abw=asAbwesend(e).filter(nr=>!gebunden.has(nr));
   $("asNeuBtn").style.display=zu?"none":"";
   const kn=knAS, knK=nr=>istPlatz(nr)?["Führer","Mann 1","Mann 2"][+String(nr)[1]-1]||"Mann":knAS(nr);   // auf den schmalen Kacheln gekürzt
   // laufender Trupp: kompakte Kachel, mehrere nebeneinander
@@ -1805,9 +1835,15 @@ function zeichneAS(e){
   const vorbKarte=t=>{ const m=t.mitglieder||{}, ml=truppMitgl(t), voll=ml.length>=TRUPPGROESSE;
     if(!voll){
       return `<div class="astrupp vorb"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="sub">Mitglieder wählen · ${ml.length}/${TRUPPGROESSE}</span></div>
-        ${zu?"":`<div class="aswahl">${ml.map(nr=>`<button type="button" class="drin" data-asrm="${t.id}|${nr}">✓ ${esc(kn(nr))}</button>`).join("")}${frei.map(nr=>`<button type="button" class="frei" data-asadd="${t.id}|${nr}">${esc(kn(nr))}</button>`).join("")}<button type="button" class="frei" style="border-color:#9ca3af;background:#fff;color:#374151" data-asmehr="${t.id}">+ anderes Mitglied …</button></div>
+        ${zu?"":`${ml.length?`<div class="aswahl">${ml.map(nr=>`<button type="button" class="drin" data-asrm="${t.id}|${nr}">✓ ${esc(kn(nr))}</button>`).join("")}</div>`:""}
         <button type="button" class="btn btn-as asohne" data-asohne="${t.id}">${ml.length?"Rest ohne Namen":"Ohne Namen starten"}</button>
-        <div class="hinweis" style="margin:2px 0 0">Namen können nachgetragen werden, während der Trupp im Einsatz ist.</div>
+        <div class="hinweis" style="margin:2px 0 8px">Namen können nachgetragen werden, während der Trupp im Einsatz ist.</div>
+        <input type="text" class="aspsuche" data-asps placeholder="Name oder Nr. suchen …" autocomplete="off" enterkeyhint="search">
+        <div class="aspick">${frei.map(nr=>NAMEN[nr]?`<button type="button" class="aspk da" data-asaddx="${t.id}|${nr}|${gruppeVon(nr)}" data-such="${esc(NAMEN[nr].toLowerCase())} ${nr}"><span class="hk"></span><span class="nr">${nr}</span><span class="name">${esc(NAMEN[nr])}</span></button>`:`<button type="button" class="aspk da" data-asadd="${t.id}|${nr}" data-such="${esc(kn(nr).toLowerCase())}"><span class="hk"></span><span class="nr">Gast</span><span class="name">${esc(kn(nr))}</span></button>`).join("")}
+          ${abw.length?`<div class="asptrenn">Nicht anwesend (${abw.length}) – wird beim Auswählen auf anwesend gesetzt</div>`:""}
+          ${abw.map(nr=>`<button type="button" class="aspk" data-asaddx="${t.id}|${nr}|${gruppeVon(nr)}" data-such="${esc(NAMEN[nr].toLowerCase())} ${nr}"><span class="hk"></span><span class="nr">${nr}</span><span class="name">${esc(NAMEN[nr])}</span></button>`).join("")}
+          ${frei.length+abw.length?"":'<div class="leer" style="padding:10px">Kein atemschutztaugliches Mitglied frei</div>'}</div>
+        <button type="button" class="btn btn-grau asohne" data-asmehr="${t.id}">+ anderes Mitglied oder Gast …</button>
         <button type="button" class="linkklein" data-asdel="${t.id}">Trupp verwerfen</button>`}</div>`;
     }
     const od=ml.filter(nr=>!(+m[nr].druck>0)).length, ot=ml.filter(nr=>!m[nr].tm).length, fehlt=[]; if(od)fehlt.push(od+"× Startdruck"); if(ot)fehlt.push(ot+"× Totmannwarner");
@@ -1988,17 +2024,15 @@ let asMehrTid=null, asMehrErsatz=null;   // asMehrErsatz = Platzhalter-Schlüsse
 function asMehrZeichnen(){
   const e=aktuell, t=e&&(e.asTrupps||{})[asMehrTid];
   if(!t||(asMehrErsatz?!(t.mitglieder||{})[asMehrErsatz]:(truppStatus(t)!=="vorb"||truppMitgl(t).length>=TRUPPGROESSE))){ $("asMehr").style.display="none"; asMehrErsatz=null; return; }
-  const geb=asGebunden(e), schonFrei=new Set(asMehrErsatz?[]:asListe(e)), q=$("asMehrSuche").value.toLowerCase().trim();
+  const geb=asGebunden(e), schonFrei=new Set(asMehrErsatz?[]:asListe(e).concat(asAbwesend(e))), q=$("asMehrSuche").value.toLowerCase().trim();
   $("asMehrTitel").textContent="Trupp "+(t.nr||"")+" – "+(asMehrErsatz?platzName(asMehrErsatz)+": Name wählen":"Mitglied wählen · "+truppMitgl(t).length+"/"+TRUPPGROESSE);
   const passt=([nr,name])=>!geb.has(String(nr))&&!schonFrei.has(String(nr))&&(!q||name.toLowerCase().includes(q));
   const zeile=([nr,name],g)=>`<button type="button" class="pwahl" data-asaddx="${asMehrTid}|${nr}|${g}"><span class="name">${esc(name)}</span><span class="nr">${nr}</span><span class="plus">+</span></button>`;
-  const istAS=nr=>!!(e.as||{})[nr];
-  const ats=asMehrErsatz?MANNSCHAFT.filter(passt).filter(([nr])=>istDa(e,String(nr))&&istAS(nr)).map(x=>zeile(x,"m")).concat(RESERVE.filter(passt).filter(([nr])=>istDa(e,String(nr))&&istAS(nr)).map(x=>zeile(x,"r"))):[];
-  const da=MANNSCHAFT.filter(passt).filter(([nr])=>istDa(e,String(nr))&&!(asMehrErsatz&&istAS(nr))).map(x=>zeile(x,"m")).concat(RESERVE.filter(passt).filter(([nr])=>istDa(e,String(nr))&&!(asMehrErsatz&&istAS(nr))).map(x=>zeile(x,"r")));
-  const weg=MANNSCHAFT.filter(passt).filter(([nr])=>!istDa(e,String(nr))).map(x=>zeile(x,"m"));
-  const res=RESERVE.filter(passt).filter(([nr])=>!istDa(e,String(nr))).map(x=>zeile(x,"r"));
+  const alle=MANNSCHAFT.filter(passt).map(x=>[x,"m"]).concat(RESERVE.filter(passt).map(x=>[x,"r"]));
+  const teil=(da,as)=>alle.filter(([[nr]])=>istDa(e,String(nr))===da&&asFaehig(e,String(nr))===as).map(([x,g])=>zeile(x,g));
   const grp=(t,l)=>l.length?`<div class="shgruppe">${t} (${l.length})</div>`+l.join(""):"";
-  $("asMehrListe").innerHTML=(grp("Atemschutzträger",ats)+grp("Anwesend, noch kein Atemschutz",da)+grp("Noch nicht anwesend",weg)+grp("Reserve",res))||'<div class="leer">Kein passendes Mitglied</div>';
+  $("asMehrListe").innerHTML=((asMehrErsatz?grp("Atemschutztauglich, anwesend",teil(true,true))+grp("Atemschutztauglich, nicht anwesend",teil(false,true)):"")
+    +grp("Nicht als atemschutztauglich geführt – anwesend",teil(true,false))+grp("Nicht als atemschutztauglich geführt – nicht anwesend",teil(false,false)))||'<div class="leer">Kein passendes Mitglied</div>';
 }
 $("asMehrSuche").addEventListener("input",asMehrZeichnen);
 $("ffVorschlag").innerHTML=FEUERWEHREN.map(f=>`<option value="${f}">`).join("");
@@ -2026,12 +2060,19 @@ document.addEventListener("click",ev=>{
   const on=ev.target.closest("[data-asname]");
   if(on){ const [tid,key]=on.dataset.asname.split("|"); asMehrTid=tid; asMehrErsatz=key; $("asMehrSuche").value=""; $("asMehr").style.display="block"; asMehrZeichnen(); return; }
   const b=ev.target.closest("[data-asaddx]"); if(!b)return;
+  if(!b.closest("#asMehr"))asMehrErsatz=null;   // Tipp in der Auswahl der Vorbereitung, nicht im Blatt
   const [tid,nr,g]=b.dataset.asaddx.split("|"), t=(aktuell.asTrupps||{})[tid]; if(!t||(!asMehrErsatz&&truppMitgl(t).length>=TRUPPGROESSE)||asGebunden(aktuell).has(nr))return;
   schreibe({[g]:{[nr]:true},as:{[nr]:true},asTrupps:{[tid]:{mitglieder:asMehrEintrag(t,nr)}}});
   if(asMehrErsatz){ asMehrErsatz=null; $("asMehr").style.display="none"; return; }
   asMehrZeichnen();
 });
 setInterval(()=>{ document.querySelectorAll(".astimer[data-timer]").forEach(el=>{ const tx=timerText(Date.now()-new Date(el.dataset.timer)); el.textContent=tx; if(el.dataset.plus!=null)el.dataset.len=tx.length+(+el.dataset.plus); }); },1000);
+document.addEventListener("input",ev=>{
+  const i=ev.target; if(!i.dataset||!("asps" in i.dataset))return;
+  const w=i.value.toLowerCase().trim().split(/\s+/).filter(Boolean), box=i.parentNode;
+  box.querySelectorAll(".aspk").forEach(b=>{ const h=b.dataset.such||""; b.style.display=w.every(x=>h.split(" ").some(t=>t.startsWith(x)))?"":"none"; });
+  box.querySelectorAll(".asptrenn").forEach(t=>t.style.display=w.length?"none":"");
+});
 // Trupp beenden: Endzeit = Zeitpunkt des Tippens auf „Trupp Ende“, dazu optional eine Kurzinfo des zurückkehrenden Trupps (asTrupps[id].rueck)
 let asEnde=null;
 const RUECK_SCHNELL=["Alles in Ordnung","Auftrag erledigt","Abgelöst","Brand aus","Person gerettet","Trupp erschöpft"];
@@ -2151,7 +2192,6 @@ function sortAnwenden(){
   // anderweitig zugeteilten] · [nicht Anwesende]. Innerhalb der Blöcke gilt die gewählte Sortierung (A–Z oder Häufigste).
   const e=aktuell, fz=e&&zuteilFz, zt=(e&&e.zuteilung)||{}, rollen=(fz&&fz!==AS&&(e.fzRollen||{})[fz])||{};
   const stufe=nr=>{ if(!e)return 5; const da=istDa(e,nr); if(!da)return 5;
-    if(fz===AS)return (e.as||{})[nr]?2:3;
     if(fz&&zt[nr]===fz)return String(rollen.ma)===nr?0:String(rollen.gk)===nr?1:2;
     return fz&&zt[nr]?4:3; };
   const block=st=>st<3?0:st<5?1:2;
@@ -2160,7 +2200,7 @@ function sortAnwenden(){
     l.sort((a,b)=>a.st-b.st||b.z-a.z||a.i-b.i);
     // Blockköpfe (einklappbar) – nur wenn es mehr als einen Block gibt oder der Block eingeklappt ist
     const anz=[0,0,0]; l.forEach(x=>anz[block(x.st)]++); const mehrere=anz.filter(Boolean).length>1;
-    const titel=[fz===AS?"Atemschutzträger":(fz||""), fz?"Weitere Anwesende":"Anwesend", "Nicht anwesend"];
+    const titel=[fz||"", fz?"Weitere Anwesende":"Anwesend", "Nicht anwesend"];
     const koepfe=[...document.querySelectorAll("#"+id+">.mkopf")]; let k=0, t=0, letzter=-1;
     l.forEach(x=>{ const bl=block(x.st), zu=!!mblockZu[bl];
       if(bl!==letzter){ letzter=bl;
@@ -2318,7 +2358,7 @@ async function pdfErzeugen(btn,einsatz){
     Object.keys(k.stellen||{}).filter(x=>k.stellen[x]).forEach(x=>kz.push(x));
     krWeitere(e).forEach(x=>kz.push(x.text));
     if(kz.length){H("Weitere Kräfte");kz.forEach(z=>P("• "+z))}
-    if(zusammenfassung("secAS",e)){H("Atemschutz");const a=asZahlen(e);const tr=asListe(e);if(tr.length)KV("Atemschutzträger ("+tr.length+")",tr.map(nr=>NAMEN[nr]).join(", "));
+    if(zusammenfassung("secAS",e)){H("Atemschutz");const a=asZahlen(e);const tr=asEingesetzt(e);if(tr.length)KV("Atemschutzträger ("+tr.length+")",tr.map(asName).join(", "));
       asTrupps(e).filter(t=>t.start).forEach(t=>{ const mm=t.mitglieder||{}; KV("Trupp "+(t.nr||""),truppMitgl(t).map(nr=>asName(nr)+" ("+(mm[nr].druck||"–")+" bar"+(nennVon(mm[nr])===200?", 200er":"")+")").join(", ")+" · "+uhr(t.start)+"–"+(t.ende?uhr(t.ende)+" Uhr ("+Math.round((new Date(t.ende)-new Date(t.start))/60000)+" min)":"läuft")+(t.auftrag?" · "+t.auftrag:"")+(t.startErfasst?" · Startzeit nachgestellt":"")+(t.rueck?" · Rückkehr: "+t.rueck:"")); funkListe(t).forEach(x=>{ check(6); doc.setFont("helvetica","normal"); doc.setFontSize(10); const ln=doc.splitTextToSize(uhrS(x.t)+"  "+x.text,R-L-50); doc.text(ln,L+50,y); y+=ln.length*4.8; }); y+=1; });KV("Trupps",a.trupps);KV("Träger",a.traeger);KV("Geräte",a.geraete)}
     if(zusammenfassung("secSchaden",e)){H("Personenschäden");const a=e.schaden||{};KV("Gerettet",a.gerettet);KV("Geborgen",a.geborgen);KV("Verletzt",a.verletzt);KV("Tot",a.tot);KV("Tiere",a.tiere)}
     if(zusammenfassung("secMat",e)){H("Verbrauchsmaterial");const mt=e.material||{};KV("Ölbindemittel",mt.oel?mt.oel+" kg":"");KV("Schaummittel",mt.schaum?mt.schaum+" l":"");KV("Löschwasser",mt.wasser?mt.wasser+" l":"");KV("Sonstiges",mt.sonst)}
@@ -2367,10 +2407,51 @@ function einstZu(){ $("einstDlg").style.display="none"; }
 function einstOeffnen(){
   $("einstInfo").textContent=(aktFF().name+" ("+aktFF().nr+")"+(rolle==="admin"?" · Admin":""))+(BUILD.startsWith("__")?"":" · Version "+BUILD);
   document.querySelectorAll(".pwhinweis").forEach(x=>x.textContent=rolle==="admin"?"":"Admin-Passwort erforderlich");
+  $("asImpStand").textContent="Derzeit "+AS_T.size+" Mitglieder tauglich"+(rolle==="admin"?"":" · Admin-Passwort erforderlich");
   $("einstDlg").style.display="block";
 }
 function einstMitglieder(){ einstZu(); adminFrei("Mitgliederliste bearbeiten",adminOeffnen); }
 // Admin-Bereiche: als Admin angemeldet sofort, sonst erst nach dem Admin-Passwort (gilt nur, solange der Bereich offen ist)
+// ---------- Atemschutztauglichkeit aus dem FDISK-Export übernehmen ----------
+let asImpNrs=null;
+function asImpOeffnen(){ asImpNrs=null; $("asImpDatei").value=""; $("asImpErgebnis").innerHTML=""; asImpKnopf(false); $("asImpSub").textContent=aktFF().name+" · derzeit "+AS_T.size+" Mitglieder atemschutztauglich"; $("asImpDlg").style.display="block"; }
+function asImpZu(){ $("asImpDlg").style.display="none"; asImpNrs=null; api("admin_logout",{}).catch(()=>{}); }
+function asImpKnopf(an){ const b=$("asImpOk"); b.disabled=!an; b.style.opacity=an?"":".45"; }
+// Liest den Export: je Standesbuchnummer zählt der jüngste Eintrag „Atemschutztauglichkeit“; tauglich, wenn die Tauglichkeitsart mit „tauglich“ beginnt
+function asCsvLesen(text,fwNr){
+  const zeilen=text.replace(/^\uFEFF/,"").split(/\r?\n/).filter(z=>z.trim()), tr=(zeilen[0]||"").includes(";")?";":",";
+  const feld=z=>z.split(tr).map(x=>x.trim().replace(/^"|"$/g,"")), kopf=feld(zeilen[0]||"").map(x=>x.toLowerCase());
+  const sp=n=>kopf.findIndex(k=>k.startsWith(n)), iFw=sp("fw-nr"), iNr=sp("stbnr"), iArt=sp("untersuchtungsart")>=0?sp("untersuchtungsart"):sp("untersuchungsart"), iDat=sp("untersuchtungsdatum")>=0?sp("untersuchtungsdatum"):sp("untersuchungsdatum"), iTau=sp("tauglichkeitsart");
+  if(iNr<0||iArt<0||iTau<0)throw new Error("Die Spalten StbNr, Untersuchtungsart und Tauglichkeitsart wurden nicht gefunden.");
+  const tag=d=>{ const m=/^(\d\d)\.(\d\d)\.(\d{4})$/.exec(d||""); return m?m[3]+m[2]+m[1]:""; };
+  const je={}; let fremd=0;
+  zeilen.slice(1).forEach(z=>{ const f=feld(z), nr=String(parseInt(f[iNr])||""); if(!nr)return;
+    if(iFw>=0&&fwNr&&f[iFw].replace(/\D/g,"").replace(/^0+/,"")!==fwNr.replace(/\D/g,"").replace(/^0+/,"")){ fremd++; return; }
+    if(!/tauglichkeit/i.test(f[iArt]))return;
+    const d=iDat>=0?tag(f[iDat]):""; if(!je[nr]||d>=je[nr].d)je[nr]={d,ok:/^tauglich/i.test(f[iTau])}; });
+  const nrs=Object.keys(je);
+  return {tauglich:nrs.filter(n=>je[n].ok), untauglich:nrs.filter(n=>!je[n].ok), fremd};
+}
+$("asImpDatei").addEventListener("change",async ev=>{
+  const f=ev.target.files[0], out=$("asImpErgebnis"); asImpNrs=null; asImpKnopf(false); out.style.color="var(--text)"; if(!f)return;
+  try{
+    const buf=await f.arrayBuffer(); let text; try{ text=new TextDecoder("utf-8",{fatal:true}).decode(buf); }catch(e){ text=new TextDecoder("windows-1252").decode(buf); }
+    const r=asCsvLesen(text,aktFF().nr), bekannt=r.tauglich.filter(n=>NAMEN[n]), unbekannt=r.tauglich.filter(n=>!NAMEN[n]);
+    if(!r.tauglich.length&&!r.untauglich.length)throw new Error(r.fremd?"Die Datei enthält keine Einträge für "+aktFF().name+" ("+aktFF().nr+").":"Keine Einträge zur Atemschutztauglichkeit gefunden.");
+    const neu=bekannt.filter(n=>!AS_T.has(n)), weg=[...AS_T].filter(n=>!bekannt.includes(n)), nm=l=>l.map(n=>NAMEN[n]?kurzName(NAMEN[n]):"Nr. "+n).join(", ");
+    asImpNrs=bekannt.map(Number);
+    out.innerHTML=`<b>${bekannt.length} Mitglieder atemschutztauglich</b>${r.untauglich.length?" · "+r.untauglich.length+" untauglich":""}${r.fremd?" · "+r.fremd+" Zeilen anderer Feuerwehren übersprungen":""}`
+      +(neu.length?`<br>Neu tauglich (${neu.length}): ${esc(nm(neu))}`:"")+(weg.length?`<br>Nicht mehr tauglich (${weg.length}): ${esc(nm(weg))}`:"")+(!neu.length&&!weg.length?"<br>Keine Änderung gegenüber dem jetzigen Stand.":"")
+      +(unbekannt.length?`<br>Nicht in der Mitgliederliste (übersprungen): Nr. ${esc(unbekannt.join(", "))}`:"");
+    asImpKnopf(true);
+  }catch(e){ out.style.color="var(--rot)"; out.textContent="Datei konnte nicht gelesen werden: "+(e.message||e); }
+});
+async function asImpSpeichern(btn){
+  if(!asImpNrs)return; btn.disabled=true; const out=$("asImpErgebnis");
+  try{ const r=await api("as_setzen",{nrs:asImpNrs}); cache.mitglieder=r.mitglieder; cacheSpeichern(); mitgliederSetzen(r.mitglieder); if(aktuell)fuelleFormular(aktuell);
+    $("asImpDlg").style.display="none"; asImpNrs=null; api("admin_logout",{}).catch(()=>{}); setStatus("ok",r.anzahl+" Mitglieder sind jetzt atemschutztauglich."); setTimeout(()=>setStatus("",""),4000); }
+  catch(e){ out.style.color="var(--rot)"; out.textContent="Übernehmen fehlgeschlagen: "+(e.message||e.code||e); btn.disabled=false; }
+}
 function pwAendOeffnen(){ $("pwNeuWehr").value=""; $("pwNeuAdmin").value=""; $("pwAendInfo").textContent=""; $("pwAendSub").textContent=aktFF().name+" · "+aktFF().nr; $("pwAendDlg").style.display="block"; }
 function pwAendZu(){ $("pwAendDlg").style.display="none"; $("pwNeuWehr").value=""; $("pwNeuAdmin").value=""; api("admin_logout",{}).catch(()=>{}); }
 async function pwAendern(was,btn){
@@ -2443,7 +2524,7 @@ function adminZeichnen(){
 function adminFiltern(){
   const q=$("adminSuche").value.trim().toLowerCase();
   document.querySelectorAll("#adminListe .amz").forEach((z,i)=>{ const m=adminMitglieder[i]; z.style.display=!q||!m.name||(m.name.toLowerCase().includes(q)||String(m.nr).startsWith(q))?"":"none"; });
-  const r=adminMitglieder.filter(m=>m.gruppe==="r").length; $("adminAnz").textContent=adminMitglieder.length+" Mitglieder · "+(adminMitglieder.length-r)+" Mannschaft, "+r+" Reserve";
+  const r=adminMitglieder.filter(m=>m.gruppe==="r").length; $("adminAnz").textContent=adminMitglieder.length+" Mitglieder · "+(adminMitglieder.length-r)+" Mannschaft, "+r+" Reserve · "+adminMitglieder.filter(m=>m.as_tauglich).length+" atemschutztauglich";
 }
 $("adminSuche").addEventListener("input",adminFiltern);
 document.addEventListener("click",ev=>{

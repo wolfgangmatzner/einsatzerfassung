@@ -73,16 +73,38 @@ end $$;
 revoke execute on function public.einsatz_patch(uuid, jsonb) from anon, public;
 grant execute on function public.einsatz_patch(uuid, jsonb) to authenticated;
 
+-- Atemschutztauglichkeit als festes Merkmal des Mitglieds (aus dem FDISK-Export importiert)
+alter table public.mitglieder add column if not exists as_tauglich boolean not null default false;
+
+-- Mitgliederliste speichern, ohne das Merkmal as_tauglich zu verlieren
 create or replace function public.mitglieder_setzen(p_liste jsonb) returns void
 language plpgsql security invoker set search_path = '' as $$
 begin
   if not public.ist_admin() then raise exception 'Nur Admin'; end if;
-  delete from public.mitglieder where true;   -- ohne WHERE blockt Supabase (safeupdate) das Löschen über die API
+  delete from public.mitglieder
+   where nr not in (select (e->>'nr')::int from jsonb_array_elements(p_liste) e
+                     where (e->>'nr')::int > 0 and trim(coalesce(e->>'name','')) <> '');
   insert into public.mitglieder (nr, name, gruppe)
   select (e->>'nr')::int, left(trim(e->>'name'),100), case when e->>'gruppe'='r' then 'r' else 'm' end
     from jsonb_array_elements(p_liste) e
-   where (e->>'nr')::int > 0 and trim(coalesce(e->>'name','')) <> '';
+   where (e->>'nr')::int > 0 and trim(coalesce(e->>'name','')) <> ''
+  on conflict (nr) do update set name = excluded.name, gruppe = excluded.gruppe;
 end $$;
+
+-- Atemschutztauglichkeit setzen: genau die übergebenen Nummern sind tauglich, alle anderen nicht
+create or replace function public.atemschutz_setzen(p_nrs jsonb) returns integer
+language plpgsql security invoker set search_path = '' as $$
+declare v_n integer;
+begin
+  if not public.ist_admin() then raise exception 'Nur Admin'; end if;
+  update public.mitglieder m
+     set as_tauglich = exists (select 1 from jsonb_array_elements_text(p_nrs) x where x::int = m.nr)
+   where true;
+  select count(*) into v_n from public.mitglieder where as_tauglich;
+  return v_n;
+end $$;
+revoke all on function public.atemschutz_setzen(jsonb) from public, anon;
+grant execute on function public.atemschutz_setzen(jsonb) to authenticated;
 revoke execute on function public.mitglieder_setzen(jsonb) from anon, public;
 grant execute on function public.mitglieder_setzen(jsonb) to authenticated;
 
