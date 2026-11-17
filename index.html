@@ -227,10 +227,17 @@
   .pwahl .name{font-weight:600;font-size:17px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .pwahl .nr{font-size:13px;color:#9ca3af;font-variant-numeric:tabular-nums}
   .pwahl .plus{width:32px;height:32px;border-radius:50%;background:#ea580c;color:#fff;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none}
-  .gastform{display:grid;grid-template-columns:1fr 1fr auto;gap:8px}
+  .gastform{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .gastform .btn{grid-column:1/-1}
   .gastform input{min-width:0;height:46px;font-size:16px;padding:0 10px;border:2px solid var(--rand);border-radius:10px;font-family:inherit}
   .gastform input:focus{outline:none;border-color:#ea580c}
-  .gastform .btn{height:46px;width:46px;padding:0;font-size:22px}
+  .gastform .btn{height:48px;padding:0;font-size:16px}
+  .asmehrl{max-height:46vh;overflow:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+  .asvzu{display:flex;gap:8px;margin:10px 0 2px}
+  .asvzu .btn{flex:1;height:46px;padding:0 8px;font-size:15px;white-space:nowrap}
+  .astm .n .nmb{display:block;width:100%;background:none;border:none;border-bottom:1.5px dotted #9ca3af;padding:6px 0 4px;text-align:left;font:inherit;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+  .asnachbox.ok{border-color:var(--rand);background:#f9fafb}
+  .asnachbox.ok .asnachtitel{color:#374151}
   .fmeld{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #eef0f3;font-size:16px;align-items:baseline}
   .fmeld .z{font-family:ui-monospace,monospace;font-size:14px;color:#9a3412;font-weight:700;flex:none;font-variant-numeric:tabular-nums}
   .fmeld .t{flex:1;min-width:0;word-break:break-word}
@@ -270,9 +277,7 @@
   @media(min-width:700px){.aspick{grid-template-columns:1fr 1fr}}
   @media(min-width:1000px){.aspick{grid-template-columns:1fr 1fr 1fr}}
   .aspk{display:flex;align-items:center;gap:10px;min-height:50px;padding:6px 10px;border:2px solid var(--rand);border-radius:12px;background:#fff;font:inherit;text-align:left;color:var(--text);cursor:pointer;min-width:0}
-  .aspk .hk{flex:none;width:22px;height:22px;border-radius:6px;border:2px solid #9ca3af;background:#fff}
   .aspk.da{background:#dcfce7;border-color:#86efac}
-  .aspk.da .hk{background:#15803d;border-color:#15803d;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");background-size:16px;background-position:center;background-repeat:no-repeat}
   .aspk .nr{flex:none;width:34px;font-family:ui-monospace,monospace;font-size:14px;color:#6b7280}
   .aspk .name{flex:1;min-width:0;font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .aspk:active{border-color:#ea580c}
@@ -790,11 +795,11 @@
 
 <div id="asMehr" class="dialog sheet" style="z-index:12" onclick="if(event.target===this)this.style.display='none'">
   <div class="box">
-    <div class="shkopf"><div><div class="shtitel" id="asMehrTitel"></div><div class="shsub">Wird automatisch als anwesend und Atemschutzträger eingetragen</div></div><button type="button" class="shzu" onclick="document.getElementById('asMehr').style.display='none'">×</button></div>
-    <input class="suche" id="asMehrSuche" type="search" placeholder="Name suchen …" autocomplete="off" style="margin:10px 0 4px">
-    <div id="asMehrListe" class="shliste"></div>
-    <div class="shgruppe" style="position:static;padding-top:10px">Mitglied einer anderen Feuerwehr</div>
-    <div class="gastform"><input id="gastName" type="text" placeholder="Name" autocomplete="off"><input id="gastFF" type="text" placeholder="Feuerwehr" autocomplete="off" list="ffVorschlag"><button type="button" class="btn btn-as" id="gastOk">+</button></div>
+    <div class="shkopf"><div><div class="shtitel" id="asMehrTitel"></div><div class="shsub">Wird für den Einsatz automatisch als anwesend eingetragen</div></div><button type="button" class="shzu" onclick="document.getElementById('asMehr').style.display='none'">×</button></div>
+    <input class="aspsuche" id="asMehrSuche" type="text" placeholder="Name oder Nr. suchen …" autocomplete="off" enterkeyhint="search" style="margin:12px 0 0">
+    <div id="asMehrListe" class="aspick asmehrl"></div>
+    <div class="asptrenn" style="margin-bottom:8px">Gast einer anderen Feuerwehr</div>
+    <div class="gastform"><input id="gastName" type="text" placeholder="Name" autocomplete="off"><input id="gastFF" type="text" placeholder="Feuerwehr" autocomplete="off" list="ffVorschlag"><button type="button" class="btn btn-as" id="gastOk">Hinzufügen</button></div>
     <datalist id="ffVorschlag"></datalist>
   </div>
 </div>
@@ -1808,9 +1813,11 @@ function zeichneASStatus(e){
   const l=asTrupps(e), akt=l.filter(t=>truppStatus(t)==="aktiv").length, vor=l.filter(t=>truppStatus(t)==="vorb").length, end=l.filter(t=>truppStatus(t)==="beendet").length;
   $("asStatus").textContent=l.length?[akt?akt+" Trupp"+(akt>1?"s":"")+" im Einsatz":"",vor?vor+" in Vorbereitung":"",end?end+" beendet":""].filter(Boolean).join(" · "):"";
 }
+// Zeile der Mitgliederauswahl (Vorbereitung und Auswahl-Blatt): Nummer + Name, Anwesende grün
+function aspkZeile(tid,nr,da){ return `<button type="button" class="aspk ${da?"da":""}" data-asaddx="${tid}|${nr}|${gruppeVon(nr)}" data-such="${esc(NAMEN[nr].toLowerCase())} ${nr}"><span class="nr">${nr}</span><span class="name">${esc(NAMEN[nr])}</span></button>`; }
 // Eine Zeile Mitglied · Startdruck · Totmann (in der Vorbereitung mit ×, im Trupp-Dialog zum Nacherfassen ohne)
 function astmZeile(t,nr,zu,mitX){ const m=t.mitglieder||{}, id=t.id||asDlgTid;
-  return `<div class="astm"><div class="n">${istPlatz(nr)&&!zu?`<button type="button" class="platz" data-asname="${id}|${nr}">${esc(knAS(nr))}</button>`:esc(knAS(nr))}</div>
+  return `<div class="astm"><div class="n">${zu?esc(knAS(nr)):`<button type="button" class="${istPlatz(nr)?"platz":"nmb"}" data-asname="${id}|${nr}">${esc(knAS(nr))}</button>`}</div>
         <div class="druck ${+m[nr].druck>0?druckKlasse(m[nr].druck,nennVon(m[nr])):"fehlt"}"><input type="number" inputmode="numeric" min="0" max="400" placeholder="–" data-asd="${id}|${nr}" value="${m[nr].druck||""}" ${zu?"disabled":""}><button type="button" class="ger ${nennVon(m[nr])===200?"g200":""}" data-asger="${id}|${nr}" data-nenn="${nennVon(m[nr])}" ${zu?"disabled":""}>bar<small>${nennVon(m[nr])}er</small></button></div>
         <label class="tmchip"><input type="checkbox" data-astm="${id}|${nr}" ${m[nr].tm?"checked":""} ${zu?"disabled":""}>Totmann</label>
         ${zu||!mitX?"<span></span>":`<button type="button" class="x" data-asrm="${id}|${nr}">×</button>`}</div>`; }
@@ -1836,14 +1843,15 @@ function zeichneAS(e){
     if(!voll){
       return `<div class="astrupp vorb"><div class="astkopf"><b>Trupp ${t.nr||"?"}</b><span class="sub">Mitglieder wählen · ${ml.length}/${TRUPPGROESSE}</span></div>
         ${zu?"":`${ml.length?`<div class="aswahl">${ml.map(nr=>`<button type="button" class="drin" data-asrm="${t.id}|${nr}">✓ ${esc(kn(nr))}</button>`).join("")}</div>`:""}
+        ${t.id!==asPickTid?`<div class="asvzu"><button type="button" class="btn btn-grau" data-aspick="${t.id}">Mitglieder wählen</button><button type="button" class="btn btn-as" data-asohne="${t.id}">${ml.length?"Rest ohne Namen":"Ohne Namen starten"}</button></div>`:`
         <button type="button" class="btn btn-as asohne" data-asohne="${t.id}">${ml.length?"Rest ohne Namen":"Ohne Namen starten"}</button>
         <div class="hinweis" style="margin:2px 0 8px">Namen können nachgetragen werden, während der Trupp im Einsatz ist.</div>
         <input type="text" class="aspsuche" data-asps placeholder="Name oder Nr. suchen …" autocomplete="off" enterkeyhint="search">
-        <div class="aspick">${frei.map(nr=>NAMEN[nr]?`<button type="button" class="aspk da" data-asaddx="${t.id}|${nr}|${gruppeVon(nr)}" data-such="${esc(NAMEN[nr].toLowerCase())} ${nr}"><span class="hk"></span><span class="nr">${nr}</span><span class="name">${esc(NAMEN[nr])}</span></button>`:`<button type="button" class="aspk da" data-asadd="${t.id}|${nr}" data-such="${esc(kn(nr).toLowerCase())}"><span class="hk"></span><span class="nr">Gast</span><span class="name">${esc(kn(nr))}</span></button>`).join("")}
+        <div class="aspick">${frei.map(nr=>NAMEN[nr]?aspkZeile(t.id,nr,true):`<button type="button" class="aspk da" data-asadd="${t.id}|${nr}" data-such="${esc(kn(nr).toLowerCase())}"><span class="nr">Gast</span><span class="name">${esc(kn(nr))}</span></button>`).join("")}
           ${abw.length?`<div class="asptrenn">Nicht anwesend (${abw.length}) – wird beim Auswählen auf anwesend gesetzt</div>`:""}
-          ${abw.map(nr=>`<button type="button" class="aspk" data-asaddx="${t.id}|${nr}|${gruppeVon(nr)}" data-such="${esc(NAMEN[nr].toLowerCase())} ${nr}"><span class="hk"></span><span class="nr">${nr}</span><span class="name">${esc(NAMEN[nr])}</span></button>`).join("")}
+          ${abw.map(nr=>aspkZeile(t.id,nr,false)).join("")}
           ${frei.length+abw.length?"":'<div class="leer" style="padding:10px">Kein atemschutztaugliches Mitglied frei</div>'}</div>
-        <button type="button" class="btn btn-grau asohne" data-asmehr="${t.id}">+ anderes Mitglied oder Gast …</button>
+        <button type="button" class="btn btn-grau asohne" data-asmehr="${t.id}">+ anderes Mitglied oder Gast …</button>`}
         <button type="button" class="linkklein" data-asdel="${t.id}">Trupp verwerfen</button>`}</div>`;
     }
     const od=ml.filter(nr=>!(+m[nr].druck>0)).length, ot=ml.filter(nr=>!m[nr].tm).length, fehlt=[]; if(od)fehlt.push(od+"× Startdruck"); if(ot)fehlt.push(ot+"× Totmannwarner");
@@ -1860,10 +1868,12 @@ function zeichneAS(e){
   // Protokoll: Start, Meldungen und Ende aller Trupps in zeitlicher Reihenfolge
   const prot=asProtokoll(e);
   const protHtml=prot.slice().reverse().map(x=>`<div class="fmeld ${x.art}"><span class="z">${uhrS(x.t)}</span><span class="tn">T${x.nr||"?"}</span><span class="t">${esc(x.text)}</span></div>`).join("");
+  const offenVorb=l.filter(t=>truppStatus(t)==="vorb"&&truppMitgl(t).length<TRUPPGROESSE);
+  if(!offenVorb.some(t=>t.id===asPickTid))asPickTid=offenVorb.length?offenVorb[offenVorb.length-1].id:null;   // Mitgliederauswahl ist immer nur bei einem Trupp aufgeklappt
   const akt=l.filter(t=>truppStatus(t)==="aktiv"), vor=l.filter(t=>truppStatus(t)==="vorb"), end=l.filter(t=>truppStatus(t)==="beendet").reverse();
   $("asInhalt").innerHTML=(l.length?"":`<div class="leer">Noch kein Trupp angelegt.<br>Der Trupp kann auch ohne Namen starten, die Namen werden dann nachgetragen.</div>`)
     +(akt.length?`<h2>Im Einsatz (${akt.length})</h2><div class="asgrid">${akt.map(aktivKarte).join("")}</div>`:"")
-    +(zu||vor.length?"":`<button type="button" class="asneu" onclick="asTruppNeu()"><span>+</span>Neuer Trupp</button>`)
+    +(zu?"":`<button type="button" class="asneu" onclick="asTruppNeu()"><span>+</span>Neuer Trupp</button>`)
     +(vor.length?`<h2>In Vorbereitung (${vor.length})</h2>${vor.map(vorbKarte).join("")}`:"")
     +(prot.length?`<h2 class="klapp ${asProtOffen?"offen":""}" data-asprot="1">Protokoll (${prot.length})</h2>${asProtOffen?`<div class="asprot">${protHtml}</div>`:""}`:"")
     +(end.length?`<h2>Beendet (${end.length})</h2><div class="asgrid">${end.map(endKarte).join("")}</div>`:"")
@@ -1884,7 +1894,7 @@ function asDlgZeichnen(nurListe){
   $("asTruppBox").innerHTML=`<div class="shkopf"><div><div class="shtitel">Trupp ${t.nr||""} ${st==="aktiv"?`· <span class="astimer" style="font-size:22px" data-timer="${t.start}">${timerText(Date.now()-new Date(t.start))}</span>`:""}</div>
       <div class="shsub">${st==="aktiv"?"ab "+uhr(t.start):uhr(t.start)+"–"+uhr(t.ende)+" ("+dauerText(new Date(t.ende)-new Date(t.start))+")"} · ${truppMitgl(t).map(nr=>esc(knAS(nr))+` <span class="dw ${druckKlasse(m[nr].druck,nennVon(m[nr]))}">${m[nr].druck||"–"}${nennVon(m[nr])===200?"/200":""}</span>`).join(", ")}${t.auftrag?" · "+esc(t.auftrag):""}</div></div>
       <button type="button" class="shzu" onclick="asDlgZu()">×</button></div>
-    ${zu||!truppFehlt(t).length?"":`<div class="asnachbox"><div class="asnachtitel">⚠ Nachtragen: ${truppFehlt(t).join(", ")}</div>${truppMitgl(t).map(nr=>astmZeile(Object.assign({id:asDlgTid},t),nr,false,false)).join("")}<div class="hinweis" style="margin:4px 0 0">${truppMitgl(t).some(istPlatz)?"Gestrichelten Namen antippen, um das Mitglied zu wählen. ":""}Jede Eingabe wird sofort gespeichert.</div><button type="button" class="btn btn-rot asfertig" style="height:46px;font-size:16px;margin-top:8px" onclick="asDlgZu()">Fertig</button></div>`}
+    ${zu?"":`<div class="asnachbox ${truppFehlt(t).length?"":"ok"}"><div class="asnachtitel">${truppFehlt(t).length?"⚠ Nachtragen: "+truppFehlt(t).join(", "):"Besetzung"}</div>${truppMitgl(t).map(nr=>astmZeile(Object.assign({id:asDlgTid},t),nr,false,false)).join("")}<div class="hinweis" style="margin:4px 0 0">Namen antippen, um das Mitglied zu ändern. Jede Eingabe wird sofort gespeichert.</div><button type="button" class="btn btn-rot asfertig" style="height:46px;font-size:16px;margin-top:8px" onclick="asDlgZu()">Fertig</button></div>`}
     ${zu||st!=="aktiv"?"":`<div class="asstart"><span>Start <b>${uhr(t.start)}</b></span><button type="button" data-asshift="-5">−5 min</button><button type="button" data-asshift="-1">−1 min</button><button type="button" data-asshift="1">+1 min</button></div>`}
     ${zu||st!=="beendet"?"":`<div class="feingabe"><input id="rueckText" type="text" value="${esc(t.rueck||"")}" placeholder="Kurzinfo bei Rückkehr (optional)" autocomplete="off"><button type="button" class="btn btn-grau" id="rueckOk">Speichern</button></div>`}
     ${zu?"":`<div class="shgruppe" style="position:static;padding-top:12px">Meldung vom Trupp eintragen</div><div class="fschnell" style="margin-top:4px">${FUNK_SCHNELL.map(x=>`<button type="button" data-funkschnell="${esc(x)}">${esc(x)}</button>`).join("")}</div>
@@ -2025,14 +2035,13 @@ function asMehrZeichnen(){
   const e=aktuell, t=e&&(e.asTrupps||{})[asMehrTid];
   if(!t||(asMehrErsatz?!(t.mitglieder||{})[asMehrErsatz]:(truppStatus(t)!=="vorb"||truppMitgl(t).length>=TRUPPGROESSE))){ $("asMehr").style.display="none"; asMehrErsatz=null; return; }
   const geb=asGebunden(e), schonFrei=new Set(asMehrErsatz?[]:asListe(e).concat(asAbwesend(e))), q=$("asMehrSuche").value.toLowerCase().trim();
-  $("asMehrTitel").textContent="Trupp "+(t.nr||"")+" – "+(asMehrErsatz?platzName(asMehrErsatz)+": Name wählen":"Mitglied wählen · "+truppMitgl(t).length+"/"+TRUPPGROESSE);
-  const passt=([nr,name])=>!geb.has(String(nr))&&!schonFrei.has(String(nr))&&(!q||name.toLowerCase().includes(q));
-  const zeile=([nr,name],g)=>`<button type="button" class="pwahl" data-asaddx="${asMehrTid}|${nr}|${g}"><span class="name">${esc(name)}</span><span class="nr">${nr}</span><span class="plus">+</span></button>`;
+  $("asMehrTitel").textContent="Trupp "+(t.nr||"")+" – "+(asMehrErsatz?(istPlatz(asMehrErsatz)?platzName(asMehrErsatz)+": Name wählen":knAS(asMehrErsatz)+" ersetzen durch"):"Mitglied wählen · "+truppMitgl(t).length+"/"+TRUPPGROESSE);
+  const passt=([nr,name])=>!geb.has(String(nr))&&!schonFrei.has(String(nr))&&(!q||q.split(/\s+/).every(w=>(name.toLowerCase()+" "+nr).split(" ").some(t=>t.startsWith(w))));
   const alle=MANNSCHAFT.filter(passt).map(x=>[x,"m"]).concat(RESERVE.filter(passt).map(x=>[x,"r"]));
-  const teil=(da,as)=>alle.filter(([[nr]])=>istDa(e,String(nr))===da&&asFaehig(e,String(nr))===as).map(([x,g])=>zeile(x,g));
-  const grp=(t,l)=>l.length?`<div class="shgruppe">${t} (${l.length})</div>`+l.join(""):"";
+  const teil=(da,as)=>alle.filter(([[nr]])=>istDa(e,String(nr))===da&&asFaehig(e,String(nr))===as).map(([[nr]])=>aspkZeile(asMehrTid,String(nr),da));
+  const grp=(t,l)=>l.length?`<div class="asptrenn">${t} (${l.length})</div>`+l.join(""):"";
   $("asMehrListe").innerHTML=((asMehrErsatz?grp("Atemschutztauglich, anwesend",teil(true,true))+grp("Atemschutztauglich, nicht anwesend",teil(false,true)):"")
-    +grp("Nicht als atemschutztauglich geführt – anwesend",teil(true,false))+grp("Nicht als atemschutztauglich geführt – nicht anwesend",teil(false,false)))||'<div class="leer">Kein passendes Mitglied</div>';
+    +grp("Nicht als atemschutztauglich geführt – anwesend",teil(true,false))+grp("Nicht als atemschutztauglich geführt – nicht anwesend",teil(false,false)))||'<div class="leer" style="grid-column:1/-1;padding:10px">Kein passendes Mitglied</div>';
 }
 $("asMehrSuche").addEventListener("input",asMehrZeichnen);
 $("ffVorschlag").innerHTML=FEUERWEHREN.map(f=>`<option value="${f}">`).join("");
@@ -2080,9 +2089,10 @@ function asEndeZu(){ asEnde=null; $("asEndeDlg").style.display="none"; }
 function asEndeOk(){ if(!asEnde||!aktuell)return; schreibe({asTrupps:{[asEnde.tid]:{ende:asEnde.zeit,rueck:$("asEndeText").value.trim()}}}); asEndeZu(); }
 $("asEndeSchnell").innerHTML=RUECK_SCHNELL.map(x=>`<button type="button" data-rueck="${x}">${x}</button>`).join("");
 $("asEndeSchnell").addEventListener("click",ev=>{ const b=ev.target.closest("[data-rueck]"); if(!b)return; const i=$("asEndeText"); i.value=(i.value.trim()?i.value.trim()+", ":"")+b.dataset.rueck; });
+let asPickTid=null;   // Trupp in Vorbereitung, dessen Mitgliederauswahl gerade offen ist
 function asTruppNeu(){
   if(!aktuell||aktuell.status==="abgeschlossen")return;
-  const l=asTrupps(aktuell), id="t"+Date.now().toString(36);
+  const l=asTrupps(aktuell), id="t"+Date.now().toString(36); asPickTid=id;
   schreibe({asTrupps:{[id]:{nr:l.reduce((mx,t)=>Math.max(mx,t.nr||0),0)+1,erstellt:new Date().toISOString(),auftrag:"",start:"",ende:"",mitglieder:{}}}});
 }
 document.addEventListener("click",ev=>{
@@ -2092,6 +2102,7 @@ document.addEventListener("click",ev=>{
     gb.dataset.nenn=neu; gb.classList.toggle("g200",neu===200); gb.querySelector("small").textContent=neu+"er";   // sofort sichtbar, auch wenn gerade getippt wird
     const dk=gb.closest(".druck"), inp=dk.querySelector("input"); dk.className="druck "+(+inp.value>0?druckKlasse(inp.value,neu):"fehlt");
     schreibe({asTrupps:{[tid]:{mitglieder:{[nr]:{geraet:neu}}}}}); return; }
+  const pk=ev.target.closest("[data-aspick]"); if(pk){ asPickTid=pk.dataset.aspick; zeichneAS(aktuell); return; }
   const b=ev.target.closest("[data-asadd],[data-asrm],[data-asstart],[data-asende],[data-asdel],[data-asohne]"); if(!b)return;
   const d=b.dataset, T=aktuell.asTrupps||{};
   if(d.asadd){ const [tid,nr]=d.asadd.split("|"), t=T[tid]; if(!t||truppMitgl(t).length>=TRUPPGROESSE||asGebunden(aktuell).has(nr))return;
