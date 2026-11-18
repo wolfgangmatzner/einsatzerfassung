@@ -1154,7 +1154,7 @@ function oeffne(id){
   $("einsatzView").style.display="";$("leisteEinsatz").style.display="";
   asOffen=false; $("asView").style.display="none"; asLeiste(false);
   $("suche").value="";document.querySelectorAll(".person").forEach(p=>p.style.display="");
-  ersteFuellung=true; zuteilFz=null; mblockZu={}; $("scroller").scrollTop=0; sortAnwenden();
+  ersteFuellung=true; zuteilFz=null; mblockZu=mblockLaden(); $("scroller").scrollTop=0; sortAnwenden();
   aktuell=lokalerEinsatz(id); if(aktuell)fuelleFormular(aktuell);  // sofort aus dem Zwischenspeicher, Server-Stand folgt
   pollen();
 }
@@ -2257,8 +2257,10 @@ function sortAnwenden(){
   });
   $("sortBtn").textContent=sortHaeufig?"Häufigste":"A–Z"; $("sortBtn").classList.toggle("an",sortHaeufig);
 }
-let mblockZu={};   // eingeklappte Blöcke der Mannschaftsliste; gilt nur, solange der Einsatz offen ist
-document.addEventListener("click",ev=>{ const k=ev.target.closest(".mkopf"); if(!k)return; const b=k.dataset.mblock; mblockZu[b]=!mblockZu[b]; sortAnwenden(); });
+let mblockZu={};   // eingeklappte Blöcke der Mannschaftsliste, je Einsatz am Gerät gemerkt (localStorage ffa-mblock-<id>)
+function mblockLaden(){ try{ return JSON.parse(localStorage.getItem("ffa-mblock-"+aktuellId)||"{}")||{}; }catch(e){ return {}; } }
+document.addEventListener("click",ev=>{ const k=ev.target.closest(".mkopf"); if(!k)return; const b=k.dataset.mblock; mblockZu[b]=!mblockZu[b];
+  try{ localStorage.setItem("ffa-mblock-"+aktuellId,JSON.stringify(mblockZu)); }catch(e){} sortAnwenden(); });
 function sortWechseln(){ sortHaeufig=!sortHaeufig; try{localStorage.setItem("ffa-sort",sortHaeufig?"h":"a")}catch(e){} sortAnwenden(); }
 
 function statusWechseln(){
