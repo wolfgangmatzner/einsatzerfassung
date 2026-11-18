@@ -1653,6 +1653,18 @@ function bildVerkleinern(file,max){
     img.src=url;
   });
 }
+// Foto-Feld antippen: Auswahl „Foto aufnehmen“ / „Aus Galerie wählen“. Nötig, weil Chrome ab Android 14 bei Bild-Feldern nur noch
+// die Galerie anbietet; die Kamera öffnet sich nur mit dem Attribut capture.
+document.addEventListener("click",ev=>{
+  const lab=ev.target.closest("label.foto"); if(!lab||ev.target.tagName==="INPUT")return;
+  const inp=lab.querySelector("input[data-fotouf]"); if(!inp)return;
+  ev.preventDefault(); const key=inp.dataset.fotouf;
+  const wahl=kamera=>{ $("aktion").style.display="none"; const i=document.querySelector(`input[data-fotouf="${key}"]`); if(!i)return; if(kamera)i.setAttribute("capture","environment"); else i.removeAttribute("capture"); i.value=""; i.click(); };
+  $("aktionTitel").textContent="Foto hinzufügen"; const txt=[...lab.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join("").trim(); $("aktionSub").textContent=txt==="Foto hinzufügen"?"Einsatzdokumentation":txt;
+  const k=$("aktionKnoepfe"); k.innerHTML="";
+  [["Foto aufnehmen","btn-rot",true],["Aus Galerie wählen","btn-grau",false]].forEach(([t,c,kam])=>{ const b=document.createElement("button"); b.type="button"; b.className="btn "+c; b.style.width="100%"; b.textContent=t; b.onclick=()=>wahl(kam); k.appendChild(b); });
+  $("aktion").style.display="block";
+});
 document.addEventListener("change",async ev=>{
   const i=ev.target; if(!i.dataset||!i.dataset.fotouf||!i.files||!i.files[0])return;
   let key=i.dataset.fotouf; if(key==="doku|neu|asset")key="doku|d"+Date.now().toString(36)+"|asset"; const box=i.closest(".foto");
